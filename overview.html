@@ -19,8 +19,9 @@
   .tree-toggle.open::before { content: "▼"; }
   .tree-toggle.closed::before { content: "▶"; }
   .tree-folder { font-weight: 600; color: #2c3e50; cursor: pointer; }
-  .tree-file { color: #2980b9; cursor: pointer; margin-left: 20px; font-size: 14px; }
+  .tree-file { color: #2980b9; margin-left: 20px; font-size: 14px; text-decoration: none; display: block; }
   .tree-file:hover { text-decoration: underline; }
+  a.tree-file { cursor: pointer; }
   .tree-children { margin-left: 16px; }
   .tree-children.collapsed { display: none; }
   .timeline-week { margin-bottom: 24px; }
@@ -164,17 +165,22 @@ function renderCategories() {
         if (child.files && child.files.length > 0) {
           child.files.forEach(file => {
             var title = file.title || file;
-            html += '<div class="tree-file" title="' + escapeHtml(file.path || title) + '">' + escapeHtml(title) + '</div>';
+            var path = file.path || '';
+            if (path) {
+              html += '<a class="tree-file" href="' + escapeHtml(path) + '" target="_blank" rel="noopener noreferrer" title="' + escapeHtml(path) + '">' + escapeHtml(title) + '</a>';
+            } else {
+              html += '<span class="tree-file">' + escapeHtml(title) + '</span>';
+            }
           });
         } else {
-          html += '<div class="tree-empty tree-file">（暂无内容）</div>';
+          html += '<span class="tree-empty tree-file">（暂无内容）</span>';
         }
         html += '</div></div>';
       });
       html += '</div>';
     } else {
       html += '<div class="tree-children" id="children-cat-' + ci + '">';
-      html += '<div class="tree-empty tree-file">（暂无内容）</div>';
+      html += '<span class="tree-empty tree-file">（暂无内容）</span>';
       html += '</div>';
     }
     html += '</div>';
