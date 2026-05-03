@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>个人知识库导览</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; display: flex; height: 100vh; color: #1a1a1a; background: #f8f9fa; }
+  .sidebar { width: 200px; background: #2c3e50; color: #ecf0f1; display: flex; flex-direction: column; padding-top: 20px; flex-shrink: 0; }
+  .sidebar .title { padding: 0 20px 20px; font-size: 14px; font-weight: 700; letter-spacing: 0.5px; }
+  .tab { padding: 10px 20px; cursor: pointer; font-size: 14px; border-left: 3px solid transparent; transition: all 0.15s; }
+  .tab:hover { background: #34495e; }
+  .tab.active { background: #34495e; border-left-color: #3498db; color: #fff; }
+  .main { flex: 1; overflow-y: auto; padding: 30px 40px; }
+  .main h2 { margin-bottom: 20px; font-size: 22px; border-bottom: 2px solid #e0e0e0; padding-bottom: 10px; }
+  .tree-item { margin: 4px 0; }
+  .tree-toggle { cursor: pointer; user-select: none; display: inline-block; width: 16px; color: #7f8c8d; }
+  .tree-toggle.open::before { content: "▼"; }
+  .tree-toggle.closed::before { content: "▶"; }
+  .tree-folder { font-weight: 600; color: #2c3e50; cursor: pointer; }
+  .tree-file { color: #2980b9; cursor: pointer; margin-left: 20px; font-size: 14px; }
+  .tree-file:hover { text-decoration: underline; }
+  .tree-children { margin-left: 16px; }
+  .tree-children.collapsed { display: none; }
+  .timeline-week { margin-bottom: 24px; }
+  .timeline-week h3 { font-size: 16px; color: #2c3e50; margin-bottom: 8px; }
+  .timeline-entry { padding: 6px 0 6px 16px; border-left: 2px solid #ddd; margin-left: 6px; font-size: 14px; }
+  .timeline-entry .date { color: #7f8c8d; font-size: 12px; }
+  .timeline-entry a { color: #2980b9; text-decoration: none; }
+  .timeline-entry a:hover { text-decoration: underline; }
+  .search-input { width: 100%; padding: 10px 14px; font-size: 14px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 20px; outline: none; }
+  .search-input:focus { border-color: #3498db; box-shadow: 0 0 0 2px rgba(52,152,219,0.2); }
+  .search-result { padding: 8px 0; font-size: 14px; border-bottom: 1px solid #eee; }
+  .search-result .match { color: #2c3e50; font-weight: 600; }
+  .search-result .path { color: #7f8c8d; font-size: 12px; }
+  .empty-state { color: #95a5a6; font-size: 14px; margin-top: 40px; text-align: center; }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="title">知识库导览</div>
+  <div class="tab active" data-tab="categories">分类导览</div>
+  <div class="tab" data-tab="timeline">时间线</div>
+  <div class="tab" data-tab="search">搜索</div>
+</div>
+
+<div class="main" id="main"></div>
+
+<script>
+// ============================================================
+// 知识库数据 — 由 AI 在每次整理时同步更新此 JSON
+// ============================================================
+const KB_DATA = {
+  "categories": [
+    {
+      "name": "技术",
+      "children": [
+        { "name": "Java", "files": [], "path": "kb/技术/java/" },
+        { "name": "AI / 机器学习", "files": [], "path": "kb/技术/ai/" },
+        { "name": "系统设计", "files": [], "path": "kb/技术/系统设计/" },
+        { "name": "中间件", "files": [], "path": "kb/技术/中间件/" }
+      ],
+      "path": "kb/技术/"
+    },
+    {
+      "name": "读书笔记",
+      "children": [],
+      "path": "kb/读书笔记/"
+    },
+    {
+      "name": "Action（排查/技巧/摘要）",
+      "children": [],
+      "path": "kb/action/"
+    },
+    {
+      "name": "日常思考",
+      "children": [],
+      "path": "kb/日常思考/"
+    }
+  ],
+  "timeline": [
+    {
+      "week": "2026-W18 (04.27 - 05.03)",
+      "entries": [
+        {
+          "date": "2026-05-03",
+          "summary": "项目初始化：创建 AI 驱动个人知识库，确定目录结构、更新策略、文件格式规范",
+          "links": [
+            {"label": "CLAUDE.md", "url": "CLAUDE.md"},
+            {"label": "设计文档", "url": "docs/superpowers/specs/2026-05-03-ai-auto-knowledge-base-design.md"}
+          ]
+        }
+      ]
+    }
+  ]
+};
+
+// ============================================================
+// Tab 切换
+// ============================================================
+const tabs = document.querySelectorAll('.tab');
+const main = document.getElementById('main');
+
+tabs.forEach(tab => {
+  tab.addEventListener('click', () => {
+    tabs.forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    const tabName = tab.dataset.tab;
+    if (tabName === 'categories') renderCategories();
+    else if (tabName === 'timeline') renderTimeline();
+    else if (tabName === 'search') renderSearch();
+  });
+});
+
+// ============================================================
+// 分类导览
+// ============================================================
+function renderCategories() {
+  let html = '<h2>分类导览</h2>';
+
+  KB_DATA.categories.forEach(cat => {
+    html += '<div class="tree-item">';
+    html += `<span class="tree-toggle open" data-folder="${cat.name}"></span> `;
+    html += `<span class="tree-folder">${cat.name}</span>`;
+
+    if (cat.children && cat.children.length > 0) {
+      html += `<div class="tree-children" id="children-${cat.name}">`;
+      cat.children.forEach(child => {
+        html += '<div class="tree-item">';
+        html += `<span class="tree-toggle open" data-folder="${cat.name}-${child.name}"></span> `;
+        html += `<span class="tree-folder">${child.name}</span>`;
+        html += `<div class="tree-children" id="children-${cat.name}-${child.name}">`;
+        if (child.files && child.files.length > 0) {
+          child.files.forEach(file => {
+            const title = file.title || file;
+            html += `<div class="tree-file" title="${file.path || title}">${title}</div>`;
+          });
+        } else {
+          html += '<div class="tree-file" style="color:#bdc3c7; cursor:default;">（暂无内容）</div>';
+        }
+        html += '</div></div>';
+      });
+      html += '</div>';
+    } else {
+      html += `<div class="tree-children" id="children-${cat.name}">`;
+      html += '<div class="tree-file" style="color:#bdc3c7; cursor:default;">（暂无内容）</div>';
+      html += '</div>';
+    }
+    html += '</div>';
+  });
+
+  main.innerHTML = html;
+  bindTreeToggles();
+}
+
+function bindTreeToggles() {
+  document.querySelectorAll('.tree-toggle').forEach(toggle => {
+    toggle.addEventListener('click', function() {
+      const folder = this.dataset.folder;
+      const children = document.getElementById('children-' + folder);
+      if (children) {
+        children.classList.toggle('collapsed');
+        this.classList.toggle('open');
+        this.classList.toggle('closed');
+      }
+    });
+  });
+}
+
+// ============================================================
+// 时间线
+// ============================================================
+function renderTimeline() {
+  let html = '<h2>时间线</h2>';
+
+  if (KB_DATA.timeline.length === 0) {
+    html += '<div class="empty-state">暂无时间线记录，开始对话后 AI 会自动归档每周摘要。</div>';
+  } else {
+    KB_DATA.timeline.forEach(week => {
+      html += '<div class="timeline-week">';
+      html += `<h3>${week.week}</h3>`;
+      if (week.entries && week.entries.length > 0) {
+        week.entries.forEach(entry => {
+          html += '<div class="timeline-entry">';
+          html += `<span class="date">${entry.date}</span> — ${entry.summary}`;
+          if (entry.links && entry.links.length > 0) {
+            entry.links.forEach(link => {
+              html += ` <a href="${link.url}">${link.label}</a>`;
+            });
+          }
+          html += '</div>';
+        });
+      } else {
+        html += '<div class="timeline-entry" style="color:#bdc3c7;">本周暂无记录</div>';
+      }
+      html += '</div>';
+    });
+  }
+
+  main.innerHTML = html;
+}
+
+// ============================================================
+// 搜索
+// ============================================================
+function renderSearch() {
+  let html = '<h2>搜索</h2>';
+  html += '<input type="text" class="search-input" id="searchInput" placeholder="输入关键词检索知识库...">';
+  html += '<div id="searchResults"></div>';
+  main.innerHTML = html;
+
+  const input = document.getElementById('searchInput');
+  const results = document.getElementById('searchResults');
+  input.addEventListener('input', () => {
+    const q = input.value.trim().toLowerCase();
+    if (!q) { results.innerHTML = ''; return; }
+    const matches = searchKB(q);
+    if (matches.length === 0) {
+      results.innerHTML = '<div class="empty-state">未找到匹配结果</div>';
+    } else {
+      results.innerHTML = matches.map(m =>
+        '<div class="search-result"><span class="match">' + m.title + '</span> <span class="path">' + m.path + '</span></div>'
+      ).join('');
+    }
+  });
+}
+
+function searchKB(query) {
+  const results = [];
+  KB_DATA.categories.forEach(cat => {
+    if (cat.children) {
+      cat.children.forEach(child => {
+        if (child.files) {
+          child.files.forEach(file => {
+            const title = file.title || file;
+            const desc = file.desc || '';
+            if (title.toLowerCase().includes(query) || desc.toLowerCase().includes(query) || (child.name && child.name.toLowerCase().includes(query))) {
+              results.push({ title: title, path: (child.name || cat.name) + ' / ' + title });
+            }
+          });
+        }
+        if (child.name && child.name.toLowerCase().includes(query)) {
+          results.push({ title: child.name, path: cat.name + ' / ' + child.name });
+        }
+      });
+    }
+    if (cat.name && cat.name.toLowerCase().includes(query)) {
+      results.push({ title: cat.name, path: '分类' });
+    }
+  });
+  return results;
+}
+
+// ============================================================
+// 初始化：默认显示分类导览
+// ============================================================
+renderCategories();
+</script>
+</body>
+</html>
