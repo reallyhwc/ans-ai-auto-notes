@@ -251,7 +251,7 @@ function searchKB(query) {
           child.files.forEach(file => {
             var title = file.title || file;
             var desc = file.desc || '';
-            if (title.toLowerCase().includes(query) || desc.toLowerCase().includes(query) || (child.name && child.name.toLowerCase().includes(query))) {
+            if (title.toLowerCase().includes(query) || desc.toLowerCase().includes(query)) {
               results.push({ title: title, path: (child.name || cat.name) + ' / ' + title });
             }
           });
