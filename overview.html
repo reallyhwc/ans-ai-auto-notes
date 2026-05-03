@@ -35,6 +35,8 @@
   .search-result .match { color: #2c3e50; font-weight: 600; }
   .search-result .path { color: #7f8c8d; font-size: 12px; }
   .empty-state { color: #95a5a6; font-size: 14px; margin-top: 40px; text-align: center; }
+  .tree-empty { color: #bdc3c7; cursor: default; }
+  .tl-empty { color: #bdc3c7; }
 </style>
 </head>
 <body>
@@ -49,6 +51,15 @@
 <div class="main" id="main"></div>
 
 <script>
+// ============================================================
+// 工具函数
+// ============================================================
+function escapeHtml(str) {
+  var div = document.createElement('div');
+  div.appendChild(document.createTextNode(str));
+  return div.innerHTML;
+}
+
 // ============================================================
 // 知识库数据 — 由 AI 在每次整理时同步更新此 JSON
 // ============================================================
@@ -120,32 +131,32 @@ tabs.forEach(tab => {
 function renderCategories() {
   let html = '<h2>分类导览</h2>';
 
-  KB_DATA.categories.forEach(cat => {
+  KB_DATA.categories.forEach((cat, ci) => {
     html += '<div class="tree-item">';
-    html += `<span class="tree-toggle open" data-folder="${cat.name}"></span> `;
-    html += `<span class="tree-folder">${cat.name}</span>`;
+    html += '<span class="tree-toggle open" data-folder="cat-' + ci + '"></span> ';
+    html += '<span class="tree-folder">' + escapeHtml(cat.name) + '</span>';
 
     if (cat.children && cat.children.length > 0) {
-      html += `<div class="tree-children" id="children-${cat.name}">`;
-      cat.children.forEach(child => {
+      html += '<div class="tree-children" id="children-cat-' + ci + '">';
+      cat.children.forEach((child, si) => {
         html += '<div class="tree-item">';
-        html += `<span class="tree-toggle open" data-folder="${cat.name}-${child.name}"></span> `;
-        html += `<span class="tree-folder">${child.name}</span>`;
-        html += `<div class="tree-children" id="children-${cat.name}-${child.name}">`;
+        html += '<span class="tree-toggle open" data-folder="cat-' + ci + '-sub-' + si + '"></span> ';
+        html += '<span class="tree-folder">' + escapeHtml(child.name) + '</span>';
+        html += '<div class="tree-children" id="children-cat-' + ci + '-sub-' + si + '">';
         if (child.files && child.files.length > 0) {
           child.files.forEach(file => {
-            const title = file.title || file;
-            html += `<div class="tree-file" title="${file.path || title}">${title}</div>`;
+            var title = file.title || file;
+            html += '<div class="tree-file" title="' + escapeHtml(file.path || title) + '">' + escapeHtml(title) + '</div>';
           });
         } else {
-          html += '<div class="tree-file" style="color:#bdc3c7; cursor:default;">（暂无内容）</div>';
+          html += '<div class="tree-empty tree-file">（暂无内容）</div>';
         }
         html += '</div></div>';
       });
       html += '</div>';
     } else {
-      html += `<div class="tree-children" id="children-${cat.name}">`;
-      html += '<div class="tree-file" style="color:#bdc3c7; cursor:default;">（暂无内容）</div>';
+      html += '<div class="tree-children" id="children-cat-' + ci + '">';
+      html += '<div class="tree-empty tree-file">（暂无内容）</div>';
       html += '</div>';
     }
     html += '</div>';
@@ -180,20 +191,20 @@ function renderTimeline() {
   } else {
     KB_DATA.timeline.forEach(week => {
       html += '<div class="timeline-week">';
-      html += `<h3>${week.week}</h3>`;
+      html += '<h3>' + escapeHtml(week.week) + '</h3>';
       if (week.entries && week.entries.length > 0) {
         week.entries.forEach(entry => {
           html += '<div class="timeline-entry">';
-          html += `<span class="date">${entry.date}</span> — ${entry.summary}`;
+          html += '<span class="date">' + escapeHtml(entry.date) + '</span> — ' + escapeHtml(entry.summary);
           if (entry.links && entry.links.length > 0) {
             entry.links.forEach(link => {
-              html += ` <a href="${link.url}">${link.label}</a>`;
+              html += ' <a href="' + escapeHtml(link.url) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(link.label) + '</a>';
             });
           }
           html += '</div>';
         });
       } else {
-        html += '<div class="timeline-entry" style="color:#bdc3c7;">本周暂无记录</div>';
+        html += '<div class="tl-empty timeline-entry">本周暂无记录</div>';
       }
       html += '</div>';
     });
@@ -211,31 +222,35 @@ function renderSearch() {
   html += '<div id="searchResults"></div>';
   main.innerHTML = html;
 
-  const input = document.getElementById('searchInput');
-  const results = document.getElementById('searchResults');
-  input.addEventListener('input', () => {
-    const q = input.value.trim().toLowerCase();
-    if (!q) { results.innerHTML = ''; return; }
-    const matches = searchKB(q);
-    if (matches.length === 0) {
-      results.innerHTML = '<div class="empty-state">未找到匹配结果</div>';
-    } else {
-      results.innerHTML = matches.map(m =>
-        '<div class="search-result"><span class="match">' + m.title + '</span> <span class="path">' + m.path + '</span></div>'
-      ).join('');
-    }
+  var debounceTimer;
+  var input = document.getElementById('searchInput');
+  var results = document.getElementById('searchResults');
+  input.addEventListener('input', function() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(function() {
+      var q = input.value.trim().toLowerCase();
+      if (!q) { results.innerHTML = ''; return; }
+      var matches = searchKB(q);
+      if (matches.length === 0) {
+        results.innerHTML = '<div class="empty-state">未找到匹配结果</div>';
+      } else {
+        results.innerHTML = matches.map(function(m) {
+          return '<div class="search-result"><span class="match">' + escapeHtml(m.title) + '</span> <span class="path">' + escapeHtml(m.path) + '</span></div>';
+        }).join('');
+      }
+    }, 200);
   });
 }
 
 function searchKB(query) {
-  const results = [];
+  var results = [];
   KB_DATA.categories.forEach(cat => {
     if (cat.children) {
       cat.children.forEach(child => {
         if (child.files) {
           child.files.forEach(file => {
-            const title = file.title || file;
-            const desc = file.desc || '';
+            var title = file.title || file;
+            var desc = file.desc || '';
             if (title.toLowerCase().includes(query) || desc.toLowerCase().includes(query) || (child.name && child.name.toLowerCase().includes(query))) {
               results.push({ title: title, path: (child.name || cat.name) + ' / ' + title });
             }
@@ -248,6 +263,16 @@ function searchKB(query) {
     }
     if (cat.name && cat.name.toLowerCase().includes(query)) {
       results.push({ title: cat.name, path: '分类' });
+    }
+  });
+  // Also search timeline entries
+  KB_DATA.timeline.forEach(week => {
+    if (week.entries) {
+      week.entries.forEach(entry => {
+        if (entry.summary.toLowerCase().includes(query)) {
+          results.push({ title: entry.summary, path: '时间线 / ' + entry.date });
+        }
+      });
     }
   });
   return results;
