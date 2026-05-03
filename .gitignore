@@ -19,6 +19,9 @@ Icon
 *.swo
 *~
 
+# Claude Code
+.claude/
+
 # Temp files
 *.tmp
 *.bak
