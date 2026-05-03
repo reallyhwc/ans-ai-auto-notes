@@ -381,8 +381,6 @@ function renderCategories() {
             var path = file.path || '';
             if (path && file.content) {
               html += '<span class="tree-file" onclick="viewContent(\'' + escapeHtml(path) + '\')" title="' + escapeHtml(path) + '">' + escapeHtml(title) + '</span>';
-            } else if (path) {
-              html += '<a class="tree-file" href="' + escapeHtml(path) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(title) + '</a>';
             } else {
               html += '<span class="tree-file">' + escapeHtml(title) + '</span>';
             }
@@ -440,7 +438,7 @@ function renderTimeline() {
               if (link.url && fileHasContent(link.url)) {
                 html += ' <span class="tl-link" onclick="viewContent(\'' + escapeHtml(link.url) + '\')">' + escapeHtml(link.label) + '</span>';
               } else {
-                html += ' <a href="' + escapeHtml(link.url) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(link.label) + '</a>';
+                html += ' ' + escapeHtml(link.label);
               }
             });
           }
