@@ -69,7 +69,11 @@ const KB_DATA = {
       "name": "技术",
       "children": [
         { "name": "Java", "files": [], "path": "kb/技术/java/" },
-        { "name": "AI / 机器学习", "files": [], "path": "kb/技术/ai/" },
+        { "name": "AI / 机器学习", "files": [
+          {"title": "CNN（卷积神经网络）", "path": "kb/技术/ai/cnn.md", "desc": "图像处理专用网络"},
+          {"title": "RNN（循环神经网络）", "path": "kb/技术/ai/rnn.md", "desc": "序列数据处理"},
+          {"title": "Transformer", "path": "kb/技术/ai/transformer.md", "desc": "自注意力机制，现代大模型底座"}
+        ], "path": "kb/技术/ai/" },
         { "name": "系统设计", "files": [], "path": "kb/技术/系统设计/" },
         { "name": "中间件", "files": [], "path": "kb/技术/中间件/" }
       ],
@@ -77,7 +81,11 @@ const KB_DATA = {
     },
     {
       "name": "读书笔记",
-      "children": [],
+      "children": [
+        { "name": "我看见的世界", "files": [
+          {"title": "我看见的世界", "path": "kb/读书笔记/我看见的世界.md", "desc": "李飞飞"}
+        ], "path": "kb/读书笔记/" }
+      ],
       "path": "kb/读书笔记/"
     },
     {
@@ -101,6 +109,16 @@ const KB_DATA = {
           "links": [
             {"label": "CLAUDE.md", "url": "CLAUDE.md"},
             {"label": "设计文档", "url": "docs/superpowers/specs/2026-05-03-ai-auto-knowledge-base-design.md"}
+          ]
+        },
+        {
+          "date": "2026-05-03",
+          "summary": "读书/技术：梳理 CNN、RNN、Transformer 三大深度学习基础架构",
+          "links": [
+            {"label": "CNN", "url": "kb/技术/ai/cnn.md"},
+            {"label": "RNN", "url": "kb/技术/ai/rnn.md"},
+            {"label": "Transformer", "url": "kb/技术/ai/transformer.md"},
+            {"label": "读书笔记", "url": "kb/读书笔记/我看见的世界.md"}
           ]
         }
       ]
