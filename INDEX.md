@@ -11,6 +11,7 @@
 - [CNN（卷积神经网络）](kb/技术/ai/cnn.md) — 图像处理专用网络，卷积+池化
 - [RNN（循环神经网络）](kb/技术/ai/rnn.md) — 序列数据处理，LSTM/GRU
 - [Transformer](kb/技术/ai/transformer.md) — 自注意力机制，现代大模型底座
+- [LLM（大语言模型）](kb/技术/ai/llm.md) — Prompt、RAG、微调、Agent 等核心概念
 
 ### 系统设计
 <!-- 文件: kb/技术/系统设计/ -->
