@@ -807,4 +807,336 @@ Claude Code 内部循环:
 | 是什么 | Agent 产品 (L4) | 插件/技能系统 (L5) |
 | 独立运行 | 可以 | 不可以，必须依附 Claude Code |
 | 提供什么 | LLM + 工具执行能力 | 预定义工作流 + 最佳实践 |
-| 类比 | IDE | IDE 的插件
+| 类比 | IDE | IDE 的插件 |
+
+---
+
+## 15. RAG 检索细节与 Prompt 拼接实例
+
+### 15.1 检索到底怎么做的
+
+```
+用户: "我买的衣服不合身，怎么退？"
+            │
+            ▼
+┌──────────────────────────┐
+│  Step 1: 用户问题         │
+│  Embedding 模型 → 向量    │  ← bge-large / text-embedding-3 等
+└──────────┬───────────────┘
+           │
+           ▼
+┌──────────────────────────┐
+│  Step 2: Milvus 相似搜索  │
+│                          │
+│  使用 ANN 算法（HNSW/IVF） │  ← 不是逐个比对，类似 B+ 树索引
+│  毫秒级找到 top-3         │
+└──────────┬───────────────┘
+           │
+           ▼
+┌──────────────────────────┐
+│  Step 3: 取出文档原文      │
+│  top-1: "退款步骤..."     │
+│  top-2: "退货流程..."     │
+│  top-3: "退换政策..."     │
+└──────────┬───────────────┘
+           │
+           ▼
+┌──────────────────────────┐
+│  Step 4: LangChain 拼接   │  ← 检索由向量数据库 SDK 完成，
+│  Prompt 发给 LLM          │    LangChain 负责"从检索结果到 Prompt"
+└──────────────────────────┘
+```
+
+### 15.2 拼接后发给 LLM 的完整 Prompt
+
+```
+你是本公司电商客服助手"小易"，请严格根据以下参考资料回答用户问题。
+如果参考资料中没有相关信息，请回复"抱歉，我暂时无法回答这个问题，
+建议您联系人工客服"。
+
+【参考资料】
+---
+来源1 (相似度: 97%):
+Q: 怎么退款？
+A: 登录APP → 点击"我的订单" → 找到对应订单 → 点击"申请退款" → 
+   选择退款原因 → 提交申请 → 等待审核（1-3个工作日）→ 退款到原支付方式
+
+来源2 (相似度: 91%):
+退货流程：用户在APP提交退货申请 → 系统审核 → 审核通过后用户寄回商品 →
+仓库确认收货 → 发起退款。全程约需5-7个工作日。
+
+来源3 (相似度: 85%):
+退换货政策：支持7天无理由退换货（商品未经使用、不影响二次销售）。
+非质量问题退货运费由买家承担，质量问题由平台承担。
+---
+
+【对话历史】
+用户: 你好
+客服: 您好！有什么可以帮助您的？
+
+【用户当前问题】
+我买的衣服不合身，怎么退？
+```
+
+LLM 不是凭"记忆"回答——而是**阅读参考资料，理解后组织回答**。就像给人一本手册让他查着回答问题。
+
+---
+
+## 16. Claude Code 每次都调 LLM 吗
+
+**是的，几乎每一步都调。** 但上下文不是每次都从头开始。
+
+```
+用户: "帮我修 UserService 的 NPE bug"
+
+LLM 调用 #1: 理解任务 → "我先搜索 UserService 文件"
+  → 工具: Grep("UserService")
+
+LLM 调用 #2: 看到搜索结果 → "读取 UserService.java"
+  → 工具: Read("src/.../UserService.java")
+
+LLM 调用 #3: 看到代码 → "第 42 行有 NPE 风险，我来改"
+  → 工具: Edit(...)
+
+LLM 调用 #4: 看到修改成功 → "跑测试验证"
+  → 工具: Bash("mvn test -Dtest=UserServiceTest")
+
+LLM 调用 #5: 看到测试通过 → "修复完成，总结如下..."
+  → 输出最终结果给用户
+```
+
+**"我提供方案你选择"的环节也在一次 LLM 调用内：** 模型输出 "A 方案 xxx，B 方案 yyy，选哪个？"，等待你输入，收到回复后发起下一次 LLM 调用继续。
+
+**优化手段：** 上下文压缩（不把完整历史都发给 LLM，只保留关键信息）、子 Agent 隔离（子任务独立会话，完成后只返回摘要）。
+
+---
+
+## 17. 自回归生成：输出越多越慢吗
+
+**没有 KV Cache 时：是的，每生成一个新 token 都要 O(n²)。**
+
+```
+生成第 1 个 token: 序列长度 100，注意力 ≈ 100² = 10,000
+生成第 2 个 token: 序列长度 101，注意力 ≈ 101² = 10,201
+生成第 1000 个 token: 序列长度 1100，注意力 ≈ 1100² = 1,210,000
+
+总计算量 ≈ Σ(k²) → 无法接受
+```
+
+**有 KV Cache 时：每生成一个新 token 降到 O(n)。**
+
+---
+
+## 18. KV Cache：为什么缓存有效
+
+### 18.1 没有 Cache 时的浪费
+
+```
+生成第一个新 token 时:
+  序列 [t₁, t₂, t₃, t₄] → 计算所有 K, V
+
+生成第二个新 token 时:
+  序列 [t₁, t₂, t₃, t₄, t₅] → 又重新算了 t₁-t₄ 的 K, V
+  ↑ 完全没变，但重算了一次
+```
+
+### 18.2 KV Cache 做什么
+
+```
+第一轮 (处理 t₁-t₄):
+  正常算出所有 K, V
+  把 K₁₋₄ 和 V₁₋₄ 存到显存 ← KV Cache
+
+第二轮 (新增 t₅):
+  只算 t₅ 的 Q, K, V                ← O(1) 新计算
+  注意力: Q₅ · [K₁, K₂, K₃, K₄, K₅] ← 前 4 个从 Cache 读，不要重算
+          × [V₁, V₂, V₃, V₄, V₅]    ← 前 4 个从 Cache 读
+  K₅, V₅ 追加到 Cache
+```
+
+**每次只算新 token 的 K、V，历史从 Cache 读。** 新增计算量 O(n)（新 token 和所有历史做注意力），而不是 O(n²)（所有 token 两两重算）。
+
+### 18.3 输出阶段有 Cache 吗
+
+**有，而且输出阶段是 KV Cache 最重要的场景。** 输入几百 token，输出几千 token——每次输出新 token，前面积累的所有 K/V 都在 Cache 里，只需算新 token 那部分。
+
+### 18.4 DeepSeek 的"缓存命中便宜"是另一回事
+
+```
+KV Cache:
+  推理时优化，一次对话内复用
+  存在 GPU 显存里，免费（工程实现）
+
+Prompt Cache（DS 的商业优惠）:
+  跨请求优化，不同用户之间复用
+  多个用户 System Prompt 相同 → 只算一次
+  省下的算力让利 → 缓存命中收费减半
+```
+
+两者名字都带 Cache，但一个是 GPU 内部的实现优化，一个是商业层面的计费策略。
+
+---
+
+## 19. MCP 服务发现与自定义开发
+
+### 19.1 怎么发现：配置文件，不是注册中心
+
+**MCP 没有注册中心——通过 JSON 配置文件静态声明。**
+
+```
+~/.claude/claude_desktop_config.json:
+
+{
+  "mcpServers": {
+    "postgres": {
+      "command": "npx",
+      "args": ["-y", "@anthropic/mcp-server-postgres", "postgresql://localhost/mydb"]
+    },
+    "my-tool": {
+      "command": "java",
+      "args": ["-jar", "/path/to/my-mcp-server.jar"]
+    }
+  }
+}
+```
+
+启动时 Claude Code 读这个文件 → 对每个 Server 启动子进程 → 通过 stdio 建立 JSON-RPC 通道。
+
+### 19.2 与 Dubbo 对比
+
+| | Dubbo | MCP |
+|------|-------|-----|
+| 注册中心 | Zookeeper/Nacos | 无，JSON 文件静态配置 |
+| 服务发现 | 动态注册+发现 | 启动时读文件，启动子进程 |
+| 通信协议 | Dubbo 协议 (TCP) | JSON-RPC 2.0 (stdio/HTTP) |
+| 接口定义 | Java Interface | JSON Schema (inputSchema) |
+| 提供者 | Provider 注册到注册中心 | 子进程，由 Client 启动和管理 |
+
+**MCP 比 Dubbo 简单得多——没有注册中心，就是"配置文件写启动命令，Claude Code 帮你启动并维持通信"。**
+
+### 19.3 写一个 Java MCP Server（伪代码）
+
+```java
+public class MyMcpServer {
+    public static void main(String[] args) {
+        while (true) {
+            String request = readLine(System.in);
+            JsonRpcRequest req = parse(request);
+            
+            switch (req.method) {
+                case "tools/list":
+                    respond(new Tool[]{
+                        new Tool("query_orders", "查询用户订单",
+                            Map.of("userId", "string")),
+                        new Tool("refund", "发起退款",
+                            Map.of("orderId", "string", "amount", "number"))
+                    });
+                    break;
+                    
+                case "tools/call":
+                    if (req.params.name.equals("query_orders")) {
+                        List<Order> orders = db.query(
+                            "SELECT * FROM orders WHERE user_id = ?",
+                            req.params.arguments.get("userId"));
+                        respond(orders);
+                    }
+                    break;
+            }
+        }
+    }
+}
+```
+
+本质就是：读 stdin → 解析 JSON-RPC → 执行业务逻辑 → 写 stdout。Claude Code 负责启动你的 jar 包并管道通信。
+
+---
+
+## 20. Claude Code 修 bug 的完整多轮流程
+
+你的推演完全正确。完整过程：
+
+```
+你: "帮我修 UserService 的 NPE bug"
+
+┌─────────────────────────────────────────────┐
+│ LLM 调用 #1                                 │
+│ 输入: 系统 Prompt + MCP 工具列表 + 你的需求   │
+│ 输出: "我先搜索 UserService"                 │
+│ 工具: Grep("UserService")                   │
+├─────────────────────────────────────────────┤
+│ LLM 调用 #2                                 │
+│ 输入: 上一轮结果 + Grep 结果                 │
+│ 输出: "读取 UserService.java"               │
+│ 工具: Read("src/.../UserService.java")      │
+├─────────────────────────────────────────────┤
+│ LLM 调用 #3                                 │
+│ 输入: 上一轮结果 + 源码内容                  │
+│ 输出: "第 42 行 NPE，我来改"                 │
+│ 工具: Edit(第42行, 加 null 检查)             │
+├─────────────────────────────────────────────┤
+│ LLM 调用 #4                                 │
+│ 输入: 上一轮结果 + Edit 成功                 │
+│ 输出: "跑测试验证"                           │
+│ 工具: Bash("mvn test -Dtest=UserServiceTest")│
+├─────────────────────────────────────────────┤
+│ LLM 调用 #5                                 │
+│ 输入: 上一轮结果 + 测试通过                  │
+│ 输出: "修复完成。总结: 在 42 行加了 null 检查" │
+│ (不再调用工具，直接返回给用户)                │
+└─────────────────────────────────────────────┘
+```
+
+**本质：LLM 思考 → 调用工具 → 观察结果 → LLM 再思考 → 循环，直到任务完成。** 每一轮工具调用（Grep/Bash/Edit）本地执行，不消耗 LLM token。
+
+---
+
+## 21. Embedding 模型详解
+
+### 21.1 它和大模型是两码事
+
+```
+LLM（大模型）:
+  输入: 文本 → 输出: 文本
+  用途: 生成回答、推理
+  例子: GPT-4, DeepSeek-V3, Qwen-Max
+  大小: 几百 GB
+  速度: 慢
+
+Embedding 模型:
+  输入: 文本 → 输出: 向量 [0.23, -0.15, 0.78, ...]
+  用途: 判断文本相似度
+  例子: text-embedding-3-small (OpenAI), bge-large (BAAI), m3e (Moka AI)
+  大小: 几百 MB
+  速度: 快
+```
+
+### 21.2 训练原理：对比学习
+
+```
+训练目标: 语义相似的文本 → 向量距离近
+
+给模型一对文本:
+  "怎么退款" 和 "如何退货" → 正样本(语义相似) → 拉近向量距离
+  "怎么退款" 和 "今天天气" → 负样本(语义无关) → 推远向量距离
+
+几百万次"拉近/推远"后:
+  → Embedding 模型学会了把语义相似的文本映射到相近的向量
+```
+
+不需要人工标注每个文本的类别——只需要"哪些文本对是相似的"（可以来自搜索点击日志、问答对、甚至是自动构造的）。
+
+### 21.3 RAG 中两个模型的协作
+
+```
+离线:
+  文档 → [Embedding 模型] → 向量 → Milvus
+
+在线:
+  用户问题 → [Embedding 模型] → 向量 → Milvus 检索 → 相关文档
+              ↓
+  拼接 Prompt → [LLM] → 回答
+```
+
+**Embedding 模型负责"找"，LLM 负责"说"。两个独立的模型，各司其职。**
+
+> 关联: [[./transformer]] — Embedding 模型通常也基于 Transformer（Encoder-only，如 BERT 架构）
