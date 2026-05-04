@@ -5,7 +5,7 @@
 ## 技术
 
 ### Java
-<!-- 文件: kb/技术/java/ -->
+- [Spring AI](kb/技术/java/spring-ai.md) — Spring 生态的 LLM 集成框架，ChatClient 流式/非流式调用
 
 ### AI / 机器学习
 - [CNN（卷积神经网络）](kb/技术/ai/cnn.md) — 图像处理专用网络，卷积+池化
