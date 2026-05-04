@@ -89,6 +89,13 @@ ans-ai-auto-notes/
 1. **禁止裸链接**：overview.html 中绝对不要生成指向 `.md` 文件的原生 `<a href="xxx.md">` 链接。浏览器直接打开 `.md` 文件会因缺少 UTF-8 声明而显示乱码。
 2. **要么内嵌要么纯文本**：如果文件内容已添加到 KB_DATA，生成 `<span onclick="viewContent()">` 可点击查看。如果没加，只显示文件名的纯文本，不要加链接。
 3. **新增知识文件时**：同步更新 overview.html 中的 KB_DATA（categories 的 files 数组 + 对应文件的 content 字段），同时检查 timeline 中是否有引用该文件的链接。
+4. **每次修改后必跑 JS 语法检查**：修改 overview.html 后，立即执行以下命令验证 JS 无语法错误。任何一个 `<script>` 中的 JS 语法错误都会导致页面所有交互（tab 切换、文件点击、搜索）静默失效。
+   ```bash
+   sed -n '/<script>/,/<\/script>/p' overview.html | sed '1d;$d' > /tmp/check.js && node --check /tmp/check.js
+   ```
+5. **content 字段要么有要么没有，不存在中间态**：`renderCategories()` 和 `viewContent()` 都检查 `file.content` 是否为 truthy。如果 KB_DATA 中某个文件条目缺少 `content` 字段，分类导览中会显示文件名但不可点击（纯文本），且没有任何错误提示。如果文件不应该提供内容（如暂未编写的主题），不要放入 files 数组——放一个空数组或注释占位。
+6. **KB_DATA 内容同步检查**：修改任何已在 overview.html 中嵌入的 .md 文件后，必须同步更新 HTML 中的嵌入内容。校验方法：用 `vm.runInContext` 解析 KB_DATA，逐字节比对，而不能用 `indexOf` 搜原文（因为 HTML 中 `"` 被转义为 `\"`、换行被转义为 `\n`，会导致 false positive/negative）。
+7. **用脚本修改，不要手工编辑**：overview.html 中的 KB_DATA 是嵌套的 JS 对象字面量，手工插入/删除内容极易导致括号不匹配或条目误入错误作用域（如误入 `buildFileIndex()` 函数体）。始终用 node 脚本做精确替换。
 
 ### Git 规则
 
@@ -102,8 +109,11 @@ ans-ai-auto-notes/
 1. **文件格式检查**：扫描所有 kb/ 下本次变动的 md 文件，确认章节格式（`##` 标题）、元信息头（`> 最后整理: YYYY-MM-DD | 来源: xxx`）符合规范。发现格式不一致的文件立即修正。
 2. **交叉链接检查**：确认新增/修改的文件有指向关联文件的双向链接（`[[./xxx]]` 或 `> 关联:` 格式）。
 3. **Memory 检查**：确认本次会话中用户的新偏好、新反馈、新项目上下文已写入 `memory/` 目录并更新 `MEMORY.md` 索引。
-4. **Git 检查**：确认所有变更已提交，`git status` 显示 clean。
-5. **INDEX.md 日期**：确认索引日期已更新至本次会话日期。
+4. **overview.html 完整性检查**：如果本次会话修改了 overview.html 或任何已嵌入的 .md 文件——
+   - 执行 JS 语法检查：`sed -n '/<script>/,/<\/script>/p' overview.html | sed '1d;$d' > /tmp/check.js && node --check /tmp/check.js`
+   - 执行内容一致性校验：用 `vm.runInContext` 解析 KB_DATA 后与对应 .md 文件逐字节比对，修复不一致
+5. **Git 检查**：确认所有变更已提交，`git status` 显示 clean。
+6. **INDEX.md 日期**：确认索引日期已更新至本次会话日期。
 
 上述检查全部通过后，向用户报告检查结果，确认可以安全退出。
 
