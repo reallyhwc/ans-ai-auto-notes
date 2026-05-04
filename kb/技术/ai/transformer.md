@@ -267,3 +267,5 @@ Transformer: O(n²) 计算量，但所有步同时算 → 1 步并行
 | 长距离依赖 | 不适用 | 弱（梯度消失） | 强（O(1) 关联） |
 | 架构复杂度 | 卷积+池化+全连接 | 单递归单元 | Attention+FFN 重复堆 |
 | 代表模型 | ResNet, AlexNet | LSTM 机器翻译 | GPT-4, Claude, BERT |
+
+> 延伸: [[./llm]] — Transformer Decoder 如何堆成 LLM | [[./llm-prompt-rag]] — 如何使用大模型 | [[./llm-agent-mcp]] — Agent 与工具生态

@@ -254,3 +254,5 @@ Layer N: 自然语言 — "狗"、"花"
 李飞飞创建的 ImageNet（1400 万张标注图片）在 2012 年被 AlexNet（CNN 架构）大幅刷榜——正确率从 ~70% 跳到了 ~85%，直接引爆了这轮深度学习浪潮。
 
 > ImageNet 提供了"数据燃料"，CNN 提供了"引擎"，两者结合开启了 AI 的 ImageNet 时刻。
+
+> 关联: [[./transformer]] — Transformer 架构 | [[./llm]] — LLM 核心原理（Transformer 如何演变为大模型）
