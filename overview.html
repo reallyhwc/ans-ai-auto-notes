@@ -304,9 +304,6 @@ function renderMarkdown(md) {
       return th;
     }
 
-    function slugify(text) {
-      return text.toLowerCase().replace(/[^\w一-鿿]+/g, '-').replace(/^-|-$/g, '');
-    }
     if (/^######\s/.test(line)) { var t = line.replace(/^######\s/, ''); return '<h6 id="' + slugify(t) + '">' + processInline(t) + '</h6>'; }
     if (/^#####\s/.test(line)) { var t = line.replace(/^#####\s/, ''); return '<h5 id="' + slugify(t) + '">' + processInline(t) + '</h5>'; }
     if (/^####\s/.test(line)) { var t = line.replace(/^####\s/, ''); return '<h4 id="' + slugify(t) + '">' + processInline(t) + '</h4>'; }

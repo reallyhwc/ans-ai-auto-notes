@@ -10,4 +10,4 @@ else
     sleep 0.5
 fi
 
-open "http://localhost:$PORT"
+open "http://localhost:$PORT/overview.html"
