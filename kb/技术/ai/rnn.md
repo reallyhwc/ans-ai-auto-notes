@@ -271,6 +271,6 @@ LSTM 的简化版，两个门（重置门 + 更新门），效果相近但计算
 
 RNN 的串行瓶颈是 Transformer 出现的主要动机。后者抛弃了"逐步传递记忆"的思路，改让所有词同时互相看（自注意力），解决了并行和长距离依赖两个问题。
 
-> 详见 [[./transformer]]
+> 详见 [transformer](./transformer.md)
 
-> 延伸: [[./llm]] — 从 RNN → Transformer → LLM 的演进路径
+> 延伸: [llm](./llm.md) — 从 RNN → Transformer → LLM 的演进路径

@@ -6,7 +6,7 @@
 
 LLM（Large Language Model）本质上是一个**巨大的 Decoder-only Transformer**——给它一段文本，它预测下一个最可能的词。一个词一个词地接下去，就形成了连贯的输出。
 
-> **本文件聚焦 LLM 核心原理。** Prompt/RAG/向量数据库 → [[./llm-prompt-rag]] | Agent/MCP/微调/工具生态 → [[./llm-agent-mcp]]
+> **本文件聚焦 LLM 核心原理。** Prompt/RAG/向量数据库 → [llm-prompt-rag](./llm-prompt-rag.md) | Agent/MCP/微调/工具生态 → [llm-agent-mcp](./llm-agent-mcp.md)
 
 ---
 
@@ -103,8 +103,8 @@ Transformer 架构提供:
 
 **所以：是"猜"（概率预测），但不是"瞎猜"。** 这个"猜"的过程迫使模型构建了世界模型和推理能力——因为不真懂，就算不准。
 
-> 关联: [[./transformer]] — Transformer 架构详解
-> 关联: [[./cnn]] — CNN 分层特征的涌现，与此处的"能力涌现"是同一类现象
+> 关联: [transformer](./transformer.md) — Transformer 架构详解
+> 关联: [cnn](./cnn.md) — CNN 分层特征的涌现，与此处的"能力涌现"是同一类现象
 
 ---
 
@@ -363,6 +363,6 @@ MoE 核心魔法:
 DS 定价低但仍然赚钱 → MoE 架构优势带来的护城河
 ```
 
-> 关联: [[./transformer]] — 自注意力机制的计算细节
-> 延伸: Prompt/RAG/向量数据库 → [[./llm-prompt-rag]]
-> 延伸: Agent/MCP/Claude Code → [[./llm-agent-mcp]]
+> 关联: [transformer](./transformer.md) — 自注意力机制的计算细节
+> 延伸: Prompt/RAG/向量数据库 → [llm-prompt-rag](./llm-prompt-rag.md)
+> 延伸: Agent/MCP/Claude Code → [llm-agent-mcp](./llm-agent-mcp.md)

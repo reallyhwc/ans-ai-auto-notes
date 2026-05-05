@@ -6,7 +6,7 @@
 
 Prompt 是怎么跟 LLM 说话，RAG 是给 LLM 外挂知识库。两者结合，让 LLM 从"只会背书的书呆子"变成"能查参考资料的助手"。
 
-> 关联: [[./llm]] — LLM 核心原理 | [[./llm-agent-mcp]] — Agent 与 MCP 生态
+> 关联: [llm](./llm.md) — LLM 核心原理 | [llm-agent-mcp](./llm-agent-mcp.md) — Agent 与 MCP 生态
 
 ---
 
@@ -209,7 +209,7 @@ Embedding 模型:
 
 **Embedding 模型负责"找"，LLM 负责"说"。** 两个独立的模型，各司其职。
 
-> 关联: [[./transformer]] — Embedding 模型通常也基于 Transformer（Encoder-only，如 BERT 架构）
+> 关联: [transformer](./transformer.md) — Embedding 模型通常也基于 Transformer（Encoder-only，如 BERT 架构）
 
 ---
 
@@ -338,5 +338,5 @@ qa.run("退款 API 是哪个？")  # 就几行
 | **Semantic Kernel** | C#/Python/Java | 微软出品，企业级 |
 | **Spring AI** | Java | Spring 生态，Java 程序员最熟悉 |
 
-> 关联: [[./llm]] — LLM 核心原理
-> 关联: [[./llm-agent-mcp]] — Agent 与 MCP 生态
+> 关联: [llm](./llm.md) — LLM 核心原理
+> 关联: [llm-agent-mcp](./llm-agent-mcp.md) — Agent 与 MCP 生态

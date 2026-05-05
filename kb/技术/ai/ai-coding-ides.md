@@ -6,7 +6,7 @@
 
 **Cursor** 是"会读你整个项目的 Copilot"，**Windsurf** 是"有全局视野的 AI 协作伙伴"。两者都是 VS Code fork，但交互思路完全不同——前者是你告诉它改哪里，后者是它感知你要去哪。
 
-> 关联: [[./ai-agent-tools]] — AI Agent 工具生态（Hermes/OpenClaw） | [[./llm-agent-mcp]] — Agent 与 MCP 基础概念
+> 关联: [ai-agent-tools](./ai-agent-tools.md) — AI Agent 工具生态（Hermes/OpenClaw） | [llm-agent-mcp](./llm-agent-mcp.md) — Agent 与 MCP 基础概念
 
 ---
 
@@ -77,4 +77,4 @@ Windsurf 的交互模型：
 
 ---
 
-> 相关: [[./ai-agent-tools]] — AI Agent 工具生态对比
+> 相关: [ai-agent-tools](./ai-agent-tools.md) — AI Agent 工具生态对比

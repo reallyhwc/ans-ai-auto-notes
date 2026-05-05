@@ -6,7 +6,7 @@
 
 Agent 是"能调用工具、多步循环完成任务"的 LLM 应用形态。MCP 是连接 Agent 和外部工具的开放协议。微调是让通用模型学会你的领域。
 
-> 关联: [[./llm]] — LLM 核心原理 | [[./llm-prompt-rag]] — Prompt 与 RAG 体系 | [[./ai-agent-tools]] — Agent 工具生态对比
+> 关联: [llm](./llm.md) — LLM 核心原理 | [llm-prompt-rag](./llm-prompt-rag.md) — Prompt 与 RAG 体系 | [ai-agent-tools](./ai-agent-tools.md) — Agent 工具生态对比
 
 ---
 
@@ -548,5 +548,5 @@ MCP:    暴露了 "执行 bash"、"读写文件"、"git" 等工具给 Agent
   微调后的 LLM 生成回答
 ```
 
-> 关联: [[./llm]] — LLM 核心原理
-> 关联: [[./llm-prompt-rag]] — Prompt 与 RAG 体系
+> 关联: [llm](./llm.md) — LLM 核心原理
+> 关联: [llm-prompt-rag](./llm-prompt-rag.md) — Prompt 与 RAG 体系
