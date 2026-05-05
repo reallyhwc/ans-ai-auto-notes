@@ -33,6 +33,7 @@
 
 ### 技巧
 - [GitHub 项目创建与同步](kb/action/技巧/github-repo-setup.md) — SSH 密钥配置、repo 关联、HTTPS vs SSH、踩坑记录
+- [知识管理工具对比](kb/action/技巧/knowledge-management-tools.md) — Obsidian 概览、与 AI 对话驱动知识库方案的对比
 
 ## 日常思考
 <!-- 文件: kb/日常思考/ -->
