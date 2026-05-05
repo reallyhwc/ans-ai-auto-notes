@@ -103,6 +103,9 @@ function escapeHtml(str) {
   div.appendChild(document.createTextNode(str));
   return div.innerHTML;
 }
+function escapeAttr(str) {
+  return String(str).replace(/&/g, '&amp;').replace(/'/g, '&#39;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
 
 // ============================================================
 // 文件索引 — 纯元数据，不含 Markdown 正文
@@ -620,7 +623,9 @@ function renderSearch() {
         results.innerHTML = '<div class="empty-state">未找到匹配结果</div>';
       } else {
         results.innerHTML = matches.map(function(m) {
-          return '<div class="search-result"><span class="match">' + escapeHtml(m.title) + '</span> <span class="path">' + escapeHtml(m.path) + '</span></div>';
+          var path = m.filePath || m.path || '';
+          var onclick = path.startsWith('kb/') ? 'onclick="viewContent(\'' + escapeAttr(path) + '\')" style="cursor:pointer"' : '';
+          return '<div class="search-result" ' + onclick + '><span class="match">' + escapeHtml(m.title) + '</span> <span class="path">' + escapeHtml(m.displayPath || m.path) + '</span></div>';
         }).join('');
       }
     }, 200);
@@ -637,7 +642,7 @@ function searchKB(query) {
             var title = file.title || file;
             var desc = file.desc || '';
             if (title.toLowerCase().includes(query) || desc.toLowerCase().includes(query)) {
-              results.push({ title: title, path: (child.name || cat.name) + ' / ' + title });
+              results.push({ title: title, displayPath: (child.name || cat.name) + ' / ' + title, filePath: file.path });
             }
           });
         }
