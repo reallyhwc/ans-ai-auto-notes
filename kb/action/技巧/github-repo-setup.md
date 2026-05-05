@@ -107,4 +107,4 @@ git push
 
 ---
 
-> 关联: [[../../CLAUDE.md]] — Git 规则
+> 关联: [CLAUDE.md](../../../CLAUDE.md) — Git 规则

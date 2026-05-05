@@ -27,8 +27,12 @@
 - [我看见的世界](kb/读书笔记/我看见的世界.md) — 李飞飞
 
 ## Action（排查记录 / 好文摘要 / 技巧）
+
+### 排查记录
 - [overview.html 维护踩坑记录](kb/action/overview-html-踩坑记录.md) — JS 语法错误静默炸页面、content 缺失不可点击、内容同步等坑
-- [GitHub 项目创建与同步](kb/action/github-repo-setup.md) — SSH 密钥配置、repo 关联、HTTPS vs SSH、踩坑记录
+
+### 技巧
+- [GitHub 项目创建与同步](kb/action/技巧/github-repo-setup.md) — SSH 密钥配置、repo 关联、HTTPS vs SSH、踩坑记录
 
 ## 日常思考
 <!-- 文件: kb/日常思考/ -->
