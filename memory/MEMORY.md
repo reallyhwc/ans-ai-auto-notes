@@ -1,0 +1,7 @@
+- [User Profile](user-profile.md) — 28岁男性Java后端程序员，已婚未育，在读《我看见的世界》
+- [Project: Knowledge Base](project-knowledge-base.md) — AI对话驱动个人知识库，git+md双轨制，含拆分阈值
+- [Feedback: Note Style](feedback-note-style.md) — 笔记必须保留Demo示例，不能写成教科书定义
+- [Feedback: Exit Checklist](feedback-exit-checklist.md) — 用户说退出时必须先执行5项检查再结束
+- [Feedback: Auto Record Notes](feedback-auto-record-notes.md) — 每次QA后必须自动提取知识点追加到kb，不再等用户提醒
+- [Feedback: Overview.html Maintenance](feedback-overview-html-safety.md) — 架构已改为runtime fetch，新规则：serve.sh启动、FILE_INDEX元数据、禁止裸链接
+- [Project: Local Preview Architecture](project-local-preview-architecture.md) — serve.sh一键本地HTTP服务器，overview.html运行时fetch md，笔记记录从5-6步降至2-3步
