@@ -659,11 +659,25 @@ function searchKB(query) {
 }
 
 // ============================================================
+// Live reload — 监听 kb/ 目录变化，自动刷新当前视图
+// ============================================================
+function setupLiveReload() {
+  var es = new EventSource('/__reload');
+  es.onmessage = function() {
+    contentCache = {};
+    if (currentView === 'content' && currentFile) {
+      viewContent(currentFile);
+    }
+  };
+}
+
+// ============================================================
 // 初始化
 // ============================================================
 function init() {
   checkServer(function(available) {
     if (available) {
+      setupLiveReload();
       renderCategories();
     } else {
       main.innerHTML =

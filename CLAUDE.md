@@ -95,13 +95,19 @@ ans-ai-auto-notes/
 ### Git 规则
 
 1. 每次会话结束后，主动提交变更。
-2. Commit message 格式：`[YYYY-MM-DD] 会话摘要`
+2. Commit message 采用 [Conventional Commits](https://www.conventionalcommits.org/) 格式：
+   - `feat: xxx` — 新功能（如新增 lint 工具、live reload）
+   - `fix: xxx` — 修复 bug 或格式问题
+   - `chore: xxx` — 维护性工作（规则更新、配置调整）
+   - `docs: xxx` — 纯文档/知识内容变更
+   - `refactor: xxx` — 重构（不改变行为）
+3. 消息用中文或英文均可，简明描述"做了什么、为什么"。
 
 ### 会话退出检查（重要）
 
 当用户说"准备退出"、"不聊了"、"下次再继续"或类似结束语时，主动执行以下检查：
 
-1. **文件格式检查**：扫描所有 kb/ 下本次变动的 md 文件，确认章节格式（`##` 标题）、元信息头（`> 最后整理: YYYY-MM-DD | 来源: xxx`）符合规范。发现格式不一致的文件立即修正。
+1. **文件格式检查**：运行 `./lint.sh` 做自动格式校验（heading、空行等），然后人工扫描本次变动的 md 文件，确认元信息头（`> 最后整理: YYYY-MM-DD | 来源: xxx`）符合规范。发现格式不一致的文件立即修正。
 2. **交叉链接检查**：确认新增/修改的文件有指向关联文件的双向链接（`[[./xxx]]` 或 `> 关联:` 格式）。
 3. **Memory 检查**：确认本次会话中用户的新偏好、新反馈、新项目上下文已写入 `memory/` 目录并更新 `MEMORY.md` 索引。
 4. **Git 检查**：确认所有变更已提交，`git status` 显示 clean。
