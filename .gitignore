@@ -25,3 +25,4 @@ Icon
 # Temp files
 *.tmp
 *.bak
+.worktrees/
