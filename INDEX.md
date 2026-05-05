@@ -15,6 +15,7 @@
 - [Prompt 与 RAG](kb/技术/ai/llm-prompt-rag.md) — Prompt 工程、RAG、向量数据库/Milvus、Embedding、LangChain
 - [Agent 与 MCP](kb/技术/ai/llm-agent-mcp.md) — Agent 循环、MCP 协议、微调、AI 工具分类、Claude Code/Superpowers
 - [AI Agent 工具生态](kb/技术/ai/ai-agent-tools.md) — Hermes Agent（养马）vs OpenClaw（养龙虾）对比、微信 AI 机器人接入
+- [AI 编程 IDE](kb/技术/ai/ai-coding-ides.md) — Cursor vs Windsurf 对比，AI 编程工具的两种交互哲学
 
 ### 系统设计
 <!-- 文件: kb/技术/系统设计/ -->
