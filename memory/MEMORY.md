@@ -6,3 +6,4 @@
 - [Feedback: Overview.html Maintenance](feedback-overview-html-safety.md) — 架构已改为runtime fetch，新规则：serve.sh启动、FILE_INDEX元数据、禁止裸链接
 - [Project: Local Preview Architecture](project-local-preview-architecture.md) — serve.sh一键本地HTTP服务器，overview.html运行时fetch md，笔记记录从5-6步降至2-3步
 - [Feedback: New File Checklist](feedback-new-file-checklist.md) — 新增md文件必须同时完成4项：INDEX.md、timeline、overview.html FILE_INDEX、双向链接
+- [Feedback: Permissions Reminder](feedback_permissions_reminder.md) — 反复出现同类只读命令时，主动提醒用户更新 settings.local.json 白名单
