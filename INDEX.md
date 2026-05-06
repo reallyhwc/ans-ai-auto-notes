@@ -8,17 +8,25 @@
 - [Spring AI](kb/技术/java/spring-ai.md) — Spring 生态的 LLM 集成框架，ChatClient 流式/非流式调用
 
 ### AI / 机器学习
-- [CNN（卷积神经网络）](kb/技术/ai/cnn.md) — 图像处理专用网络，卷积+池化
-- [RNN（循环神经网络）](kb/技术/ai/rnn.md) — 序列数据处理，LSTM/GRU
-- [Transformer](kb/技术/ai/transformer.md) — 自注意力机制，现代大模型底座
-- [LLM（大语言模型）](kb/技术/ai/llm.md) — 核心原理：架构、因果推理、逐字生成、KV Cache
-- [Prompt 与 RAG](kb/技术/ai/llm-prompt-rag.md) — Prompt 工程、RAG、向量数据库/Milvus、Embedding、LangChain
-- [Agent 与 MCP](kb/技术/ai/llm-agent-mcp.md) — Agent 循环、MCP 协议、微调、AI 工具分类、Claude Code/Superpowers
-- [AI Agent 工具生态](kb/技术/ai/ai-agent-tools.md) — Hermes Agent（养马）vs OpenClaw（养龙虾）对比、微信 AI 机器人接入
-- [AI 编程 IDE](kb/技术/ai/ai-coding-ides.md) — Cursor vs Windsurf 对比，AI 编程工具的两种交互哲学
-- [Claude Code 架构](kb/技术/ai/claude-code-architecture.md) — 整体架构、REPL 循环、工具链、Hooks、上下文管理、完整数据流
-- [OpenAI Agents SDK](kb/技术/ai/openai-agents-sdk.md) — 多角色协作、Handoff 机制、Agent 编排、与 Claude Code 对比
-- [AI 编程递进路径](kb/技术/ai/ai-coding-levels.md) — 从古法编程到多 Agent 协作 6 个 Level，Skill/Agent/Vibe Coding 对比，程序员未来展望
+
+#### 基础（神经网络底层）
+- [CNN（卷积神经网络）](kb/技术/ai/基础/cnn.md) — 图像处理专用网络，卷积+池化
+- [RNN（循环神经网络）](kb/技术/ai/基础/rnn.md) — 序列数据处理，LSTM/GRU
+- [Transformer](kb/技术/ai/基础/transformer.md) — 自注意力机制，现代大模型底座
+
+#### 大模型（LLM 及周边）
+- [LLM（大语言模型）](kb/技术/ai/大模型/llm.md) — 核心原理：架构、因果推理、逐字生成、KV Cache
+- [多模态 LLM](kb/技术/ai/大模型/multimodal-llm.md) — LLM + 视觉编码器，图片/音频输入理解
+- [生成式 AI](kb/技术/ai/大模型/generative-ai.md) — 扩散模型：图片/视频/音频生成原理
+- [Prompt 与 RAG](kb/技术/ai/大模型/llm-prompt-rag.md) — Prompt 工程、RAG、向量数据库/Milvus、Embedding、LangChain
+- [Agent 与 MCP](kb/技术/ai/大模型/llm-agent-mcp.md) — Agent 循环、MCP 协议、微调、AI 工具分类
+
+#### 应用生态（工具、IDE、编程实践）
+- [AI Agent 工具生态](kb/技术/ai/应用生态/ai-agent-tools.md) — Hermes Agent（养马）vs OpenClaw（养龙虾）对比、微信 AI 机器人接入
+- [OpenAI Agents SDK](kb/技术/ai/应用生态/openai-agents-sdk.md) — 多角色协作、Handoff 机制、Agent 编排
+- [Claude Code 架构](kb/技术/ai/应用生态/claude-code-architecture.md) — 整体架构、REPL 循环、工具链、Hooks、上下文管理
+- [AI 编程 IDE](kb/技术/ai/应用生态/ai-coding-ides.md) — Cursor vs Windsurf 对比，AI 编程工具的两种交互哲学
+- [AI 编程递进路径](kb/技术/ai/应用生态/ai-coding-levels.md) — 从古法编程到多 Agent 协作 6 个 Level
 
 ### 系统设计
 <!-- 文件: kb/技术/系统设计/ -->

@@ -125,8 +125,8 @@ Transformer 架构提供:
 
 **所以：是"猜"（概率预测），但不是"瞎猜"。** 这个"猜"的过程迫使模型构建了世界模型和推理能力——因为不真懂，就算不准。
 
-> 关联: [transformer](./transformer.md) — Transformer 架构详解
-> 关联: [cnn](./cnn.md) — CNN 分层特征的涌现，与此处的"能力涌现"是同一类现象
+> 关联: [transformer](../基础/transformer.md) — Transformer 架构详解
+> 关联: [cnn](../基础/cnn.md) — CNN 分层特征的涌现，与此处的"能力涌现"是同一类现象
 
 ---
 
@@ -385,6 +385,7 @@ MoE 核心魔法:
 DS 定价低但仍然赚钱 → MoE 架构优势带来的护城河
 ```
 
-> 关联: [transformer](./transformer.md) — 自注意力机制的计算细节
+> 关联: [transformer](../基础/transformer.md) — 自注意力机制的计算细节
 > 延伸: Prompt/RAG/向量数据库 → [llm-prompt-rag](./llm-prompt-rag.md)
 > 延伸: Agent/MCP/Claude Code → [llm-agent-mcp](./llm-agent-mcp.md)
+> 延伸: 图片/视频/音频生成原理 → [generative-ai](./generative-ai.md)

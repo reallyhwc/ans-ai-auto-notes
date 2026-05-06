@@ -281,19 +281,27 @@ var FILE_INDEX = {
         { "name": "Java", "files": [
           {"title": "Spring AI", "path": "kb/技术/java/spring-ai.md", "desc": "Spring 生态 LLM 集成，流式/非流式调用"}
         ], "path": "kb/技术/java/" },
-        { "name": "AI / 机器学习", "files": [
-          {"title": "CNN（卷积神经网络）", "path": "kb/技术/ai/cnn.md", "desc": "图像处理专用网络，卷积+池化"},
-          {"title": "RNN（循环神经网络）", "path": "kb/技术/ai/rnn.md", "desc": "序列数据处理，LSTM/GRU"},
-          {"title": "Transformer", "path": "kb/技术/ai/transformer.md", "desc": "自注意力机制，现代大模型底座"},
-          {"title": "LLM（大语言模型）", "path": "kb/技术/ai/llm.md", "desc": "核心原理：架构、因果推理、逐字生成、KV Cache"},
-          {"title": "Prompt 与 RAG", "path": "kb/技术/ai/llm-prompt-rag.md", "desc": "Prompt工程、RAG、向量数据库/Milvus、Embedding、LangChain"},
-          {"title": "Agent 与 MCP", "path": "kb/技术/ai/llm-agent-mcp.md", "desc": "Agent循环、MCP协议、FC机制、Skill定位、五者关系"},
-          {"title": "AI Agent 工具生态", "path": "kb/技术/ai/ai-agent-tools.md", "desc": "Hermes Agent（养马）vs OpenClaw（养龙虾）对比、微信 AI 机器人接入"},
-          {"title": "AI 编程 IDE", "path": "kb/技术/ai/ai-coding-ides.md", "desc": "Cursor vs Windsurf 对比，AI 编程工具的两种交互哲学"},
-          {"title": "Claude Code 架构", "path": "kb/技术/ai/claude-code-architecture.md", "desc": "整体架构、REPL循环、工具链、Hooks、上下文管理、完整数据流"},
-          {"title": "OpenAI Agents SDK", "path": "kb/技术/ai/openai-agents-sdk.md", "desc": "多角色协作、Handoff机制、Agent编排、与Claude Code对比"},
-          {"title": "AI 编程递进路径", "path": "kb/技术/ai/ai-coding-levels.md", "desc": "从古法编程到多Agent协作6个Level、程序员未来展望"}
-        ], "path": "kb/技术/ai/" },
+        { "name": "AI / 机器学习", "files": [], "path": "kb/技术/ai/", "children": [
+          { "name": "基础", "files": [
+            {"title": "CNN（卷积神经网络）", "path": "kb/技术/ai/基础/cnn.md", "desc": "图像处理专用网络，卷积+池化"},
+            {"title": "RNN（循环神经网络）", "path": "kb/技术/ai/基础/rnn.md", "desc": "序列数据处理，LSTM/GRU"},
+            {"title": "Transformer", "path": "kb/技术/ai/基础/transformer.md", "desc": "自注意力机制，现代大模型底座"}
+          ], "path": "kb/技术/ai/基础/" },
+          { "name": "大模型", "files": [
+            {"title": "LLM（大语言模型）", "path": "kb/技术/ai/大模型/llm.md", "desc": "核心原理：架构、因果推理、逐字生成、KV Cache"},
+            {"title": "多模态 LLM", "path": "kb/技术/ai/大模型/multimodal-llm.md", "desc": "LLM+视觉编码器，图片/音频输入理解"},
+            {"title": "生成式 AI", "path": "kb/技术/ai/大模型/generative-ai.md", "desc": "扩散模型：图片/视频/音频生成原理"},
+            {"title": "Prompt 与 RAG", "path": "kb/技术/ai/大模型/llm-prompt-rag.md", "desc": "Prompt工程、RAG、向量数据库/Milvus、Embedding、LangChain"},
+            {"title": "Agent 与 MCP", "path": "kb/技术/ai/大模型/llm-agent-mcp.md", "desc": "Agent循环、MCP协议、FC机制、Skill定位、五者关系"}
+          ], "path": "kb/技术/ai/大模型/" },
+          { "name": "应用生态", "files": [
+            {"title": "AI Agent 工具生态", "path": "kb/技术/ai/应用生态/ai-agent-tools.md", "desc": "Hermes Agent（养马）vs OpenClaw（养龙虾）对比、微信 AI 机器人接入"},
+            {"title": "OpenAI Agents SDK", "path": "kb/技术/ai/应用生态/openai-agents-sdk.md", "desc": "多角色协作、Handoff机制、Agent编排、与Claude Code对比"},
+            {"title": "Claude Code 架构", "path": "kb/技术/ai/应用生态/claude-code-architecture.md", "desc": "整体架构、REPL循环、工具链、Hooks、上下文管理、完整数据流"},
+            {"title": "AI 编程 IDE", "path": "kb/技术/ai/应用生态/ai-coding-ides.md", "desc": "Cursor vs Windsurf 对比，AI 编程工具的两种交互哲学"},
+            {"title": "AI 编程递进路径", "path": "kb/技术/ai/应用生态/ai-coding-levels.md", "desc": "从古法编程到多Agent协作6个Level、程序员未来展望"}
+          ], "path": "kb/技术/ai/应用生态/" }
+        ] },
         { "name": "系统设计", "files": [], "path": "kb/技术/系统设计/" },
         { "name": "中间件", "files": [], "path": "kb/技术/中间件/" }
       ],

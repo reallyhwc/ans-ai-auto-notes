@@ -292,4 +292,4 @@ flowchart LR
 
 > ImageNet 提供了"数据燃料"，CNN 提供了"引擎"，两者结合开启了 AI 的 ImageNet 时刻。
 
-> 关联: [transformer](./transformer.md) — Transformer 架构 | [llm](./llm.md) — LLM 核心原理（Transformer 如何演变为大模型）
+> 关联: [transformer](./transformer.md) — Transformer 架构 | [llm](../大模型/llm.md) — LLM 核心原理（Transformer 如何演变为大模型）

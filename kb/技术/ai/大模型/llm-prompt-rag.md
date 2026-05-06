@@ -249,7 +249,7 @@ flowchart LR
     style D fill:#ff6b35,color:#fff
 ```
 
-> 关联: [transformer](./transformer.md) — Embedding 模型通常也基于 Transformer（Encoder-only，如 BERT 架构）
+> 关联: [transformer](../基础/transformer.md) — Embedding 模型通常也基于 Transformer（Encoder-only，如 BERT 架构）
 
 ---
 

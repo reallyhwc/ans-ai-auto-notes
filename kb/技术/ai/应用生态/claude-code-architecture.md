@@ -543,7 +543,7 @@ Claude Code 就是一个**带手脚的大脑**：
 
 整个过程是循环的，直到你说"不聊了"。
 
-> 关联: [llm-agent-mcp](./llm-agent-mcp.md) — Agent 与 MCP 协议原理 | [ai-agent-tools](./ai-agent-tools.md) — Agent 工具生态对比
+> 关联: [llm-agent-mcp](../大模型/llm-agent-mcp.md) — Agent 与 MCP 协议原理 | [ai-agent-tools](./ai-agent-tools.md) — Agent 工具生态对比
 
 ## 九、关联资源
 
