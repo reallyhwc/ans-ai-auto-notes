@@ -424,7 +424,105 @@ flowchart TD
     style EXEC fill:#2d8cf0,stroke:#333,color:#fff
 ```
 
-## 七、用大白话总结
+## 七、Claude Code vs LangChain：有什么区别？
+
+### 一句话回答
+
+Claude Code 是一个**产品**（AI 编程 IDE），LangChain 是一个**框架**（开发工具包）。Claude Code 内部**没有**使用 LangChain，是 Anthropic 自己从零写的。
+
+### 用 Java 开发者的语言类比
+
+| | LangChain | Claude Code |
+|---|---|---|
+| Java 世界的类比 | **Spring Boot**（框架） | 一个写好的 **SaaS 应用**（产品） |
+| 你用它来做什么 | **写代码**，构建自己的 Agent | **直接用**，让它帮你写代码 |
+| 需要会编程吗 | 需要，你是开发者 | 不需要，你是使用者 |
+| 输出是什么 | 一个能运行的 AI 应用 | 代码、文件修改、Git Commit |
+| 谁造的 | 社区开源项目 | Anthropic 官方 |
+
+### Agent Loop 的封装程度对比
+
+**LangChain** 提供的是**积木块**，你需要自己组装：
+
+```python
+# 1. 你自己定义工具
+tools = [my_search_tool, my_calculator]
+# 2. 你自己写 Prompt 模板
+prompt = ChatPromptTemplate.from_messages([...])
+# 3. 你自己组装 Agent
+agent = create_openai_tools_agent(llm, tools, prompt)
+# 4. 你自己决定怎么执行
+executor = AgentExecutor(agent=agent, tools=tools)
+result = executor.invoke({"input": "帮我查天气"})
+```
+
+**Claude Code** 本身就是**已经组装好的 Agent**：
+
+```
+Anthropic 内部已完成：
+├── 工具定义（Bash, Read, Write, Edit, Agent...）
+├── System Prompt（角色、规则、安全策略）
+├── Agent Loop（自动循环执行工具）
+├── Context Manager（上下文压缩、缓存）
+├── Permission Gate（权限确认机制）
+└── REPL Interface（跟你的交互界面）
+```
+
+### 一个具体例子：想做一个"查天气的 Agent"
+
+```
+用 LangChain 开发：
+  1. pip install langchain
+  2. 定义查天气工具（调用天气 API）
+  3. 写 Prompt 模板
+  4. 创建 Agent Executor
+  5. 部署成服务
+  6. 写前端或 CLI 让用户使用
+→ 你是在"造工具"
+
+用 Claude Code：
+  你直接说："帮我写一个查天气的 Agent"
+  Claude Code 自动创建 Python 文件、写代码、跑测试
+→ 你是在"用工具造工具"
+```
+
+### 为什么 Claude Code 不用 LangChain？
+
+1. **不需要** — Anthropic 有自己的 SDK（`anthropic` / `@anthropic-ai/sdk`），直接调 API 就够了
+2. **更贴合自身 API** — Claude 的 tool use、prompt caching、thinking 等特性，LangChain 抽象层不一定覆盖
+3. **闭源产品** — 不需要依赖外部开源框架来构建产品
+
+### 关系图
+
+```mermaid
+flowchart LR
+    subgraph "开发工具层"
+        LC[LangChain]
+        SDK[Anthropic SDK]
+    end
+    subgraph "应用产品层"
+        CC[Claude Code]
+        APP[你的自定义应用]
+    end
+    subgraph "模型层"
+        API[Claude / OpenAI API]
+    end
+
+    LC --> APP
+    SDK --> APP
+    SDK --> CC
+    API --> CC
+    API --> APP
+    LC -.不依赖.-> CC
+    CC -.不依赖.-> LC
+
+    style CC fill:#2d8cf0,stroke:#333,color:#fff
+    style LC fill:#4caf50,stroke:#333,color:#fff
+    style API fill:#ff6b35,stroke:#333,color:#fff
+    style APP fill:#9c27b0,stroke:#333,color:#fff
+```
+
+## 八、用大白话总结
 
 Claude Code 就是一个**带手脚的大脑**：
 
@@ -447,7 +545,7 @@ Claude Code 就是一个**带手脚的大脑**：
 
 > 关联: [llm-agent-mcp](./llm-agent-mcp.md) — Agent 与 MCP 协议原理 | [ai-agent-tools](./ai-agent-tools.md) — Agent 工具生态对比
 
-## 八、关联资源
+## 九、关联资源
 
 - 官方文档: [code.claude.com/docs](https://code.claude.com/docs/en/overview)
 - 插件市场: [anthropics/claude-plugins-official](https://github.com/anthropics/claude-plugins-official)
