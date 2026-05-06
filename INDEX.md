@@ -18,6 +18,7 @@
 - [AI 编程 IDE](kb/技术/ai/ai-coding-ides.md) — Cursor vs Windsurf 对比，AI 编程工具的两种交互哲学
 - [Claude Code 架构](kb/技术/ai/claude-code-architecture.md) — 整体架构、REPL 循环、工具链、Hooks、上下文管理、完整数据流
 - [OpenAI Agents SDK](kb/技术/ai/openai-agents-sdk.md) — 多角色协作、Handoff 机制、Agent 编排、与 Claude Code 对比
+- [AI 编程递进路径](kb/技术/ai/ai-coding-levels.md) — 从古法编程到多 Agent 协作 6 个 Level，Skill/Agent/Vibe Coding 对比，程序员未来展望
 
 ### 系统设计
 <!-- 文件: kb/技术/系统设计/ -->
