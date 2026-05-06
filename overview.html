@@ -80,6 +80,10 @@
 
   .load-error { padding: 40px; text-align: center; color: #e74c3c; }
   .load-error code { background: #fdf0ef; padding: 2px 8px; border-radius: 4px; }
+
+  /* Mermaid diagrams */
+  .mermaid { display: flex; justify-content: center; margin: 16px 0; }
+  .mermaid svg { max-width: 100%; height: auto; }
 </style>
 </head>
 <body>
@@ -94,7 +98,15 @@
 
 <div class="main" id="main"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
 <script>
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'neutral',
+  securityLevel: 'loose',
+  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+});
+
 // ============================================================
 // 工具函数
 // ============================================================
@@ -252,6 +264,7 @@ function renderMarkdown(md) {
   var html = '';
   var inCodeBlock = false;
   var codeBuf = [];
+  var codeLang = '';
   var inTable = false;
   var tableRows = [];
 
@@ -282,17 +295,24 @@ function renderMarkdown(md) {
     if (inCodeBlock) {
       if (/^```\s*$/.test(line)) {
         inCodeBlock = false;
-        var code = escapeHtml(codeBuf.join('\n'));
+        var raw = codeBuf.join('\n');
+        var lang = codeLang;
         codeBuf = [];
-        return '<pre><code>' + code + '</code></pre>';
+        codeLang = '';
+        if (lang === 'mermaid') {
+          return '<div class="mermaid">' + raw + '</div>';
+        }
+        return '<pre><code>' + escapeHtml(raw) + '</code></pre>';
       }
       codeBuf.push(line);
       return null;
     }
 
-    if (/^```/.test(line)) {
+    var codeFence = /^```(\w*)/.exec(line);
+    if (codeFence) {
       inCodeBlock = true;
       codeBuf = [];
+      codeLang = codeFence[1] || '';
       return null;
     }
 
@@ -442,6 +462,9 @@ function viewContent(path) {
 
     main.innerHTML = html;
 
+    // Render Mermaid diagrams after DOM insertion
+    processMermaid();
+
     if (showToc) {
       var tocContainer = document.getElementById('toc-sidebar');
       if (tocContainer) {
@@ -484,6 +507,16 @@ function goBack() {
 
 function toggleSidebar() {
   document.getElementById('sidebar').classList.toggle('collapsed');
+}
+
+// ============================================================
+// Mermaid 图表渲染
+// ============================================================
+function processMermaid() {
+  if (typeof mermaid === 'undefined') return;
+  mermaid.run({
+    querySelector: '.mermaid'
+  });
 }
 
 // ============================================================
