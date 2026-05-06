@@ -98,7 +98,7 @@
 
 <div class="main" id="main"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.3/dist/mermaid.min.js"></script>
 <script>
 mermaid.initialize({
   startOnLoad: false,
@@ -512,11 +512,29 @@ function toggleSidebar() {
 // ============================================================
 // Mermaid 图表渲染
 // ============================================================
+var mermaidId = 0;
+
 function processMermaid() {
   if (typeof mermaid === 'undefined') return;
-  mermaid.run({
-    querySelector: '.mermaid'
-  });
+  var els = document.querySelectorAll('.mermaid');
+  for (var i = 0; i < els.length; i++) {
+    var el = els[i];
+    if (el.dataset.mermaidRendered) continue;
+    el.dataset.mermaidRendered = '1';
+    var id = 'mermaid-' + (++mermaidId);
+    var def = el.textContent;
+    (function(element, elemId, definition) {
+      try {
+        mermaid.render(elemId, definition).then(function(result) {
+          element.innerHTML = result.svg;
+        }).catch(function(err) {
+          element.innerHTML = '<pre style="color:#e74c3c;font-size:12px;">Mermaid 渲染失败: ' + err.message + '</pre>';
+        });
+      } catch(err) {
+        element.innerHTML = '<pre style="color:#e74c3c;font-size:12px;">Mermaid 加载失败</pre>';
+      }
+    })(el, id, def);
+  }
 }
 
 // ============================================================

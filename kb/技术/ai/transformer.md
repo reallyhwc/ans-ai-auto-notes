@@ -19,6 +19,23 @@ RNN 方式（串行传递）:
                                 "跑"读到这，关于"猫"的记忆(h₂)已经很淡了
 ```
 
+```mermaid
+flowchart LR
+    subgraph "并行训练阶段"
+        A["输入序列\n词向量+位置编码"] --> B["所有 token 同时计算 Q·K·V"]
+        B --> C["注意力矩阵\n每个词看所有词"]
+        C --> D["加权 Value\n融合上下文"]
+    end
+
+    subgraph "生成阶段"
+        D --> E["Causal Mask\n只看前面的词"]
+        E --> F["预测下一个 token"]
+    end
+
+    style A fill:#e3f2fd
+    style F fill:#ff6b35,color:#fff
+```
+
 RNN 两个硬伤：
 - **串行**：h₇ 必须等 h₆ 算完，h₆ 必须等 h₅ 算完 → GPU 并行能力浪费
 - **长距离衰减**：每传一步梯度乘一个系数，传 300 步梯度归零 → 长文本学不动

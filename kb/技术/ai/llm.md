@@ -32,6 +32,28 @@ GPT-3:   N = 96
 GPT-4:   N = 120 (推测)
 ```
 
+```mermaid
+flowchart LR
+    A["输入文本"] --> B["Tokenizer\n拆成 token"]
+    B --> C["Embedding\n词向量 + 位置编码"]
+    C --> D["Transformer Block × N\nDecoder-only"]
+    D --> E["线性层\n映射到词表"]
+    E --> F["Softmax\n概率分布"]
+    F --> G["采样\n选下一个 token"]
+    G --> H{"遇到\n结束标记?"}
+    H -->|否| C
+    H -->|是| I["完整文本输出"]
+
+    subgraph "自回归循环"
+        G
+        H
+    end
+
+    style A fill:#e3f2fd
+    style I fill:#4caf50,color:#fff
+    style D fill:#ff6b35,color:#fff
+```
+
 **规模不只是量变，会引发质变——涌现能力（Emergent Abilities）：**
 
 - 小模型（<10B）：能做翻译、摘要，但推理能力弱

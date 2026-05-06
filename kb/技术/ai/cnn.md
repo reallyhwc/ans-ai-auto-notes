@@ -36,6 +36,26 @@
          (提特征)  (降维)    (提特征)  (降维)          (分类)
 ```
 
+```mermaid
+flowchart LR
+    A["输入图片\n224×224×3"] --> B["Conv 3×3\n64 filters"]
+    B --> C["ReLU"]
+    C --> D["MaxPool 2×2"]
+    D --> E["Conv 3×3\n128 filters"]
+    E --> F["ReLU"]
+    F --> G["MaxPool 2×2"]
+    G --> H["Conv 3×3\n256 filters"]
+    H --> I["ReLU"]
+    I --> J["MaxPool 2×2"]
+    J --> K["Flatten"]
+    K --> L["FC 4096"]
+    L --> M["FC 1000"]
+    M --> N["Softmax\n分类"]
+
+    style A fill:#e3f2fd
+    style N fill:#ff6b35,color:#fff
+```
+
 ---
 
 ## 3. 核心机制拆解
@@ -191,6 +211,23 @@ Layer N: 自然语言 — "狗"、"花"
                   重复几万/几百万次
                         ↑
                   参数从"随机乱猜"变成"能用的检测器"
+```
+
+```mermaid
+flowchart LR
+    A["训练数据\n图片+标签"] --> B["随机初始化\n卷积核权重"]
+    B --> C["前向传播\n卷积→池化→全连接"]
+    C --> D["预测输出\n概率分布"]
+    D --> E["损失函数\n预测 vs 真实"]
+    E --> F["反向传播\n梯度计算"]
+    F --> G["梯度下降\n更新权重"]
+    G --> H{收敛?}
+    H -->|否| C
+    H -->|是| I["训练完成\n可用模型"]
+
+    style A fill:#e3f2fd
+    style I fill:#4caf50,color:#fff
+    style E fill:#ff6b35,color:#fff
 ```
 
 卷积核里的数字（-1, 0, 1, 8…）就是**参数**——它们不是人定义的，是训练出来的。

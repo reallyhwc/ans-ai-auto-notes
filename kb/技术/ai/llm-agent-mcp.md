@@ -117,6 +117,34 @@ Agent 的能力取决于它能调用什么工具：
 
 ## 2. MCP（Model Context Protocol）：AI 界的 USB-C
 
+### 2.0 MCP 解决了什么痛点
+
+```mermaid
+flowchart LR
+    subgraph "MCP 之前：N×M 适配"
+        A1["ChatGPT"] --> C1["私有协议A"]
+        A2["Claude"] --> C2["私有协议B"]
+        A3["Gemini"] --> C3["私有协议C"]
+        C1 --> D1["天气 API"]
+        C2 --> D2["天气 API\n(又要写一套)"]
+        C3 --> D3["天气 API\n(又要写一套)"]
+    end
+
+    subgraph "MCP 之后：1×N 标准化"
+        B1["ChatGPT"] --> M1["MCP 协议"]
+        B2["Claude"] --> M2["MCP 协议"]
+        B3["Gemini"] --> M3["MCP 协议"]
+        M1 --> D4["天气 MCP Server\n只写一次"]
+        M2 --> D4
+        M3 --> D4
+    end
+
+    style D1 fill:#ffebee
+    style D2 fill:#ffebee
+    style D3 fill:#ffebee
+    style D4 fill:#4caf50,color:#fff
+```
+
 ### 2.1 解决什么问题
 
 ```
