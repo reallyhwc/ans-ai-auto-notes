@@ -1,6 +1,6 @@
 # 知识库索引
 
-> 最后更新: 2026-05-05
+> 最后更新: 2026-05-06
 
 ## 技术
 
@@ -16,6 +16,7 @@
 - [Agent 与 MCP](kb/技术/ai/llm-agent-mcp.md) — Agent 循环、MCP 协议、微调、AI 工具分类、Claude Code/Superpowers
 - [AI Agent 工具生态](kb/技术/ai/ai-agent-tools.md) — Hermes Agent（养马）vs OpenClaw（养龙虾）对比、微信 AI 机器人接入
 - [AI 编程 IDE](kb/技术/ai/ai-coding-ides.md) — Cursor vs Windsurf 对比，AI 编程工具的两种交互哲学
+- [Claude Code 架构](kb/技术/ai/claude-code-architecture.md) — 整体架构、REPL 循环、工具链、Hooks、上下文管理、完整数据流
 
 ### 系统设计
 <!-- 文件: kb/技术/系统设计/ -->
