@@ -3,83 +3,172 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>(function(){try{var t=localStorage.getItem('theme');if(!t){t=window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 <title>个人知识库导览</title>
 <style>
+  :root {
+    --bg-primary: #f8f9fa;
+    --bg-sidebar: #2c3e50;
+    --bg-sidebar-hover: #34495e;
+    --bg-code: #ecf0f1;
+    --bg-pre: #2c3e50;
+    --bg-blockquote: #f0f3f5;
+    --bg-table-header: #ecf0f1;
+    --bg-error-code: #fdf0ef;
+    --bg-server-code: #ecf0f1;
+    --text-primary: #1a1a1a;
+    --text-secondary: #7f8c8d;
+    --text-muted: #95a5a6;
+    --text-faint: #bdc3c7;
+    --text-sidebar: #ecf0f1;
+    --text-folder: #2c3e50;
+    --text-match: #2c3e50;
+    --text-blockquote: #555;
+    --text-strong: #2c3e50;
+    --text-link: #2980b9;
+    --text-toc: #7f8c8d;
+    --text-toc-hover: #2980b9;
+    --text-toc-active: #2980b9;
+    --text-error: #e74c3c;
+    --text-toc-title: #2c3e50;
+    --text-pre: #ecf0f1;
+    --border-heading: #e0e0e0;
+    --border-heading-h2: #eee;
+    --border-timeline: #ddd;
+    --border-search-result: #eee;
+    --border-search-input: #ddd;
+    --border-toc: #e0e0e0;
+    --border-table: #ddd;
+    --border-hr: #ddd;
+    --border-blockquote: #3498db;
+    --accent: #3498db;
+    --accent-shadow: rgba(52, 152, 219, 0.2);
+    --toggle-bg: #34495e;
+    --toggle-bg-hover: #465f77;
+  }
+  [data-theme="dark"] {
+    --bg-primary: #1a1a2e;
+    --bg-sidebar: #0f0f1a;
+    --bg-sidebar-hover: #1a1a2e;
+    --bg-code: #2a2a3e;
+    --bg-pre: #0f0f1a;
+    --bg-blockquote: #222236;
+    --bg-table-header: #2a2a3e;
+    --bg-error-code: #3a1a1e;
+    --bg-server-code: #2a2a3e;
+    --text-primary: #e0e0e8;
+    --text-secondary: #9a9ab0;
+    --text-muted: #7a7a90;
+    --text-faint: #5a5a70;
+    --text-sidebar: #c8c8d8;
+    --text-folder: #c8c8d8;
+    --text-match: #e0e0e8;
+    --text-blockquote: #b0b0c0;
+    --text-strong: #e0e0e8;
+    --text-link: #5dade2;
+    --text-toc: #9a9ab0;
+    --text-toc-hover: #5dade2;
+    --text-toc-active: #5dade2;
+    --text-error: #ff6b6b;
+    --text-toc-title: #c8c8d8;
+    --text-pre: #c8c8d8;
+    --border-heading: #2a2a3e;
+    --border-heading-h2: #2a2a3e;
+    --border-timeline: #2a2a3e;
+    --border-search-result: #2a2a3e;
+    --border-search-input: #3a3a50;
+    --border-toc: #2a2a3e;
+    --border-table: #3a3a50;
+    --border-hr: #2a2a3e;
+    --border-blockquote: #5dade2;
+    --accent: #5dade2;
+    --accent-shadow: rgba(93, 173, 226, 0.3);
+    --toggle-bg: #2a2a3e;
+    --toggle-bg-hover: #3a3a50;
+  }
+
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; display: flex; height: 100vh; color: #1a1a1a; background: #f8f9fa; }
-  .sidebar { width: 200px; background: #2c3e50; color: #ecf0f1; display: flex; flex-direction: column; padding-top: 20px; flex-shrink: 0; transition: width 0.2s; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; display: flex; height: 100vh; color: var(--text-primary); background: var(--bg-primary); }
+  .sidebar { width: 200px; background: var(--bg-sidebar); color: var(--text-sidebar); display: flex; flex-direction: column; padding-top: 20px; flex-shrink: 0; transition: width 0.2s; }
   .sidebar.collapsed { width: 40px; }
-  .sidebar.collapsed .tab, .sidebar.collapsed .title { display: none; }
+  .sidebar.collapsed .tab, .sidebar.collapsed .title, .sidebar.collapsed .theme-toggle { display: none; }
   .sidebar .title { padding: 0 20px 20px; font-size: 14px; font-weight: 700; letter-spacing: 0.5px; }
   .tab { padding: 10px 20px; cursor: pointer; font-size: 14px; border-left: 3px solid transparent; transition: all 0.15s; }
-  .tab:hover { background: #34495e; }
-  .tab.active { background: #34495e; border-left-color: #3498db; color: #fff; }
+  .tab:hover { background: var(--bg-sidebar-hover); }
+  .tab.active { background: var(--bg-sidebar-hover); border-left-color: var(--accent); color: var(--text-sidebar); }
   .main { flex: 1; overflow-y: auto; padding: 30px 40px; }
-  .main h2 { margin-bottom: 20px; font-size: 22px; border-bottom: 2px solid #e0e0e0; padding-bottom: 10px; }
+  .main h2 { margin-bottom: 20px; font-size: 22px; border-bottom: 2px solid var(--border-heading); padding-bottom: 10px; }
   .tree-item { margin: 4px 0; }
-  .tree-toggle { cursor: pointer; user-select: none; display: inline-block; width: 16px; color: #7f8c8d; }
+  .tree-toggle { cursor: pointer; user-select: none; display: inline-block; width: 16px; color: var(--text-secondary); }
   .tree-toggle.open::before { content: "▼"; }
   .tree-toggle.closed::before { content: "▶"; }
-  .tree-folder { font-weight: 600; color: #2c3e50; cursor: pointer; }
-  .tree-file { color: #2980b9; margin-left: 20px; font-size: 14px; cursor: pointer; display: block; }
+  .tree-folder { font-weight: 600; color: var(--text-folder); cursor: pointer; }
+  .tree-file { color: var(--text-link); margin-left: 20px; font-size: 14px; cursor: pointer; display: block; }
   .tree-file:hover { text-decoration: underline; }
   .tree-children { margin-left: 16px; }
   .tree-children.collapsed { display: none; }
   .timeline-week { margin-bottom: 24px; }
-  .timeline-week h3 { font-size: 16px; color: #2c3e50; margin-bottom: 8px; }
-  .timeline-entry { padding: 6px 0 6px 16px; border-left: 2px solid #ddd; margin-left: 6px; font-size: 14px; }
-  .timeline-entry .date { color: #7f8c8d; font-size: 12px; }
-  .timeline-entry a { color: #2980b9; text-decoration: none; }
+  .timeline-week h3 { font-size: 16px; color: var(--text-folder); margin-bottom: 8px; }
+  .timeline-entry { padding: 6px 0 6px 16px; border-left: 2px solid var(--border-timeline); margin-left: 6px; font-size: 14px; }
+  .timeline-entry .date { color: var(--text-secondary); font-size: 12px; }
+  .timeline-entry a { color: var(--text-link); text-decoration: none; }
   .timeline-entry a:hover { text-decoration: underline; }
-  .timeline-entry .tl-link { color: #2980b9; cursor: pointer; }
+  .timeline-entry .tl-link { color: var(--text-link); cursor: pointer; }
   .timeline-entry .tl-link:hover { text-decoration: underline; }
-  .search-input { width: 100%; padding: 10px 14px; font-size: 14px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 20px; outline: none; }
-  .search-input:focus { border-color: #3498db; box-shadow: 0 0 0 2px rgba(52,152,219,0.2); }
-  .search-result { padding: 8px 0; font-size: 14px; border-bottom: 1px solid #eee; }
-  .search-result .match { color: #2c3e50; font-weight: 600; }
-  .search-result .path { color: #7f8c8d; font-size: 12px; }
-  .empty-state { color: #95a5a6; font-size: 14px; margin-top: 40px; text-align: center; }
-  .tree-empty { color: #bdc3c7; cursor: default; }
-  .tl-empty { color: #bdc3c7; }
-  .server-guide { text-align: center; margin-top: 60px; color: #7f8c8d; }
-  .server-guide code { background: #ecf0f1; padding: 2px 8px; border-radius: 4px; font-size: 15px; color: #2c3e50; }
+  .search-input { width: 100%; padding: 10px 14px; font-size: 14px; border: 1px solid var(--border-search-input); border-radius: 6px; margin-bottom: 20px; outline: none; }
+  .search-input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-shadow); }
+  .search-result { padding: 8px 0; font-size: 14px; border-bottom: 1px solid var(--border-search-result); }
+  .search-result .match { color: var(--text-match); font-weight: 600; }
+  .search-result .path { color: var(--text-secondary); font-size: 12px; }
+  .empty-state { color: var(--text-muted); font-size: 14px; margin-top: 40px; text-align: center; }
+  .tree-empty { color: var(--text-faint); cursor: default; }
+  .tl-empty { color: var(--text-faint); }
+  .server-guide { text-align: center; margin-top: 60px; color: var(--text-secondary); }
+  .server-guide code { background: var(--bg-server-code); padding: 2px 8px; border-radius: 4px; font-size: 15px; color: var(--text-folder); }
   .server-guide h2 { border: none; margin-bottom: 12px; }
+  .server-hint { font-size: 13px; color: var(--text-muted); }
 
-  .back-link { display: inline-block; margin-bottom: 16px; color: #3498db; cursor: pointer; font-size: 14px; }
+  .back-link { display: inline-block; margin-bottom: 16px; color: var(--accent); cursor: pointer; font-size: 14px; }
   .back-link:hover { text-decoration: underline; }
-  .content-meta { color: #7f8c8d; font-size: 13px; margin-bottom: 24px; }
+  .content-meta { color: var(--text-secondary); font-size: 13px; margin-bottom: 24px; }
   .md-content { line-height: 1.8; font-size: 15px; }
-  .md-content h1 { font-size: 26px; margin: 24px 0 12px; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px; }
-  .md-content h2 { font-size: 20px; margin: 22px 0 10px; border-bottom: 1px solid #eee; padding-bottom: 6px; }
+  .md-content h1 { font-size: 26px; margin: 24px 0 12px; border-bottom: 2px solid var(--border-heading); padding-bottom: 8px; }
+  .md-content h2 { font-size: 20px; margin: 22px 0 10px; border-bottom: 1px solid var(--border-heading-h2); padding-bottom: 6px; }
   .md-content h3 { font-size: 17px; margin: 18px 0 8px; }
   .md-content p { margin: 8px 0; }
   .md-content ul, .md-content ol { margin: 8px 0 8px 20px; }
   .md-content li { margin: 4px 0; }
-  .md-content strong { color: #2c3e50; }
-  .md-content code { background: #ecf0f1; padding: 1px 5px; border-radius: 3px; font-size: 13px; font-family: "SF Mono", Monaco, "Cascadia Code", monospace; }
-  .md-content pre { background: #2c3e50; color: #ecf0f1; padding: 14px 18px; border-radius: 6px; overflow-x: auto; margin: 12px 0; }
-  .md-content pre code { background: none; padding: 0; font-size: 13px; color: #ecf0f1; }
-  .md-content blockquote { border-left: 3px solid #3498db; padding: 6px 14px; margin: 12px 0; color: #555; background: #f0f3f5; border-radius: 0 4px 4px 0; }
-  .md-content hr { border: none; border-top: 1px solid #ddd; margin: 16px 0; }
+  .md-content strong { color: var(--text-strong); }
+  .md-content code { background: var(--bg-code); padding: 1px 5px; border-radius: 3px; font-size: 13px; font-family: "SF Mono", Monaco, "Cascadia Code", monospace; }
+  .md-content pre { background: var(--bg-pre); color: var(--text-pre); padding: 14px 18px; border-radius: 6px; overflow-x: auto; margin: 12px 0; }
+  .md-content pre code { background: none; padding: 0; font-size: 13px; color: var(--text-pre); }
+  .md-content blockquote { border-left: 3px solid var(--border-blockquote); padding: 6px 14px; margin: 12px 0; color: var(--text-blockquote); background: var(--bg-blockquote); border-radius: 0 4px 4px 0; }
+  .md-content hr { border: none; border-top: 1px solid var(--border-hr); margin: 16px 0; }
   .md-content table { border-collapse: collapse; margin: 12px 0; font-size: 14px; }
-  .md-content th { background: #ecf0f1; padding: 6px 12px; border: 1px solid #ddd; text-align: left; }
-  .md-content td { padding: 6px 12px; border: 1px solid #ddd; }
-  .md-content a { color: #2980b9; }
-  .sidebar-toggle { display: none; padding: 10px; cursor: pointer; text-align: center; color: #ecf0f1; font-size: 18px; }
+  .md-content th { background: var(--bg-table-header); padding: 6px 12px; border: 1px solid var(--border-table); text-align: left; }
+  .md-content td { padding: 6px 12px; border: 1px solid var(--border-table); }
+  .md-content a { color: var(--text-link); }
+  .sidebar-toggle { display: none; padding: 10px; cursor: pointer; text-align: center; color: var(--text-sidebar); font-size: 18px; }
   .sidebar.collapsed .sidebar-toggle { display: block; }
 
   .content-with-toc { display: flex; gap: 0; }
   .content-with-toc .md-content { flex: 1; min-width: 0; padding-right: 24px; }
-  .toc-sidebar { width: 200px; flex-shrink: 0; position: sticky; top: 20px; align-self: flex-start; max-height: calc(100vh - 40px); overflow-y: auto; border-left: 1px solid #e0e0e0; padding-left: 16px; font-size: 13px; }
-  .toc-sidebar .toc-title { font-weight: 600; color: #2c3e50; margin-bottom: 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
-  .toc-sidebar a { display: block; color: #7f8c8d; text-decoration: none; padding: 3px 0; border-left: 2px solid transparent; padding-left: 8px; margin-left: -10px; transition: all 0.15s; line-height: 1.4; }
-  .toc-sidebar a:hover { color: #2980b9; }
-  .toc-sidebar a.active { color: #2980b9; border-left-color: #3498db; font-weight: 500; }
+  .toc-sidebar { width: 200px; flex-shrink: 0; position: sticky; top: 20px; align-self: flex-start; max-height: calc(100vh - 40px); overflow-y: auto; border-left: 1px solid var(--border-toc); padding-left: 16px; font-size: 13px; }
+  .toc-sidebar .toc-title { font-weight: 600; color: var(--text-toc-title); margin-bottom: 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .toc-sidebar a { display: block; color: var(--text-toc); text-decoration: none; padding: 3px 0; border-left: 2px solid transparent; padding-left: 8px; margin-left: -10px; transition: all 0.15s; line-height: 1.4; }
+  .toc-sidebar a:hover { color: var(--text-toc-hover); }
+  .toc-sidebar a.active { color: var(--text-toc-active); border-left-color: var(--accent); font-weight: 500; }
   .toc-sidebar a.toc-h2 { padding-left: 8px; }
   .toc-sidebar a.toc-h3 { padding-left: 20px; font-size: 12px; }
 
-  .load-error { padding: 40px; text-align: center; color: #e74c3c; }
-  .load-error code { background: #fdf0ef; padding: 2px 8px; border-radius: 4px; }
+  .theme-toggle { padding: 10px 20px; cursor: pointer; font-size: 14px; text-align: center; border-top: 1px solid rgba(255,255,255,0.1); margin-top: auto; user-select: none; transition: background 0.15s; }
+  .theme-toggle:hover { background: var(--bg-sidebar-hover); }
+  .theme-toggle:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .theme-icon { display: inline-block; transition: transform 0.2s; }
+  .mermaid-error { color: var(--text-error); font-size: 12px; }
+
+  .load-error { padding: 40px; text-align: center; color: var(--text-error); }
+  .load-error code { background: var(--bg-error-code); padding: 2px 8px; border-radius: 4px; }
 
   /* Mermaid diagrams */
   .mermaid { display: flex; justify-content: center; margin: 16px 0; }
@@ -94,18 +183,79 @@
   <div class="tab active" data-tab="categories">分类导览</div>
   <div class="tab" data-tab="timeline">时间线</div>
   <div class="tab" data-tab="search">搜索</div>
+  <div class="theme-toggle" id="themeToggle" title="切换深色模式" onclick="toggleTheme()" role="button" tabindex="0" aria-label="切换深色模式">
+    <span class="theme-icon" id="themeIcon">&#127769;</span>
+  </div>
 </div>
 
 <div class="main" id="main"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.3/dist/mermaid.min.js"></script>
 <script>
-mermaid.initialize({
-  startOnLoad: false,
-  theme: 'neutral',
-  securityLevel: 'loose',
-  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+function initMermaid() {
+  var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: isDark ? 'dark' : 'neutral',
+    securityLevel: 'loose',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+  });
+}
+initMermaid();
+
+// ============================================================
+// 深色模式切换
+// ============================================================
+function getPreferredTheme() {
+  var stored = localStorage.getItem('theme');
+  if (stored === 'dark' || stored === 'light') {
+    return stored;
+  }
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  var icon = document.getElementById('themeIcon');
+  if (icon) {
+    icon.textContent = theme === 'dark' ? '☀️' : '🌙';
+  }
+}
+
+function toggleTheme() {
+  var current = document.documentElement.getAttribute('data-theme');
+  var next = current === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('theme', next);
+  applyTheme(next);
+  initMermaid();
+  // Re-render current view to apply Mermaid theme
+  if (currentView === 'content' && currentFile) {
+    contentCache = {};
+    viewContent(currentFile);
+  }
+}
+
+// Listen for system theme changes when user has no manual preference
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+  if (!localStorage.getItem('theme')) {
+    applyTheme(e.matches ? 'dark' : 'light');
+    initMermaid();
+  }
 });
+
+// Apply theme on load (FOUC prevention already handled by inline <script> in <head>)
+(function() {
+  applyTheme(getPreferredTheme());
+  var themeToggle = document.getElementById('themeToggle');
+  if (themeToggle) {
+    themeToggle.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggleTheme();
+      }
+    });
+  }
+})();
 
 // ============================================================
 // 工具函数
@@ -140,7 +290,8 @@ var FILE_INDEX = {
           {"title": "Agent 与 MCP", "path": "kb/技术/ai/llm-agent-mcp.md", "desc": "Agent循环、MCP协议、FC机制、Skill定位、五者关系"},
           {"title": "AI Agent 工具生态", "path": "kb/技术/ai/ai-agent-tools.md", "desc": "Hermes Agent（养马）vs OpenClaw（养龙虾）对比、微信 AI 机器人接入"},
           {"title": "AI 编程 IDE", "path": "kb/技术/ai/ai-coding-ides.md", "desc": "Cursor vs Windsurf 对比，AI 编程工具的两种交互哲学"},
-          {"title": "Claude Code 架构", "path": "kb/技术/ai/claude-code-architecture.md", "desc": "整体架构、REPL循环、工具链、Hooks、上下文管理、完整数据流"}
+          {"title": "Claude Code 架构", "path": "kb/技术/ai/claude-code-architecture.md", "desc": "整体架构、REPL循环、工具链、Hooks、上下文管理、完整数据流"},
+          {"title": "OpenAI Agents SDK", "path": "kb/技术/ai/openai-agents-sdk.md", "desc": "多角色协作、Handoff机制、Agent编排、与Claude Code对比"}
         ], "path": "kb/技术/ai/" },
         { "name": "系统设计", "files": [], "path": "kb/技术/系统设计/" },
         { "name": "中间件", "files": [], "path": "kb/技术/中间件/" }
@@ -388,7 +539,7 @@ function slugify(text) {
 function renderToc(tocItems, container) {
   var html = '<div class="toc-title">目录</div>';
   if (tocItems.length === 0) {
-    html += '<span style="color:#bdc3c7;font-size:12px;">无标题</span>';
+    html += '<span style="color: var(--text-faint);font-size:12px;">无标题</span>';
   }
   tocItems.forEach(function(item) {
     html += '<a href="#' + item.id + '" class="toc-h' + item.level + '" data-toc-id="' + item.id + '">' + escapeHtml(item.text) + '</a>';
@@ -493,7 +644,7 @@ function viewContent(path) {
         '<div class="load-error">' +
         '<h2>无法加载文件</h2>' +
         '<p>请在终端执行 <code>./serve.sh</code> 启动本地服务器，然后刷新页面。</p>' +
-        '<p style="margin-top:12px;font-size:13px;color:#95a5a6;">文件: ' + escapeHtml(path) + '</p>' +
+        '<p style="margin-top:12px;font-size:13px;color: var(--text-muted);">文件: ' + escapeHtml(path) + '</p>' +
         '</div>';
     });
 }
@@ -528,10 +679,10 @@ function processMermaid() {
         mermaid.render(elemId, definition).then(function(result) {
           element.innerHTML = result.svg;
         }).catch(function(err) {
-          element.innerHTML = '<pre style="color:#e74c3c;font-size:12px;">Mermaid 渲染失败: ' + err.message + '</pre>';
+          element.innerHTML = '<pre class="mermaid-error">Mermaid 渲染失败: ' + err.message + '</pre>';
         });
       } catch(err) {
-        element.innerHTML = '<pre style="color:#e74c3c;font-size:12px;">Mermaid 加载失败</pre>';
+        element.innerHTML = '<pre class="mermaid-error">Mermaid 加载失败</pre>';
       }
     })(el, id, def);
   }
@@ -747,7 +898,7 @@ function init() {
         '<p style="margin-bottom:16px;">需要本地 HTTP 服务器才能加载笔记内容。</p>' +
         '<p>请在终端执行:</p>' +
         '<p style="margin:12px 0;"><code>./serve.sh</code></p>' +
-        '<p style="font-size:13px;color:#95a5a6;">然后刷新此页面</p>' +
+        '<p class="server-hint">然后刷新此页面</p>' +
         '</div>';
     }
   });
