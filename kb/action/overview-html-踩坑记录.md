@@ -152,3 +152,53 @@ for (const p of allPaths) assert(fs.existsSync(p));
 ```
 
 **临时验证脚本不要 commit**：本次踩坑还附带教训——`.tmp-verify-*.js` 残留在 git 暂存区里（AD 状态：add 后 delete，索引仍持有），是因为我用 `delete_file` 失败后改用 `rm -f`，没及时 `git rm --cached`。`scripts/check-overview.js` 已加入"git 暂存区不允许有 `.tmp-*` 文件"检查，下次会被自动拦截。
+
+---
+
+## 7. FILE_INDEX 路径过期 + viewContent 静默失败（2026-05-07）
+
+**现象**：用户反馈"时间线里 CNN/RNN/Transformer 链接点不进去"、"搜索 LLM 部分链接可点部分不可点"。
+
+**根因调查（systematic-debugging Phase 1）**：
+
+| 检查 | 结果 |
+|------|------|
+| `curl -I http://localhost:8765/kb/技术/ai/cnn.md` | 404 |
+| `curl -I http://localhost:8765/kb/技术/ai/基础/cnn.md` | 200 |
+| `grep "kb/技术/ai/" overview.html` | timeline W18 中 CNN/RNN/Transformer 还在用旧路径 `kb/技术/ai/cnn.md` |
+| 看 `viewContent(path)` | `if (!file) return;` 静默 return，找不到 path 时无任何提示 |
+| 看 `check-overview.js` 第 2 项 | 只检查 `categories` 的 path，**没遍历 `FI.timeline[].entries[].links[].url`** |
+
+**3 个问题点 + 1 个机制缺陷**：
+
+1. **数据问题**：commit 7463507 把 `kb/技术/ai/` 从两层重构为三层（基础/大模型/应用生态）时，只改了 `categories`，**漏改了 `timeline.links` 里的旧路径**。
+2. **行为问题**：`viewContent()` 找不到 path 时静默 `return`，用户感知是"点了没反应"，难定位。
+3. **预防问题**：`check-overview.js` 第 2 项 path 实存检查只覆盖 `categories`（来自 `buildFileIndex`），漏覆盖 `timeline.links`，所以本次旧路径没被自动捕获。
+4. **关于"搜索 LLM 部分可点部分不可点"**：searchKB 的结果集 = buildFileIndex 的 keys（都是 `categories` 里的合法 path），所以**搜索结果一定可点**。用户感知到的"部分不可点"实际上是把 timeline 区块里 LLM 链接（旧路径）和搜索结果混淆了。本次修完 timeline 旧路径后即解决。
+
+**修复**：
+
+```diff
+// FILE_INDEX.timeline W18
+- {"label": "CNN", "url": "kb/技术/ai/cnn.md"},
+- {"label": "RNN", "url": "kb/技术/ai/rnn.md"},
+- {"label": "Transformer", "url": "kb/技术/ai/transformer.md"},
++ {"label": "CNN", "url": "kb/技术/ai/基础/cnn.md"},
++ {"label": "RNN", "url": "kb/技术/ai/基础/rnn.md"},
++ {"label": "Transformer", "url": "kb/技术/ai/基础/transformer.md"},
+
+// viewContent
+- if (!file) return;
++ if (!file) {
++   console.warn('[viewContent] FILE_INDEX 中不存在 path: ' + path + '，请检查 FILE_INDEX.timeline 链接或 categories 数据，并跑 node scripts/check-overview.js');
++   return;
++ }
+```
+
+`scripts/check-overview.js` 第 2 项扩展出 2b 子项，遍历 `FI.timeline[].entries[].links[].url` 检查实存，扩展后第一次跑就 FAIL 出这 3 条旧路径，证明机制有效。
+
+**通用教训**：
+
+- **结构升级要"全字段扫描"**：FILE_INDEX 持有 path 的字段不止 `categories`，还有 `timeline.links`。任何持有 path 的数据结构发生重构时，都要 grep 全部使用点。
+- **静默失败是 bug 滋生土壤**：UI 层的"找不到就 return"会让数据问题永远不暴露。改成 `console.warn` 后，开发期 DevTools 一打开就能看到 `[viewContent] FILE_INDEX 中不存在 path: xxx`，定位成本从"半小时排查"降到"5 秒看 console"。
+- **check 脚本的覆盖度要随数据结构同步扩展**：每新增一个持 path 的字段，就要在 check 脚本里加一项实存校验，否则就是"白名单漏检"。

@@ -118,6 +118,28 @@ for (const p of allPaths) {
 }
 if (missingFiles === 0) pass(allPaths.length + ' 个文件全部存在');
 
+// 2b. FILE_INDEX.timeline 中所有 link.url 也要真实存在
+//     （2026-05-07 W18 旧路径残留事故：commit 7463507 三层重构时只改了 categories，
+//       漏改 timeline.links，导致页面"点了没反应"。viewContent 静默 return，难定位。）
+let timelineMissing = 0;
+let timelineChecked = 0;
+if (FI.timeline && Array.isArray(FI.timeline)) {
+  FI.timeline.forEach(w => {
+    (w.entries || []).forEach(e => {
+      (e.links || []).forEach(link => {
+        if (!link.url || !link.url.startsWith('kb/')) return;
+        timelineChecked++;
+        const abs = path.join(ROOT, link.url);
+        if (!fs.existsSync(abs)) {
+          fail('timeline ' + w.week + ' 链接指向不存在的文件: ' + link.url + ' (label=' + link.label + ')');
+          timelineMissing++;
+        }
+      });
+    });
+  });
+}
+if (timelineMissing === 0) pass('timeline.links ' + timelineChecked + ' 条 url 全部真实存在');
+
 // ============================================================
 // 检查 3: buildFileIndex / searchKB / renderCategories 三者一致
 // ============================================================

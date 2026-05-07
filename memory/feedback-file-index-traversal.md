@@ -35,3 +35,31 @@ grep -n 'FILE_INDEX' overview.html
 1. grep 找出所有访问该结构的代码
 2. 同步升级
 3. 在 `scripts/check-overview.js` 中加一项一致性断言
+
+---
+
+## 补充：FILE_INDEX 中所有持 path 的字段清单（2026-05-07）
+
+`commit 7463507` 三层重构后只改了 `categories`，漏改 `timeline.links`，事故复盘后明确：**FILE_INDEX 中持有文件路径的字段不止一处**，结构升级时全部都要扫一遍。
+
+| 字段路径 | 说明 | 谁在用 |
+|---------|------|-------|
+| `FI.categories[].files[].path` | 顶层文件 | renderCategories / buildFileIndex / searchKB |
+| `FI.categories[].children[].files[].path`（递归任意层） | 子目录文件 | 同上（已通过递归 walk 覆盖） |
+| `FI.timeline[].entries[].links[].url` | 时间线里的链接 | renderTimeline → viewContent（**之前漏检**） |
+
+**结构升级时必跑**：
+
+```bash
+# 1. 列出所有持 path 的字段（全字段扫描，不要只看眼前的）
+grep -nE '"(path|url)"\s*:' overview.html | head -50
+
+# 2. 跑 check 脚本，第 2 项会扫描 categories 和 timeline.links 两类 path 实存
+node scripts/check-overview.js
+```
+
+**通用原则**：
+
+- **任何持有 path 的数据结构都必须进 check 脚本的实存校验白名单**
+- 新增持 path 的字段时（比如未来加 `FI.tags[].refs[].path`、`FI.related[].path`），必须**同步**在 `check-overview.js` 第 2 项里追加遍历分支
+- 不要默认"我已经修了报错的地方就完了"——bug 通常分布在多处，UI 静默失败会让你以为只有一处

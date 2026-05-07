@@ -354,9 +354,9 @@ var FILE_INDEX = {
           "date": "2026-05-03",
           "summary": "读书/技术：梳理 CNN、RNN、Transformer 三大深度学习基础架构",
           "links": [
-            {"label": "CNN", "url": "kb/技术/ai/cnn.md"},
-            {"label": "RNN", "url": "kb/技术/ai/rnn.md"},
-            {"label": "Transformer", "url": "kb/技术/ai/transformer.md"},
+            {"label": "CNN", "url": "kb/技术/ai/基础/cnn.md"},
+            {"label": "RNN", "url": "kb/技术/ai/基础/rnn.md"},
+            {"label": "Transformer", "url": "kb/技术/ai/基础/transformer.md"},
             {"label": "读书笔记", "url": "kb/读书笔记/我看见的世界.md"}
           ]
         },
@@ -654,7 +654,12 @@ var currentFile = null;
 function viewContent(path) {
   var fileIndex = buildFileIndex();
   var file = fileIndex[path];
-  if (!file) return;
+  if (!file) {
+    // 2026-05-07 修复"点了没反应"问题：FILE_INDEX 中不存在 path 时打 warn，便于 DevTools 定位
+    // 常见诱因：timeline.links / categories 中残留旧路径（结构升级时遗漏同步）
+    console.warn('[viewContent] FILE_INDEX 中不存在 path: ' + path + '，请检查 FILE_INDEX.timeline 链接或 categories 数据，并跑 node scripts/check-overview.js');
+    return;
+  }
 
   currentView = 'content';
   currentFile = path;
