@@ -498,10 +498,14 @@ function viewContent(path) {
   var fileIndex = buildFileIndex();
   var file = fileIndex[path];
   if (!file) {
-    // 2026-05-07 修复"点了没反应"问题：FILE_INDEX 中不存在 path 时打 warn，便于 DevTools 定位
-    // 常见诱因：timeline.links / categories 中残留旧路径（结构升级时遗漏同步）
-    console.warn('[viewContent] FILE_INDEX 中不存在 path: ' + path + '，请检查 FILE_INDEX.timeline 链接或 categories 数据，并跑 node scripts/check-overview.js');
-    return;
+    // path 不在 manifest.json 的 categories 中（如 CLAUDE.md、docs/ 下的文件）
+    // fallback: 用文件名作 title，直接尝试 fetch 渲染
+    if (path.endsWith('.md')) {
+      file = { title: path.split('/').pop().replace(/\.md$/, ''), desc: '' };
+    } else {
+      console.warn('[viewContent] 不支持的文件类型: ' + path);
+      return;
+    }
   }
 
   currentView = 'content';
