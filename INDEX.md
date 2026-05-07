@@ -20,6 +20,7 @@
 - [生成式 AI](kb/技术/ai/大模型/generative-ai.md) — 扩散模型：图片/视频/音频生成原理
 - [Prompt 与 RAG](kb/技术/ai/大模型/llm-prompt-rag.md) — Prompt 工程、RAG、向量数据库/Milvus、Embedding、LangChain
 - [Agent 与 MCP](kb/技术/ai/大模型/llm-agent-mcp.md) — Agent 循环、MCP 协议、微调、AI 工具分类
+- [本地部署 LLM](kb/技术/ai/大模型/local-llm-deployment.md) — Ollama 安装使用、进阶玩法（API/Embedding/Modelfile/Web UI）、小模型推荐
 
 #### 应用生态（工具、IDE、编程实践）
 - [AI Agent 工具生态](kb/技术/ai/应用生态/ai-agent-tools.md) — Hermes Agent（养马）vs OpenClaw（养龙虾）对比、微信 AI 机器人接入
