@@ -1,0 +1,92 @@
+[
+  {
+    "week": "2026-W18 (04.27 - 05.03)",
+    "entries": [
+      {
+        "date": "2026-05-03",
+        "summary": "项目初始化：创建 AI 驱动个人知识库，确定目录结构、更新策略、文件格式规范",
+        "links": [
+          {"label": "CLAUDE.md", "url": "CLAUDE.md"},
+          {"label": "设计文档", "url": "docs/superpowers/specs/2026-05-03-ai-auto-knowledge-base-design.md"}
+        ]
+      },
+      {
+        "date": "2026-05-03",
+        "summary": "读书/技术：梳理 CNN、RNN、Transformer 三大深度学习基础架构",
+        "links": [
+          {"label": "CNN", "url": "kb/技术/ai/基础/cnn.md"},
+          {"label": "RNN", "url": "kb/技术/ai/基础/rnn.md"},
+          {"label": "Transformer", "url": "kb/技术/ai/基础/transformer.md"},
+          {"label": "读书笔记", "url": "kb/读书笔记/我看见的世界.md"}
+        ]
+      },
+      {
+        "date": "2026-05-04",
+        "summary": "技术/AI：新增 LLM 核心概念（Prompt、RAG、微调、Agent）及生态（LangChain、向量数据库/Milvus、MCP 协议），讨论大模型同源性与'猜'的本质",
+        "links": [
+          {"label": "LLM", "url": "kb/技术/ai/大模型/llm.md"}
+        ]
+      }
+    ]
+  },
+  {
+    "week": "2026-W19 (05.04 - 05.10)",
+    "entries": [
+      {
+        "date": "2026-05-05",
+        "summary": "环境切换：从 Claude Code 切到 Aone Copilot，确认核心能力（文件读写、shell、规则遵循、知识沉淀）完全兼容",
+        "links": [{"label": "本周记", "url": "timeline/2026-W19.md"}]
+      },
+      {
+        "date": "2026-05-05",
+        "summary": "Action/技巧：新增知识管理工具对比笔记（Obsidian 概览 + 与本项目方案的对比）",
+        "links": [{"label": "知识管理工具对比", "url": "kb/action/技巧/knowledge-management-tools.md"}]
+      },
+      {
+        "date": "2026-05-06",
+        "summary": "技术/AI：探讨 OpenAI Agents SDK 多角色协作、Handoff、Function Calling 底层；与 Claude Code Agent 机制对比；创建可运行 demo 并沉淀笔记",
+        "links": [{"label": "OpenAI Agents SDK", "url": "kb/技术/ai/应用生态/openai-agents-sdk.md"}]
+      },
+      {
+        "date": "2026-05-06",
+        "summary": "技术/AI：梳理 AI 编程的 6 个递进层级（古法→Copilot→Agent→Vibe→Skill→多 Agent 协作），讨论程序员角色从'写代码'到'管 AI'的漂移",
+        "links": [{"label": "AI 编程递进路径", "url": "kb/技术/ai/应用生态/ai-coding-levels.md"}]
+      },
+      {
+        "date": "2026-05-06",
+        "summary": "工程维护：修复 dark mode 5 个 bug；扩展 settings.local.json 白名单；建立反复同类只读命令的提醒 memory 机制",
+        "links": [{"label": "本周记", "url": "timeline/2026-W19.md"}]
+      },
+      {
+        "date": "2026-05-07",
+        "summary": "技术/AI：LLM 推理优化专题（量化 FP32→INT8/INT4、MoE 架构、KV Cache vs Prompt Cache 双层加速对比）",
+        "links": [{"label": "LLM 核心原理", "url": "kb/技术/ai/大模型/llm.md"}]
+      },
+      {
+        "date": "2026-05-07",
+        "summary": "技术/AI：LLM 应用设计——智能客服 vs 传统 MySQL/ES 检索的 9 大维度差异；Temperature 详解、Function Calling 完整 5 步流程",
+        "links": [{"label": "LLM 应用设计", "url": "kb/技术/ai/应用生态/llm-app-design.md"}]
+      },
+      {
+        "date": "2026-05-07",
+        "summary": "技术/AI：本地部署 LLM 实践——Ollama 安装+使用+7 项进阶玩法（API/多模态/Embedding/Modelfile/Open WebUI 等）",
+        "links": [{"label": "本地部署 LLM", "url": "kb/技术/ai/大模型/local-llm-deployment.md"}]
+      },
+      {
+        "date": "2026-05-07",
+        "summary": "技术/AI：智能客服系统搭建实战 8 步走（知识收集→分块→向量化→RAG→LLM→Tool Calling→上下文→防幻觉），20-35 人天估算",
+        "links": [{"label": "LLM 智能客服实战", "url": "kb/技术/ai/应用生态/llm-customer-service.md"}]
+      },
+      {
+        "date": "2026-05-07",
+        "summary": "Bug/工程：overview.html 三层嵌套渲染修复——4 处独立 bug 同根因（FILE_INDEX 升级三层后，遍历它的代码硬编码两层 forEach）。renderCategories/buildFileIndex/searchKB/checkServer 全部改为递归 walk()",
+        "links": [{"label": "踩坑记录 #6", "url": "kb/action/overview-html-踩坑记录.md"}]
+      },
+      {
+        "date": "2026-05-07",
+        "summary": "工程沉淀：新增永久脚本 scripts/check-overview.js（5 项检查），扩展 exit-check.sh 在退出前自动调用，把'靠运气发现 bug'升级为'自动化兜底'",
+        "links": [{"label": "本周记", "url": "timeline/2026-W19.md"}]
+      }
+    ]
+  }
+]

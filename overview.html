@@ -270,167 +270,10 @@ function escapeAttr(str) {
 }
 
 // ============================================================
-// 文件索引 — 纯元数据，不含 Markdown 正文
-// 新增/删除文件时在此增删条目
+// FILE_INDEX — 运行时从 manifest.json + timeline.json 加载
+// 不再硬编码，由 build-index.js 构建生成
 // ============================================================
-var FILE_INDEX = {
-  "categories": [
-    {
-      "name": "技术",
-      "children": [
-        { "name": "Java", "files": [
-          {"title": "Spring AI", "path": "kb/技术/java/spring-ai.md", "desc": "Spring 生态 LLM 集成，流式/非流式调用"}
-        ], "path": "kb/技术/java/" },
-        { "name": "AI / 机器学习", "files": [], "path": "kb/技术/ai/", "children": [
-          { "name": "基础", "files": [
-            {"title": "CNN（卷积神经网络）", "path": "kb/技术/ai/基础/cnn.md", "desc": "图像处理专用网络，卷积+池化"},
-            {"title": "RNN（循环神经网络）", "path": "kb/技术/ai/基础/rnn.md", "desc": "序列数据处理，LSTM/GRU"},
-            {"title": "Transformer", "path": "kb/技术/ai/基础/transformer.md", "desc": "自注意力机制，现代大模型底座"}
-          ], "path": "kb/技术/ai/基础/" },
-          { "name": "大模型", "files": [
-            {"title": "LLM（大语言模型）", "path": "kb/技术/ai/大模型/llm.md", "desc": "核心原理：架构、因果推理、逐字生成、KV Cache"},
-            {"title": "多模态 LLM", "path": "kb/技术/ai/大模型/multimodal-llm.md", "desc": "LLM+视觉编码器，图片/音频输入理解"},
-            {"title": "生成式 AI", "path": "kb/技术/ai/大模型/generative-ai.md", "desc": "扩散模型：图片/视频/音频生成原理"},
-            {"title": "Prompt 与 RAG", "path": "kb/技术/ai/大模型/llm-prompt-rag.md", "desc": "Prompt工程、RAG、向量数据库/Milvus、Embedding、LangChain"},
-            {"title": "Agent 与 MCP", "path": "kb/技术/ai/大模型/llm-agent-mcp.md", "desc": "Agent循环、MCP协议、FC机制、Skill定位、五者关系"},
-            {"title": "本地部署 LLM", "path": "kb/技术/ai/大模型/local-llm-deployment.md", "desc": "Ollama安装使用+进阶玩法(API/Embedding/Modelfile/Web UI)、小模型推荐"}
-          ], "path": "kb/技术/ai/大模型/" },
-          { "name": "应用生态", "files": [
-            {"title": "LLM 智能客服实战", "path": "kb/技术/ai/应用生态/llm-customer-service.md", "desc": "从零到一搭建客服系统：知识整理→RAG→LLM接入→Tool Calling→防幻觉→部署运维"},
-            {"title": "LLM 应用设计", "path": "kb/技术/ai/应用生态/llm-app-design.md", "desc": "大模型应用 vs 传统 MySQL/ES 检索：确定性、Tool Calling、幻觉、上下文管理"},
-            {"title": "AI Agent 工具生态", "path": "kb/技术/ai/应用生态/ai-agent-tools.md", "desc": "Hermes Agent（养马）vs OpenClaw（养龙虾）对比、微信 AI 机器人接入"},
-            {"title": "OpenAI Agents SDK", "path": "kb/技术/ai/应用生态/openai-agents-sdk.md", "desc": "多角色协作、Handoff机制、Agent编排、与Claude Code对比"},
-            {"title": "Claude Code 架构", "path": "kb/技术/ai/应用生态/claude-code-architecture.md", "desc": "整体架构、REPL循环、工具链、Hooks、上下文管理、完整数据流"},
-            {"title": "AI 编程 IDE", "path": "kb/技术/ai/应用生态/ai-coding-ides.md", "desc": "Cursor vs Windsurf 对比，AI 编程工具的两种交互哲学"},
-            {"title": "AI 编程递进路径", "path": "kb/技术/ai/应用生态/ai-coding-levels.md", "desc": "从古法编程到多Agent协作6个Level、程序员未来展望"}
-          ], "path": "kb/技术/ai/应用生态/" }
-        ] },
-        { "name": "系统设计", "files": [], "path": "kb/技术/系统设计/" },
-        { "name": "中间件", "files": [], "path": "kb/技术/中间件/" }
-      ],
-      "path": "kb/技术/"
-    },
-    {
-      "name": "读书笔记",
-      "children": [
-        { "name": "我看见的世界", "files": [
-          {"title": "我看见的世界", "path": "kb/读书笔记/我看见的世界.md", "desc": "李飞飞"}
-        ], "path": "kb/读书笔记/" }
-      ],
-      "path": "kb/读书笔记/"
-    },
-    {
-      "name": "Action（排查/技巧/摘要）",
-      "children": [
-        { "name": "排查记录", "files": [
-          {"title": "overview.html 维护踩坑记录", "path": "kb/action/overview-html-踩坑记录.md", "desc": "JS语法错误静默炸页面、content缺失、内容同步"}
-        ], "path": "kb/action/" },
-        { "name": "技巧", "files": [
-          {"title": "GitHub 项目创建与同步", "path": "kb/action/技巧/github-repo-setup.md", "desc": "SSH密钥配置、repo关联、HTTPS vs SSH、踩坑记录"},
-          {"title": "知识管理工具对比", "path": "kb/action/技巧/knowledge-management-tools.md", "desc": "Obsidian概览、与AI对话驱动知识库方案的对比"}
-        ], "path": "kb/action/技巧/" }
-      ],
-      "path": "kb/action/"
-    },
-    {
-      "name": "日常思考",
-      "children": [],
-      "path": "kb/日常思考/"
-    }
-  ],
-  "timeline": [
-    {
-      "week": "2026-W18 (04.27 - 05.03)",
-      "entries": [
-        {
-          "date": "2026-05-03",
-          "summary": "项目初始化：创建 AI 驱动个人知识库，确定目录结构、更新策略、文件格式规范",
-          "links": [
-            {"label": "CLAUDE.md", "url": "CLAUDE.md"},
-            {"label": "设计文档", "url": "docs/superpowers/specs/2026-05-03-ai-auto-knowledge-base-design.md"}
-          ]
-        },
-        {
-          "date": "2026-05-03",
-          "summary": "读书/技术：梳理 CNN、RNN、Transformer 三大深度学习基础架构",
-          "links": [
-            {"label": "CNN", "url": "kb/技术/ai/基础/cnn.md"},
-            {"label": "RNN", "url": "kb/技术/ai/基础/rnn.md"},
-            {"label": "Transformer", "url": "kb/技术/ai/基础/transformer.md"},
-            {"label": "读书笔记", "url": "kb/读书笔记/我看见的世界.md"}
-          ]
-        },
-        {
-          "date": "2026-05-04",
-          "summary": "技术/AI：新增 LLM 核心概念（Prompt、RAG、微调、Agent）及生态（LangChain、向量数据库/Milvus、MCP 协议），讨论大模型同源性与'猜'的本质",
-          "links": [
-            {"label": "LLM", "url": "kb/技术/ai/大模型/llm.md"}
-          ]
-        }
-      ]
-    },
-    {
-      "week": "2026-W19 (05.04 - 05.10)",
-      "entries": [
-        {
-          "date": "2026-05-05",
-          "summary": "环境切换：从 Claude Code 切到 Aone Copilot，确认核心能力（文件读写、shell、规则遵循、知识沉淀）完全兼容",
-          "links": [{"label": "本周记", "url": "timeline/2026-W19.md"}]
-        },
-        {
-          "date": "2026-05-05",
-          "summary": "Action/技巧：新增知识管理工具对比笔记（Obsidian 概览 + 与本项目方案的对比）",
-          "links": [{"label": "知识管理工具对比", "url": "kb/action/技巧/knowledge-management-tools.md"}]
-        },
-        {
-          "date": "2026-05-06",
-          "summary": "技术/AI：探讨 OpenAI Agents SDK 多角色协作、Handoff、Function Calling 底层；与 Claude Code Agent 机制对比；创建可运行 demo 并沉淀笔记",
-          "links": [{"label": "OpenAI Agents SDK", "url": "kb/技术/ai/应用生态/openai-agents-sdk.md"}]
-        },
-        {
-          "date": "2026-05-06",
-          "summary": "技术/AI：梳理 AI 编程的 6 个递进层级（古法→Copilot→Agent→Vibe→Skill→多 Agent 协作），讨论程序员角色从'写代码'到'管 AI'的漂移",
-          "links": [{"label": "AI 编程递进路径", "url": "kb/技术/ai/应用生态/ai-coding-levels.md"}]
-        },
-        {
-          "date": "2026-05-06",
-          "summary": "工程维护：修复 dark mode 5 个 bug；扩展 settings.local.json 白名单；建立反复同类只读命令的提醒 memory 机制",
-          "links": [{"label": "本周记", "url": "timeline/2026-W19.md"}]
-        },
-        {
-          "date": "2026-05-07",
-          "summary": "技术/AI：LLM 推理优化专题（量化 FP32→INT8/INT4、MoE 架构、KV Cache vs Prompt Cache 双层加速对比）",
-          "links": [{"label": "LLM 核心原理", "url": "kb/技术/ai/大模型/llm.md"}]
-        },
-        {
-          "date": "2026-05-07",
-          "summary": "技术/AI：LLM 应用设计——智能客服 vs 传统 MySQL/ES 检索的 9 大维度差异；Temperature 详解、Function Calling 完整 5 步流程",
-          "links": [{"label": "LLM 应用设计", "url": "kb/技术/ai/应用生态/llm-app-design.md"}]
-        },
-        {
-          "date": "2026-05-07",
-          "summary": "技术/AI：本地部署 LLM 实践——Ollama 安装+使用+7 项进阶玩法（API/多模态/Embedding/Modelfile/Open WebUI 等）",
-          "links": [{"label": "本地部署 LLM", "url": "kb/技术/ai/大模型/local-llm-deployment.md"}]
-        },
-        {
-          "date": "2026-05-07",
-          "summary": "技术/AI：智能客服系统搭建实战 8 步走（知识收集→分块→向量化→RAG→LLM→Tool Calling→上下文→防幻觉），20-35 人天估算",
-          "links": [{"label": "LLM 智能客服实战", "url": "kb/技术/ai/应用生态/llm-customer-service.md"}]
-        },
-        {
-          "date": "2026-05-07",
-          "summary": "Bug/工程：overview.html 三层嵌套渲染修复——4 处独立 bug 同根因（FILE_INDEX 升级三层后，遍历它的代码硬编码两层 forEach）。renderCategories/buildFileIndex/searchKB/checkServer 全部改为递归 walk()",
-          "links": [{"label": "踩坑记录 #6", "url": "kb/action/overview-html-踩坑记录.md"}]
-        },
-        {
-          "date": "2026-05-07",
-          "summary": "工程沉淀：新增永久脚本 scripts/check-overview.js（5 项检查），扩展 exit-check.sh 在退出前自动调用，把'靠运气发现 bug'升级为'自动化兜底'",
-          "links": [{"label": "本周记", "url": "timeline/2026-W19.md"}]
-        }
-      ]
-    }
-  ]
-};
+var FILE_INDEX = { categories: [], timeline: [] };
 
 // ============================================================
 // 文件索引 — path → {title, desc} 映射
@@ -969,14 +812,28 @@ function setupLiveReload() {
 }
 
 // ============================================================
+// 加载 manifest.json + timeline.json（单一数据源）
+// ============================================================
+function loadManifest(callback) {
+  Promise.all([
+    fetch('manifest.json').then(function(r) { return r.json(); }),
+    fetch('timeline.json').then(function(r) { return r.json(); })
+  ]).then(function(results) {
+    FILE_INDEX.categories = results[0].categories || [];
+    FILE_INDEX.timeline = results[1] || [];
+    callback(true);
+  }).catch(function(err) {
+    console.warn('[loadManifest] 加载失败:', err);
+    callback(false);
+  });
+}
+
+// ============================================================
 // 初始化
 // ============================================================
 function init() {
   checkServer(function(available) {
-    if (available) {
-      setupLiveReload();
-      renderCategories();
-    } else {
+    if (!available) {
       main.innerHTML =
         '<div class="server-guide">' +
         '<h2>知识库导览</h2>' +
@@ -985,7 +842,22 @@ function init() {
         '<p style="margin:12px 0;"><code>./serve.sh</code></p>' +
         '<p class="server-hint">然后刷新此页面</p>' +
         '</div>';
+      return;
     }
+    // 服务器可用，加载数据后渲染
+    loadManifest(function(ok) {
+      if (!ok) {
+        main.innerHTML =
+          '<div class="server-guide">' +
+          '<h2>数据加载失败</h2>' +
+          '<p>无法加载 manifest.json 或 timeline.json</p>' +
+          '<p>请确认已执行 <code>node scripts/build-index.js</code></p>' +
+          '</div>';
+        return;
+      }
+      setupLiveReload();
+      renderCategories();
+    });
   });
 }
 

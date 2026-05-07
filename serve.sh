@@ -10,6 +10,8 @@ if [ -n "$PID" ]; then
     echo "已停止"
 else
     echo "启动知识库服务器（Node.js + 实时刷新）..."
+    echo "构建 manifest.json + INDEX.md..."
+    node scripts/build-index.js
     node server.js &
     sleep 0.5
     open "http://localhost:$PORT/overview.html"

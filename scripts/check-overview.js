@@ -1,31 +1,32 @@
 #!/usr/bin/env node
 /**
- * overview.html 健康检查脚本（5 项）
+ * overview.html 健康检查脚本（6 项）
+ *
+ * 数据源: manifest.json + timeline.json（不再从 HTML 中正则提取 FILE_INDEX）
  *
  * 检查项：
- *   1. JS 语法 — overview.html 中提取 <script> 段过 vm.Script 解析
- *   2. FILE_INDEX 中所有 path 对应的 md 文件真实存在
- *   3. buildFileIndex / searchKB / renderCategories 三者输出一致
- *   4. INDEX.md 列出的 .md 文件 ↔ FILE_INDEX 中的 path 双向同步
- *   5. git 暂存区不允许有 .tmp-* 文件
+ *   1. manifest.json / timeline.json 存在性 + JSON 合法性
+ *   2. manifest.json 中所有 path 对应的 md 文件真实存在
+ *   3. timeline.json 中所有 link.url 指向的文件真实存在
+ *   4. INDEX.md 中的路径 和 manifest.json 中的路径 双向同步
+ *   5. timeline 磁盘文件 和 timeline.json 双向同步
+ *   6. git 暂存区不允许有 .tmp-* 文件
  *
  * 用法: node scripts/check-overview.js
  * 退出码: 0 = 全通过, 1 = 有失败
- *
- * 历史背景: 2026-05-07 修复 AI/机器学习 三层目录后沉淀的脚本，
- *   目的是防止 FILE_INDEX 结构变化时，遗漏同步 4 个遍历函数 / INDEX.md / 临时文件残留。
  */
 
 'use strict';
 
 const fs = require('fs');
 const path = require('path');
-const vm = require('vm');
 const { execSync } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '..');
-const HTML_PATH = path.join(ROOT, 'overview.html');
+const MANIFEST_PATH = path.join(ROOT, 'manifest.json');
+const TIMELINE_PATH = path.join(ROOT, 'timeline.json');
 const INDEX_MD_PATH = path.join(ROOT, 'INDEX.md');
+const TIMELINE_DIR = path.join(ROOT, 'timeline');
 
 let failed = 0;
 function pass(msg) { console.log('  PASS: ' + msg); }
@@ -33,100 +34,77 @@ function fail(msg) { console.log('  FAIL: ' + msg); failed++; }
 function section(title) { console.log('\n[' + title + ']'); }
 
 // ============================================================
-// 加载 overview.html，抽出关键函数
+// 检查 1: manifest.json / timeline.json 存在性 + JSON 合法性
 // ============================================================
-const html = fs.readFileSync(HTML_PATH, 'utf-8');
+section('1/6 数据文件存在性');
 
-function extract(re, name) {
-  const m = html.match(re);
-  if (!m) {
-    fail('提取 ' + name + ' 失败');
-    process.exit(1);
-  }
-  return m[0];
-}
-
-const fileIndexCode = extract(/var FILE_INDEX = \{[\s\S]*?^\};/m, 'FILE_INDEX');
-const renderCategoriesCode = extract(/function renderCategories\(\)[\s\S]*?^\}/m, 'renderCategories');
-const renderNodeCode = extract(/function renderNode\(node, idPrefix\)[\s\S]*?^\}/m, 'renderNode');
-const buildFileIndexCode = extract(/function buildFileIndex\(\)[\s\S]*?^\}/m, 'buildFileIndex');
-const searchKBCode = extract(/function searchKB\(query\)[\s\S]*?^\}/m, 'searchKB');
-
-// ============================================================
-// 检查 1: JS 语法
-// ============================================================
-section('1/5 JS 语法检查');
-const allScriptCode = `
-${fileIndexCode}
-function escapeHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
-${renderCategoriesCode}
-${renderNodeCode}
-${buildFileIndexCode}
-${searchKBCode}
-var main = { innerHTML: '' };
-function bindTreeToggles() {}
-`;
-try {
-  new vm.Script(allScriptCode);
-  pass('提取的 5 个关键代码段语法正确');
-} catch (e) {
-  fail('JS 语法错误: ' + e.message);
-}
-
-// 同时整文件 <script> 段也校验一下
-const scriptMatches = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)];
-const inlineScripts = scriptMatches.filter(m => m[0].indexOf('src=') === -1).map(m => m[1]);
-inlineScripts.forEach((code, i) => {
-  try {
-    new vm.Script(code);
-    pass('inline <script> #' + (i + 1) + ' 语法正确');
-  } catch (e) {
-    fail('inline <script> #' + (i + 1) + ' 语法错误: ' + e.message);
-  }
-});
-
-// ============================================================
-// 执行代码，准备后续检查所需的数据
-// ============================================================
-const ctx = vm.createContext({});
-const runCode = allScriptCode + '\nrenderCategories(); var __HTML = main.innerHTML; var __IDX = buildFileIndex(); var __FI = FILE_INDEX;';
-try {
-  vm.runInContext(runCode, ctx, { timeout: 5000 });
-} catch (e) {
-  fail('执行 overview.html 提取代码失败: ' + e.message);
-  console.log('\n=== 检查失败 ===');
+if (!fs.existsSync(MANIFEST_PATH)) {
+  fail('manifest.json 不存在（请执行 node scripts/build-index.js）');
+  console.log('\n=== 检查中止 ===');
   process.exit(1);
 }
-const FI = ctx.__FI;
-const idx = ctx.__IDX;
-const renderHtml = ctx.__HTML;
-const allPaths = Object.keys(idx);
+if (!fs.existsSync(TIMELINE_PATH)) {
+  fail('timeline.json 不存在');
+  console.log('\n=== 检查中止 ===');
+  process.exit(1);
+}
+
+let manifest, timeline;
+try {
+  manifest = JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf-8'));
+  pass('manifest.json JSON 合法');
+} catch (e) {
+  fail('manifest.json JSON 解析失败: ' + e.message);
+  process.exit(1);
+}
+try {
+  timeline = JSON.parse(fs.readFileSync(TIMELINE_PATH, 'utf-8'));
+  pass('timeline.json JSON 合法');
+} catch (e) {
+  fail('timeline.json JSON 解析失败: ' + e.message);
+  process.exit(1);
+}
+
+// 递归收集 manifest 中的所有 file path
+function collectPaths(node) {
+  const paths = [];
+  if (node.files) {
+    node.files.forEach(function(f) { if (f.path) paths.push(f.path); });
+  }
+  if (node.children) {
+    node.children.forEach(function(c) { paths.push.apply(paths, collectPaths(c)); });
+  }
+  return paths;
+}
+
+const categories = manifest.categories || [];
+const allPaths = [];
+categories.forEach(function(cat) { allPaths.push.apply(allPaths, collectPaths(cat)); });
 
 // ============================================================
-// 检查 2: FILE_INDEX 中所有 path 对应的 md 文件真实存在
+// 检查 2: manifest.json 中所有 path 对应的 md 文件真实存在
 // ============================================================
-section('2/5 FILE_INDEX path 实存检查');
+section('2/6 manifest.json path 实存检查');
 let missingFiles = 0;
 for (const p of allPaths) {
   const abs = path.join(ROOT, p);
-  if (fs.existsSync(abs)) {
-    // 不打 PASS，避免刷屏
-  } else {
+  if (!fs.existsSync(abs)) {
     fail('文件不存在: ' + p);
     missingFiles++;
   }
 }
 if (missingFiles === 0) pass(allPaths.length + ' 个文件全部存在');
 
-// 2b. FILE_INDEX.timeline 中所有 link.url 也要真实存在
-//     （2026-05-07 W18 旧路径残留事故：commit 7463507 三层重构时只改了 categories，
-//       漏改 timeline.links，导致页面"点了没反应"。viewContent 静默 return，难定位。）
+// ============================================================
+// 检查 3: timeline.json 中所有 link.url 指向的文件真实存在
+// ============================================================
+section('3/6 timeline.json link 实存检查');
 let timelineMissing = 0;
 let timelineChecked = 0;
-if (FI.timeline && Array.isArray(FI.timeline)) {
-  FI.timeline.forEach(w => {
-    (w.entries || []).forEach(e => {
-      (e.links || []).forEach(link => {
+if (Array.isArray(timeline)) {
+  timeline.forEach(function(w) {
+    (w.entries || []).forEach(function(e) {
+      (e.links || []).forEach(function(link) {
         if (!link.url || !link.url.startsWith('kb/')) return;
         timelineChecked++;
         const abs = path.join(ROOT, link.url);
@@ -141,44 +119,11 @@ if (FI.timeline && Array.isArray(FI.timeline)) {
 if (timelineMissing === 0) pass('timeline.links ' + timelineChecked + ' 条 url 全部真实存在');
 
 // ============================================================
-// 检查 3: buildFileIndex / searchKB / renderCategories 三者一致
+// 检查 4: INDEX.md 和 manifest.json 双向同步
 // ============================================================
-section('3/5 三函数一致性');
-
-// 3a. renderCategories 输出的 HTML 应包含每个 path
-let renderMiss = 0;
-for (const p of allPaths) {
-  if (renderHtml.indexOf(p) === -1) {
-    fail('renderCategories HTML 不含 path: ' + p);
-    renderMiss++;
-  }
-}
-if (renderMiss === 0) pass('renderCategories HTML 含全部 ' + allPaths.length + ' 个 path');
-
-// 3b. searchKB 用 title 关键词应能命中（取每个文件 title 的前 2 字符做关键词）
-let searchMiss = 0;
-for (const p of allPaths) {
-  const file = idx[p];
-  if (!file || !file.title) continue;
-  // 取一个稳定的子串：title 的非空白前 2 字符
-  const keyword = file.title.replace(/\s+/g, '').slice(0, 2).toLowerCase();
-  if (!keyword) continue;
-  const results = vm.runInContext('searchKB(' + JSON.stringify(keyword) + ')', ctx);
-  const hit = results.some(r => r.filePath === p);
-  if (!hit) {
-    fail('searchKB("' + keyword + '") 未命中 ' + p + ' (title=' + file.title + ')');
-    searchMiss++;
-  }
-}
-if (searchMiss === 0) pass('searchKB 用 title 前 2 字关键词能命中全部 ' + allPaths.length + ' 个文件');
-
-// ============================================================
-// 检查 4: INDEX.md ↔ FILE_INDEX 双向同步
-// ============================================================
-section('4/5 INDEX.md ↔ FILE_INDEX 双向同步');
+section('4/6 INDEX.md 和 manifest.json 双向同步');
 
 const indexMd = fs.readFileSync(INDEX_MD_PATH, 'utf-8');
-// 提取 INDEX.md 里的 [text](kb/...md) 链接路径
 const indexMdPaths = new Set();
 const linkRe = /\]\((kb\/[^)]+\.md)\)/g;
 let m;
@@ -186,74 +131,73 @@ while ((m = linkRe.exec(indexMd)) !== null) {
   indexMdPaths.add(m[1]);
 }
 
-const fiPaths = new Set(allPaths);
+const manifestPaths = new Set(allPaths);
 
-// 4a. INDEX.md 中的所有路径都应在 FILE_INDEX 中
 let onlyInIndex = 0;
 for (const p of indexMdPaths) {
-  if (!fiPaths.has(p)) {
-    fail('INDEX.md 中存在但 FILE_INDEX 中缺失: ' + p);
+  if (!manifestPaths.has(p)) {
+    fail('INDEX.md 中存在但 manifest.json 中缺失: ' + p);
     onlyInIndex++;
   }
 }
-if (onlyInIndex === 0) pass('INDEX.md ' + indexMdPaths.size + ' 个路径全部在 FILE_INDEX 中');
+if (onlyInIndex === 0) pass('INDEX.md ' + indexMdPaths.size + ' 个路径全部在 manifest.json 中');
 
-// 4b. FILE_INDEX 中的所有路径都应在 INDEX.md 中
-let onlyInFi = 0;
-for (const p of fiPaths) {
+let onlyInManifest = 0;
+for (const p of manifestPaths) {
   if (!indexMdPaths.has(p)) {
-    fail('FILE_INDEX 中存在但 INDEX.md 中缺失: ' + p);
-    onlyInFi++;
+    fail('manifest.json 中存在但 INDEX.md 中缺失: ' + p);
+    onlyInManifest++;
   }
 }
-if (onlyInFi === 0) pass('FILE_INDEX ' + fiPaths.size + ' 个路径全部在 INDEX.md 中');
+if (onlyInManifest === 0) pass('manifest.json ' + manifestPaths.size + ' 个路径全部在 INDEX.md 中');
 
-// 4c. timeline/*.md 文件 ↔ FILE_INDEX.timeline 双向同步
-//    （2026-05-07 补：之前漏检 timeline，导致 W19 没同步到 FILE_INDEX 也不报错）
-const TIMELINE_DIR = path.join(ROOT, 'timeline');
-const diskWeeks = new Set(); // e.g. "2026-W18", "2026-W19"
+// ============================================================
+// 检查 5: timeline 磁盘文件 和 timeline.json 双向同步
+// ============================================================
+section('5/6 timeline 磁盘 和 timeline.json 双向同步');
+
+const diskWeeks = new Set();
 if (fs.existsSync(TIMELINE_DIR)) {
   fs.readdirSync(TIMELINE_DIR)
-    .filter(f => /^\d{4}-W\d{2}\.md$/.test(f))
-    .forEach(f => diskWeeks.add(f.replace(/\.md$/, '')));
+    .filter(function(f) { return /^\d{4}-W\d{2}\.md$/.test(f); })
+    .forEach(function(f) { diskWeeks.add(f.replace(/\.md$/, '')); });
 }
-const fiWeeks = new Set();
-if (FI.timeline && Array.isArray(FI.timeline)) {
-  FI.timeline.forEach(w => {
-    // FI.timeline[i].week 形如 "2026-W18 (04.27 - 05.03)"，取前缀
-    const m = (w.week || '').match(/^(\d{4}-W\d{2})/);
-    if (m) fiWeeks.add(m[1]);
+const tlWeeks = new Set();
+if (Array.isArray(timeline)) {
+  timeline.forEach(function(w) {
+    var wm = (w.week || '').match(/^(\d{4}-W\d{2})/);
+    if (wm) tlWeeks.add(wm[1]);
   });
 }
 
 let weekDiff = 0;
 for (const w of diskWeeks) {
-  if (!fiWeeks.has(w)) {
-    fail('timeline/' + w + '.md 存在但 FILE_INDEX.timeline 中缺失（请补充 entries 数据到 overview.html）');
+  if (!tlWeeks.has(w)) {
+    fail('timeline/' + w + '.md 存在但 timeline.json 中缺失');
     weekDiff++;
   }
 }
-for (const w of fiWeeks) {
+for (const w of tlWeeks) {
   if (!diskWeeks.has(w)) {
-    fail('FILE_INDEX.timeline 中存在 ' + w + ' 但磁盘上没有 timeline/' + w + '.md');
+    fail('timeline.json 中存在 ' + w + ' 但磁盘上没有 timeline/' + w + '.md');
     weekDiff++;
   }
 }
 if (weekDiff === 0) {
-  pass('timeline ' + diskWeeks.size + ' 周文件全部在 FILE_INDEX.timeline 中（双向同步）');
+  pass('timeline ' + diskWeeks.size + ' 周文件全部双向同步');
 }
 
 // ============================================================
-// 检查 5: git 暂存区不允许有 .tmp-* 文件
+// 检查 6: git 暂存区不允许有 .tmp-* 文件
 // ============================================================
-section('5/5 git 暂存区临时文件检查');
+section('6/6 git 暂存区临时文件检查');
 try {
   const staged = execSync('git diff --cached --name-only', { cwd: ROOT, encoding: 'utf-8' });
-  const tmpFiles = staged.split('\n').filter(l => l.match(/(^|\/)\.tmp-/));
+  const tmpFiles = staged.split('\n').filter(function(l) { return l.match(/(^|\/)\.tmp-/); });
   if (tmpFiles.length === 0) {
     pass('git 暂存区无 .tmp-* 文件');
   } else {
-    tmpFiles.forEach(f => fail('git 暂存区残留临时文件: ' + f + '（请执行 git rm --cached ' + f + '）'));
+    tmpFiles.forEach(function(f) { fail('git 暂存区残留临时文件: ' + f); });
   }
 } catch (e) {
   pass('跳过（不在 git 仓库中或 git 不可用）');
@@ -264,9 +208,9 @@ try {
 // ============================================================
 console.log('');
 if (failed === 0) {
-  console.log('=== ✓ 所有检查通过 ===');
+  console.log('=== 全部检查通过 ===');
   process.exit(0);
 } else {
-  console.log('=== ✗ ' + failed + ' 项检查失败 ===');
+  console.log('=== ' + failed + ' 项检查失败 ===');
   process.exit(1);
 }
