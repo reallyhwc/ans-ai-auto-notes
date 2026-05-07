@@ -756,7 +756,7 @@ function renderSearch() {
       } else {
         results.innerHTML = matches.map(function(m) {
           var path = m.filePath || m.path || '';
-          var onclick = path.startsWith('kb/') ? 'onclick="viewContent(\'' + escapeAttr(path) + '\')" style="cursor:pointer"' : '';
+          var onclick = path.endsWith('.md') ? 'onclick="viewContent(\'' + escapeAttr(path) + '\')" style="cursor:pointer"' : '';
           return '<div class="search-result" ' + onclick + '><span class="match">' + escapeHtml(m.title) + '</span> <span class="path">' + escapeHtml(m.displayPath || m.path) + '</span></div>';
         }).join('');
       }
@@ -794,7 +794,9 @@ function searchKB(query) {
     if (week.entries) {
       week.entries.forEach(function(entry) {
         if (entry.summary.toLowerCase().includes(query)) {
-          results.push({ title: entry.summary, path: '时间线 / ' + entry.date });
+          // 取第一个 link 的 url 作为可点击路径
+          var linkUrl = (entry.links && entry.links.length > 0) ? entry.links[0].url : '';
+          results.push({ title: entry.summary, path: '时间线 / ' + entry.date, filePath: linkUrl });
         }
       });
     }
