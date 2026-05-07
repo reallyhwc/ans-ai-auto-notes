@@ -186,6 +186,41 @@ for (const p of fiPaths) {
 }
 if (onlyInFi === 0) pass('FILE_INDEX ' + fiPaths.size + ' 个路径全部在 INDEX.md 中');
 
+// 4c. timeline/*.md 文件 ↔ FILE_INDEX.timeline 双向同步
+//    （2026-05-07 补：之前漏检 timeline，导致 W19 没同步到 FILE_INDEX 也不报错）
+const TIMELINE_DIR = path.join(ROOT, 'timeline');
+const diskWeeks = new Set(); // e.g. "2026-W18", "2026-W19"
+if (fs.existsSync(TIMELINE_DIR)) {
+  fs.readdirSync(TIMELINE_DIR)
+    .filter(f => /^\d{4}-W\d{2}\.md$/.test(f))
+    .forEach(f => diskWeeks.add(f.replace(/\.md$/, '')));
+}
+const fiWeeks = new Set();
+if (FI.timeline && Array.isArray(FI.timeline)) {
+  FI.timeline.forEach(w => {
+    // FI.timeline[i].week 形如 "2026-W18 (04.27 - 05.03)"，取前缀
+    const m = (w.week || '').match(/^(\d{4}-W\d{2})/);
+    if (m) fiWeeks.add(m[1]);
+  });
+}
+
+let weekDiff = 0;
+for (const w of diskWeeks) {
+  if (!fiWeeks.has(w)) {
+    fail('timeline/' + w + '.md 存在但 FILE_INDEX.timeline 中缺失（请补充 entries 数据到 overview.html）');
+    weekDiff++;
+  }
+}
+for (const w of fiWeeks) {
+  if (!diskWeeks.has(w)) {
+    fail('FILE_INDEX.timeline 中存在 ' + w + ' 但磁盘上没有 timeline/' + w + '.md');
+    weekDiff++;
+  }
+}
+if (weekDiff === 0) {
+  pass('timeline ' + diskWeeks.size + ' 周文件全部在 FILE_INDEX.timeline 中（双向同步）');
+}
+
 // ============================================================
 // 检查 5: git 暂存区不允许有 .tmp-* 文件
 // ============================================================
