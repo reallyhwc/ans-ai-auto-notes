@@ -15,13 +15,22 @@
 ```
 ans-ai-auto-notes/
 ├── kb/                          ← 知识库主目录（按主题分类）
-│   ├── 技术/                    ← 技术领域，子目录按具体技术方向
+│   ├── 技术/                    ← 技术领域
+│   │   ├── AI/                  ← AI/机器学习（基础、大模型、应用生态）
+│   │   └── Java/                ← Java 技术栈
+│   ├── 实战/                    ← 排查记录、好文摘要、技巧（原 action/）
 │   ├── 读书笔记/                ← 读书相关，一本书一个文件
-│   ├── 日常思考/                ← 随笔、想法
-│   └── action/                  ← 排查记录、好文摘要、技巧、灵感碎片
+│   └── 日常思考/                ← 随笔、想法
 ├── timeline/                    ← 按周归档的对话摘要
-├── INDEX.md                     ← 总目录索引（分类聚合 + 标签）
-├── overview.html                ← 可视化导览页
+├── scripts/                     ← 构建/检查脚本
+│   ├── build-index.js           ← 扫描 kb/ 生成 manifest.json + INDEX.md
+│   └── check-overview.js        ← 6 项健康检查
+├── INDEX.md                     ← 总目录索引（由 build-index.js 自动生成，勿手改）
+├── manifest.json                ← 分类数据（构建产物，.gitignore 中，勿手改）
+├── timeline.json                ← 时间线数据（手维护）
+├── overview.html                ← 可视化导览页（运行时 fetch manifest.json + timeline.json）
+├── server.js                    ← 本地预览服务器（端口 8765 + SSE live reload）
+├── serve.sh                     ← 启动脚本（build-index.js → server.js）
 ├── CLAUDE.md                    ← 本文件
 └── .gitignore
 ```
@@ -84,13 +93,14 @@ ans-ai-auto-notes/
 4. **反面例子**：不要写成"卷积操作是通过滤波器在输入矩阵上进行滑动窗口运算提取特征"这种纯定义。
 5. **判断标准**：如果笔记读起来像教科书定义，就太抽象了。如果读起来像有人拿着草稿纸在给你演示，就是对的。
 
-### 本地预览规则
+### 本地预览规则（单一数据源架构）
 
 1. 知识库通过本地 HTTP 服务器预览，启动命令：`./serve.sh`（端口 8765 + 自动打开浏览器）。
-2. overview.html 是轻量目录索引，**不嵌入任何 md 文件内容**。运行时通过 `fetch()` 动态读取 md 文件，浏览器刷新即可看到最新内容。
-3. **新增/删除 md 文件时**：在 overview.html 的 `FILE_INDEX` 中增删对应的元数据条目（纯 JSON，手工编辑一行即可），同时更新 INDEX.md。
-4. **md 文件内容变更时**：不涉及 overview.html 更新——刷新浏览器即生效。
-5. 保留规则：overview.html 中禁止裸链接（`<a href="xxx.md">`），统一使用 `<span onclick="viewContent()">`。
+2. **数据流**：`kb/` 下的 md 文件（含 frontmatter）→ `node scripts/build-index.js` → `manifest.json` + `INDEX.md` → `overview.html` 运行时 fetch 加载。
+3. **新增/删除 md 文件时**：只需写好 md 文件（含 frontmatter title + description），然后跑 `node scripts/build-index.js` 即可。INDEX.md 也会自动更新。**不要手改 overview.html。**
+4. **md 文件内容变更时**：不涉及任何其他文件更新——刷新浏览器即生效。
+5. **timeline 更新**：手动维护 `timeline.json`，格式见现有条目。
+6. 保留规则：overview.html 中禁止裸链接（`<a href="xxx.md">`），统一使用 `<span onclick="viewContent()">`。
 
 ### Git 规则
 
