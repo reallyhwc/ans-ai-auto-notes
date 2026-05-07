@@ -1,3 +1,8 @@
+---
+title: "Transformer"
+description: "自注意力机制，现代大模型底座"
+---
+
 # Transformer 架构
 
 > 最后整理: 2026-05-04 | 来源: 多轮对话

@@ -1,3 +1,8 @@
+---
+title: "Prompt 与 RAG"
+description: "Prompt工程、RAG、向量数据库/Milvus、Embedding、LangChain"
+---
+
 # Prompt 与 RAG 体系
 
 > 最后整理: 2026-05-04 | 来源: 多轮对话

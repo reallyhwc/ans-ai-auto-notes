@@ -1,3 +1,8 @@
+---
+title: "多模态 LLM"
+description: "LLM+视觉编码器，图片/音频输入理解"
+---
+
 # 多模态 LLM（Multimodal LLM）
 
 > 最后整理: 2026-05-06 | 来源: 多轮对话

@@ -1,3 +1,8 @@
+---
+title: "Spring AI"
+description: "Spring 生态 LLM 集成，流式/非流式调用"
+---
+
 # Spring AI
 
 > 最后整理: 2026-05-04 | 来源: 多轮对话

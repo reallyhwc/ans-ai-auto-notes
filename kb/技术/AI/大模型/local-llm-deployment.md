@@ -1,3 +1,8 @@
+---
+title: "本地部署 LLM"
+description: "Ollama安装使用+进阶玩法(API/Embedding/Modelfile/Web UI)、小模型推荐"
+---
+
 # 本地部署 LLM：小模型 + Ollama 实践
 
 > 最后整理: 2026-05-07 | 来源: 对话

@@ -1,3 +1,8 @@
+---
+title: "AI Agent 工具生态"
+description: "Hermes Agent（养马）vs OpenClaw（养龙虾）对比、微信 AI 机器人接入"
+---
+
 # AI Agent 工具生态：Hermes vs OpenClaw
 
 > 最后整理: 2026-05-05 | 来源: 多轮对话 + Web 检索

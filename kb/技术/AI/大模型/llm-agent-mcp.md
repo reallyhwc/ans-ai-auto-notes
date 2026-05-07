@@ -1,3 +1,8 @@
+---
+title: "Agent 与 MCP"
+description: "Agent循环、MCP协议、FC机制、Skill定位、五者关系"
+---
+
 # Agent 与 MCP 生态
 
 > 最后整理: 2026-05-05 | 来源: 多轮对话

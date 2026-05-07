@@ -3,9 +3,9 @@
 - [Feedback: Note Style](feedback-note-style.md) — 笔记必须保留Demo示例，不能写成教科书定义
 - [Feedback: Exit Checklist](feedback-exit-checklist.md) — 用户说退出时必须先执行5项检查再结束
 - [Feedback: Auto Record Notes](feedback-auto-record-notes.md) — 每次QA后必须自动提取知识点追加到kb，不再等用户提醒
-- [Feedback: Overview.html Maintenance](feedback-overview-html-safety.md) — 架构已改为runtime fetch，新规则：serve.sh启动、FILE_INDEX元数据、禁止裸链接
+- [Feedback: Overview.html Maintenance](feedback-overview-html-safety.md) — 架构已改为单一数据源：磁盘md文件(含frontmatter) -> build-index.js -> manifest.json -> overview.html fetch加载
 - [Project: Local Preview Architecture](project-local-preview-architecture.md) — serve.sh一键本地HTTP服务器，overview.html运行时fetch md，笔记记录从5-6步降至2-3步
-- [Feedback: New File Checklist](feedback-new-file-checklist.md) — 新增md文件必须同时完成4项：INDEX.md、timeline、overview.html FILE_INDEX、双向链接
+- [Feedback: New File Checklist](feedback-new-file-checklist.md) — 新增md文件只需写md文件（含frontmatter title+description），然后跑 build-index.js 即可
 - [Feedback: Permissions Reminder](feedback_permissions_reminder.md) — 反复出现同类只读命令时，主动提醒用户更新 settings.local.json 白名单
 - [Feedback: Timeline Completeness](feedback_timeline_completeness.md) — timeline 要记录所有变更（包括 bug 修复、配置变更），不只记"大件事"
 - [Feedback: FILE_INDEX Traversal](feedback-file-index-traversal.md) — FILE_INDEX 结构升级时必须 grep 全扫所有遍历函数（renderCategories/buildFileIndex/searchKB/checkServer），不能"修完报错的就停"

@@ -1,3 +1,8 @@
+---
+title: "AI 编程 IDE"
+description: "Cursor vs Windsurf 对比，AI 编程工具的两种交互哲学"
+---
+
 # AI 编程 IDE：Cursor vs Windsurf
 
 > 最后整理: 2026-05-05 | 来源: 多轮对话
