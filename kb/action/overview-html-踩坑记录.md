@@ -104,3 +104,51 @@ htmlSource = htmlSource.replace(oldEscaped, newEscaped);
 | LLM/Prompt/Agent 不可点击 | KB_DATA 条目缺少 `content` 字段 | 重新注入 3 个文件的完整内容 |
 | cnn/rnn/transformer 内容过期 | .md 追加交叉链接后未同步 HTML | 重新注入 3 个文件的当前内容 |
 | 自动记录笔记遗漏 | 多轮 QA 后未主动提取知识 | 写入 feedback memory，后续会话遵循 |
+
+---
+
+## 6. FILE_INDEX 结构升级三层后，4 个遍历函数全部翻车（2026-05-07）
+
+**背景**：commit `7463507` 把 `kb/技术/ai/` 从两层平铺重构为「基础/大模型/应用生态」三层后，用户反馈"AI/机器学习 菜单下没内容"。
+
+**深挖过程发现 4 处独立 bug**，全是同一个根因——遍历 FILE_INDEX 的代码硬编码了两层 `forEach`：
+
+| # | 函数 | 症状 | 修复 |
+|---|------|------|------|
+| 1 | `renderCategories()` | 三层结构里的文件不渲染（用户最初报的 bug） | 抽出 `renderNode(node, idPrefix)` 递归 |
+| 2 | `buildFileIndex()` | 三层文件能渲染但**点了无反应**（viewContent 找不到就 silent return） | 改成 `walk(node)` 递归 |
+| 3 | `searchKB()` | 三层结构里的文件搜不到（预防性发现，用户没报） | 改成 `walk(node, pathSegs)` 递归，displayPath 用完整层级 |
+| 4 | `checkServer()` | 用 `fetch('kb/技术/ai/llm.md', {method:'HEAD'})` 探测，但这个文件已被移动到 `大模型/llm.md` → 404 → 误判服务器不可用 → 首次进入提示"需要 HTTP 服务器" | 探测路径改为更稳定的 `INDEX.md` |
+
+**关键教训**：
+
+> **当 FILE_INDEX 结构升级时，一个 grep 全扫**：
+> ```bash
+> grep -n 'FILE_INDEX' overview.html
+> ```
+> 把所有遍历它的函数找出来，逐一确认是否需要同步升级。本次第 1 个 bug 修完后就停了，结果用户点击 → 报 #2 → 修完搜索 → 又是 #3 → 改完打开页面 → 又是 #4。**4 处都是独立症状但同一类根因，第一次就该一并修干净。**
+
+**自动化检测**：本次踩坑后沉淀了 `scripts/check-overview.js`，5 项检查中有专门一项"buildFileIndex/searchKB/renderCategories 三者输出一致性"，下次类似问题会被自动捕获。`exit-check.sh` 也已扩展为在退出前调用此脚本。
+
+**验证方法升级**（针对历史第 4 节"内容一致性校验"）：
+
+之前的 `node --check` 只能验证 JS 语法。本次踩坑发现：**语法对的代码也可能逻辑不一致**（4 个函数语法都对，但语义不一致）。改进版断言（已固化在 `scripts/check-overview.js`）：
+
+```js
+// 取 buildFileIndex() 的所有 path 作为基准
+const allPaths = Object.keys(buildFileIndex());
+
+// 断言 1: renderCategories HTML 含每个 path
+for (const p of allPaths) assert(renderHtml.indexOf(p) !== -1);
+
+// 断言 2: searchKB 用 title 关键词能命中每个 path
+for (const p of allPaths) {
+  const kw = idx[p].title.replace(/\s+/g, '').slice(0, 2).toLowerCase();
+  assert(searchKB(kw).some(r => r.filePath === p));
+}
+
+// 断言 3: 每个 path 对应的物理 md 文件真实存在
+for (const p of allPaths) assert(fs.existsSync(p));
+```
+
+**临时验证脚本不要 commit**：本次踩坑还附带教训——`.tmp-verify-*.js` 残留在 git 暂存区里（AD 状态：add 后 delete，索引仍持有），是因为我用 `delete_file` 失败后改用 `rm -f`，没及时 `git rm --cached`。`scripts/check-overview.js` 已加入"git 暂存区不允许有 `.tmp-*` 文件"检查，下次会被自动拦截。

@@ -377,19 +377,19 @@ var FILE_INDEX = {
 // ============================================================
 function buildFileIndex() {
   var idx = {};
-  FILE_INDEX.categories.forEach(function(cat) {
-    if (cat.children) {
-      cat.children.forEach(function(child) {
-        if (child.files) {
-          child.files.forEach(function(file) {
-            if (file.path) {
-              idx[file.path] = { title: file.title, desc: file.desc };
-            }
-          });
+  function walk(node) {
+    if (node.files) {
+      node.files.forEach(function(file) {
+        if (file.path) {
+          idx[file.path] = { title: file.title, desc: file.desc };
         }
       });
     }
-  });
+    if (node.children) {
+      node.children.forEach(walk);
+    }
+  }
+  FILE_INDEX.categories.forEach(walk);
   return idx;
 }
 
@@ -408,7 +408,7 @@ function checkServer(callback) {
     callback(serverAvailable);
     return;
   }
-  fetch('kb/技术/ai/llm.md', { method: 'HEAD' })
+  fetch('INDEX.md', { method: 'HEAD' })
     .then(function(resp) {
       serverAvailable = resp.ok;
       callback(serverAvailable);
@@ -720,49 +720,54 @@ tabs.forEach(function(tab) {
 });
 
 // ============================================================
-// 分类导览
+// 分类导览（递归渲染，支持任意深度嵌套）
 // ============================================================
 function renderCategories() {
   var html = '<h2>分类导览</h2>';
-
   FILE_INDEX.categories.forEach(function(cat, ci) {
-    html += '<div class="tree-item">';
-    html += '<span class="tree-toggle open" data-folder="cat-' + ci + '"></span> ';
-    html += '<span class="tree-folder">' + escapeHtml(cat.name) + '</span>';
-
-    if (cat.children && cat.children.length > 0) {
-      html += '<div class="tree-children" id="children-cat-' + ci + '">';
-      cat.children.forEach(function(child, si) {
-        html += '<div class="tree-item">';
-        html += '<span class="tree-toggle open" data-folder="cat-' + ci + '-sub-' + si + '"></span> ';
-        html += '<span class="tree-folder">' + escapeHtml(child.name) + '</span>';
-        html += '<div class="tree-children" id="children-cat-' + ci + '-sub-' + si + '">';
-        if (child.files && child.files.length > 0) {
-          child.files.forEach(function(file) {
-            var title = file.title || file;
-            var path = file.path || '';
-            if (path) {
-              html += '<span class="tree-file" onclick="viewContent(\'' + escapeHtml(path) + '\')" title="' + escapeHtml(path) + '">' + escapeHtml(title) + '</span>';
-            } else {
-              html += '<span class="tree-file">' + escapeHtml(title) + '</span>';
-            }
-          });
-        } else {
-          html += '<span class="tree-empty tree-file">（暂无内容）</span>';
-        }
-        html += '</div></div>';
-      });
-      html += '</div>';
-    } else {
-      html += '<div class="tree-children" id="children-cat-' + ci + '">';
-      html += '<span class="tree-empty tree-file">（暂无内容）</span>';
-      html += '</div>';
-    }
-    html += '</div>';
+    html += renderNode(cat, 'cat-' + ci);
   });
-
   main.innerHTML = html;
   bindTreeToggles();
+}
+
+function renderNode(node, idPrefix) {
+  var html = '<div class="tree-item">';
+  html += '<span class="tree-toggle open" data-folder="' + idPrefix + '"></span> ';
+  html += '<span class="tree-folder">' + escapeHtml(node.name) + '</span>';
+  html += '<div class="tree-children" id="children-' + idPrefix + '">';
+
+  var hasContent = false;
+
+  // 1. 递归渲染子节点（children）
+  if (node.children && node.children.length > 0) {
+    node.children.forEach(function(child, idx) {
+      html += renderNode(child, idPrefix + '-sub-' + idx);
+    });
+    hasContent = true;
+  }
+
+  // 2. 渲染文件（files）
+  if (node.files && node.files.length > 0) {
+    node.files.forEach(function(file) {
+      var title = file.title || file;
+      var path = file.path || '';
+      if (path) {
+        html += '<span class="tree-file" onclick="viewContent(\'' + escapeHtml(path) + '\')" title="' + escapeHtml(path) + '">' + escapeHtml(title) + '</span>';
+      } else {
+        html += '<span class="tree-file">' + escapeHtml(title) + '</span>';
+      }
+    });
+    hasContent = true;
+  }
+
+  // 3. 都为空时显示提示
+  if (!hasContent) {
+    html += '<span class="tree-empty tree-file">（暂无内容）</span>';
+  }
+
+  html += '</div></div>';
+  return html;
 }
 
 function bindTreeToggles() {
@@ -849,27 +854,30 @@ function renderSearch() {
 
 function searchKB(query) {
   var results = [];
-  FILE_INDEX.categories.forEach(function(cat) {
-    if (cat.children) {
-      cat.children.forEach(function(child) {
-        if (child.files) {
-          child.files.forEach(function(file) {
-            var title = file.title || file;
-            var desc = file.desc || '';
-            if (title.toLowerCase().includes(query) || desc.toLowerCase().includes(query)) {
-              results.push({ title: title, displayPath: (child.name || cat.name) + ' / ' + title, filePath: file.path });
-            }
-          });
-        }
-        if (child.name && child.name.toLowerCase().includes(query)) {
-          results.push({ title: child.name, path: cat.name + ' / ' + child.name });
+  function walk(node, pathSegs) {
+    // 节点名称命中
+    if (node.name && node.name.toLowerCase().includes(query)) {
+      results.push({ title: node.name, path: pathSegs.length ? pathSegs.join(' / ') : '分类' });
+    }
+    // 文件命中
+    if (node.files) {
+      node.files.forEach(function(file) {
+        var title = file.title || file;
+        var desc = file.desc || '';
+        if (title.toLowerCase().includes(query) || desc.toLowerCase().includes(query)) {
+          var displayPath = (pathSegs.length ? pathSegs.join(' / ') + ' / ' : '') + title;
+          results.push({ title: title, displayPath: displayPath, filePath: file.path });
         }
       });
     }
-    if (cat.name && cat.name.toLowerCase().includes(query)) {
-      results.push({ title: cat.name, path: '分类' });
+    // 递归子节点
+    if (node.children) {
+      node.children.forEach(function(child) {
+        walk(child, pathSegs.concat(node.name ? [node.name] : []));
+      });
     }
-  });
+  }
+  FILE_INDEX.categories.forEach(function(cat) { walk(cat, []); });
   FILE_INDEX.timeline.forEach(function(week) {
     if (week.entries) {
       week.entries.forEach(function(entry) {
