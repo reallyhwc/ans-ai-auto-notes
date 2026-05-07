@@ -170,9 +170,11 @@
   .load-error { padding: 40px; text-align: center; color: var(--text-error); }
   .load-error code { background: var(--bg-error-code); padding: 2px 8px; border-radius: 4px; }
 
-  /* Mermaid diagrams */
-  .mermaid { display: flex; justify-content: center; margin: 16px 0; }
-  .mermaid svg { max-width: 100%; height: auto; }
+  /* Mermaid diagrams — 重置 line-height 防止外层 1.8 被 SVG foreignObject 继承导致多行文本节点被裁剪 */
+  .mermaid { display: flex; justify-content: center; margin: 16px 0; line-height: 1.2; }
+  .mermaid svg { max-width: 100%; height: auto; overflow: visible; }
+  .mermaid .nodeLabel { line-height: 1.2; }
+  .mermaid foreignObject { overflow: visible; }
 </style>
 </head>
 <body>
