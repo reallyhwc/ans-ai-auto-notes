@@ -22,6 +22,9 @@ Icon
 # Claude Code
 .claude/
 
+# Aone Copilot (plans / tasks 等本地状态文件，不入库)
+.aone_copilot/
+
 # Temp files
 *.tmp
 *.bak
