@@ -25,6 +25,7 @@
 - [AI Agent 工具生态](kb/技术/ai/应用生态/ai-agent-tools.md) — Hermes Agent（养马）vs OpenClaw（养龙虾）对比、微信 AI 机器人接入
 - [OpenAI Agents SDK](kb/技术/ai/应用生态/openai-agents-sdk.md) — 多角色协作、Handoff 机制、Agent 编排
 - [Claude Code 架构](kb/技术/ai/应用生态/claude-code-architecture.md) — 整体架构、REPL 循环、工具链、Hooks、上下文管理
+- [LLM 应用设计](kb/技术/ai/应用生态/llm-app-design.md) — 大模型应用 vs 传统 MySQL/ES 检索：确定性、Tool Calling、幻觉、上下文管理
 - [AI 编程 IDE](kb/技术/ai/应用生态/ai-coding-ides.md) — Cursor vs Windsurf 对比，AI 编程工具的两种交互哲学
 - [AI 编程递进路径](kb/技术/ai/应用生态/ai-coding-levels.md) — 从古法编程到多 Agent 协作 6 个 Level
 
