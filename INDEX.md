@@ -32,7 +32,7 @@
 
 #### 应用生态 (8 篇)
 
-- [Agent 开发实战：设计范式与落地实践](kb/技术/AI/应用生态/agent-development-practice.md) — Agent开发实战：四大设计范式（意图路由/ReAct/Plan-Execute/Multi-Agent）、工具调用、答疑场景拆解、学习路径
+- [Agent 开发实战：设计范式与落地实践](kb/技术/AI/应用生态/agent-development-practice.md) — Agent开发实战：四大设计范式、vs传统Java开发六维对比、工具设计六要点、测试/可观测/成本模型差异
 - [AI Agent 工具生态](kb/技术/AI/应用生态/ai-agent-tools.md) — Hermes Agent（养马）vs OpenClaw（养龙虾）对比、微信 AI 机器人接入
 - [AI 编程 IDE](kb/技术/AI/应用生态/ai-coding-ides.md) — Cursor vs Windsurf 对比，AI 编程工具的两种交互哲学
 - [AI 编程的递进路径：从古法编程到多 Agent 协作](kb/技术/AI/应用生态/ai-coding-levels.md) — 从古法编程到多Agent协作6个Level、程序员未来展望

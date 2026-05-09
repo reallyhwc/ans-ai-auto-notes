@@ -91,6 +91,11 @@
         "date": "2026-05-09",
         "summary": "技术/AI：Agent 开发实战——梳理四大设计范式（意图路由/ReAct/Plan-Execute/Multi-Agent），以电商客服为例拆解 Function Calling 交互流程，整理主流框架速查表，规划学习路径",
         "links": [{"label": "Agent 开发实战", "url": "kb/技术/AI/应用生态/agent-development-practice.md"}]
+      },
+      {
+        "date": "2026-05-09",
+        "summary": "技术/AI：Agent 开发 vs 传统 Java 应用开发——六维对比（核心逻辑/IO/流程控制/测试/调试/技能），退款场景对比演示，六个设计要点（工具描述/业务校验/测试三层/可观测性/错误处理/成本模型）",
+        "links": [{"label": "Agent 开发实战", "url": "kb/技术/AI/应用生态/agent-development-practice.md"}]
       }
     ]
   }
