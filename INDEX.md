@@ -1,6 +1,6 @@
 # 知识库索引
 
-> 最后更新: 2026-05-07 | 由 build-index.js 自动生成，勿手改
+> 最后更新: 2026-05-09 | 由 build-index.js 自动生成，勿手改
 
 ## 实战 (3 篇)
 
@@ -11,9 +11,9 @@
 - [GitHub 项目创建与同步](kb/实战/技巧/github-repo-setup.md) — SSH key 配置、仓库初始化、CI 基础
 - [知识管理工具对比](kb/实战/技巧/knowledge-management-tools.md) — Obsidian/Notion/本项目方案 对比分析
 
-## 技术 (17 篇)
+## 技术 (18 篇)
 
-### AI (16 篇)
+### AI (17 篇)
 
 #### 基础 (3 篇)
 
@@ -30,8 +30,9 @@
 - [本地部署 LLM](kb/技术/AI/大模型/local-llm-deployment.md) — Ollama安装使用+进阶玩法(API/Embedding/Modelfile/Web UI)、小模型推荐
 - [多模态 LLM](kb/技术/AI/大模型/multimodal-llm.md) — LLM+视觉编码器，图片/音频输入理解
 
-#### 应用生态 (7 篇)
+#### 应用生态 (8 篇)
 
+- [Agent 开发实战：设计范式与落地实践](kb/技术/AI/应用生态/agent-development-practice.md) — Agent开发实战：四大设计范式（意图路由/ReAct/Plan-Execute/Multi-Agent）、工具调用、答疑场景拆解、学习路径
 - [AI Agent 工具生态](kb/技术/AI/应用生态/ai-agent-tools.md) — Hermes Agent（养马）vs OpenClaw（养龙虾）对比、微信 AI 机器人接入
 - [AI 编程 IDE](kb/技术/AI/应用生态/ai-coding-ides.md) — Cursor vs Windsurf 对比，AI 编程工具的两种交互哲学
 - [AI 编程的递进路径：从古法编程到多 Agent 协作](kb/技术/AI/应用生态/ai-coding-levels.md) — 从古法编程到多Agent协作6个Level、程序员未来展望
