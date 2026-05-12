@@ -98,5 +98,20 @@
         "links": [{"label": "Agent 开发实战", "url": "kb/技术/AI/应用生态/agent-development-practice.md"}]
       }
     ]
+  },
+  {
+    "week": "2026-W20 (05.11 - 05.17)",
+    "entries": [
+      {
+        "date": "2026-05-11",
+        "summary": "技术/AI：搜索整理 Claude Code 远程操控生态——区分官方 Remote Control（手机扫码接入本地会话）和第三方 cc-connect（消息桥接器，11 平台 + 10+ Agent），微信接入基于 iLink Bot API",
+        "links": [{"label": "Claude Code 远程操控", "url": "kb/技术/AI/应用生态/claude-code-remote-control.md"}]
+      },
+      {
+        "date": "2026-05-12",
+        "summary": "技术/AI：Harness Engineering（驾驭工程）深度讲解——Agent=Model+Harness 公式、用本项目 CLAUDE.md 举例拆解六大组件、与 Prompt/Context Engineering 对比、六项核心能力、四阶段成长路径",
+        "links": [{"label": "Harness Engineering", "url": "kb/技术/AI/应用生态/harness-engineering.md"}]
+      }
+    ]
   }
 ]
