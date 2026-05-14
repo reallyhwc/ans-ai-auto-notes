@@ -11,9 +11,9 @@
 - [GitHub 项目创建与同步](kb/实战/技巧/github-repo-setup.md) — SSH key 配置、仓库初始化、CI 基础
 - [知识管理工具对比](kb/实战/技巧/knowledge-management-tools.md) — Obsidian/Notion/本项目方案 对比分析
 
-## 技术 (20 篇)
+## 技术 (21 篇)
 
-### AI (19 篇)
+### AI (20 篇)
 
 #### 基础 (3 篇)
 
@@ -30,12 +30,13 @@
 - [本地部署 LLM](kb/技术/AI/大模型/local-llm-deployment.md) — Ollama安装使用+进阶玩法(API/Embedding/Modelfile/Web UI)、小模型推荐
 - [多模态 LLM](kb/技术/AI/大模型/multimodal-llm.md) — LLM+视觉编码器，图片/音频输入理解
 
-#### 应用生态 (10 篇)
+#### 应用生态 (11 篇)
 
 - [Agent 开发实战：设计范式与落地实践](kb/技术/AI/应用生态/agent-development-practice.md) — Agent开发实战：四大设计范式、vs传统Java开发六维对比、工具设计六要点、测试/可观测/成本模型差异
 - [AI Agent 工具生态](kb/技术/AI/应用生态/ai-agent-tools.md) — Hermes Agent（养马）vs OpenClaw（养龙虾）对比、微信 AI 机器人接入
 - [AI 编程 IDE](kb/技术/AI/应用生态/ai-coding-ides.md) — Cursor vs Windsurf 对比，AI 编程工具的两种交互哲学
 - [AI 编程的递进路径：从古法编程到多 Agent 协作](kb/技术/AI/应用生态/ai-coding-levels.md) — 从古法编程到多Agent协作6个Level、程序员未来展望
+- [AI 工作流平台：Dify、Coze 与 Claude Code 的组合](kb/技术/AI/应用生态/ai-workflow-platforms.md) — AI工作流平台(Dify/Coze)：低代码编排多模型协作、与Claude Code的关系和组合方式、MCP多模型调度方案
 - [Claude Code 整体架构 & 工作流程](kb/技术/AI/应用生态/claude-code-architecture.md) — 整体架构、REPL循环、工具链、Hooks、上下文管理、完整数据流
 - [Claude Code 远程操控：Remote Control 与 cc-connect](kb/技术/AI/应用生态/claude-code-remote-control.md) — Claude Code远程操控：官方Remote Control vs cc-connect消息桥接、手机编程工作流、微信/飞书接入
 - [Harness Engineering：AI Agent 时代的工程范式](kb/技术/AI/应用生态/harness-engineering.md) — Harness Engineering(驾驭工程)：Agent=Model+Harness、六项核心能力、四阶段成长路径、双LLM交叉校验四种实现方式

@@ -114,8 +114,13 @@
       },
       {
         "date": "2026-05-14",
-        "summary": "技术/AI：双 LLM 交叉校验——五个适合场景（代码审查/事实校验/安全合规/翻译/复杂推理），四种实现方式（串行校验/并行投票/辩论模式/大小模型分工）及选型指南，追加到 Harness Engineering 反馈回路章节",
+        "summary": "技术/AI：双 LLM 交叉校验——五个场景、四种实现方式（串行/并行/辩论/大小模型分工）及选型指南，追加到 Harness Engineering",
         "links": [{"label": "Harness Engineering", "url": "kb/技术/AI/应用生态/harness-engineering.md"}]
+      },
+      {
+        "date": "2026-05-14",
+        "summary": "技术/AI：AI 工作流平台整理——Dify vs Coze 对比、Dify 可视化搭建辩论工作流、Claude Code 与 Dify 的关系（不同层面互补）、三种组合方式（Dify+CC/MCP Server/bash调API）",
+        "links": [{"label": "AI 工作流平台", "url": "kb/技术/AI/应用生态/ai-workflow-platforms.md"}]
       }
     ]
   }
