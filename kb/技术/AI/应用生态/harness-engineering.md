@@ -5,7 +5,7 @@ related:
   - kb/技术/AI/应用生态/agent-development-practice.md
   - kb/技术/AI/应用生态/claude-code-architecture.md
   - kb/技术/AI/大模型/llm-agent-mcp.md
-description: "Harness Engineering(驾驭工程)：Agent=Model+Harness、六项核心能力、四阶段成长路径、与Prompt/Context Engineering对比"
+description: "Harness Engineering(驾驭工程)：Agent=Model+Harness、六项核心能力、四阶段成长路径、双LLM交叉校验四种实现方式"
 ---
 
 # Harness Engineering：AI Agent 时代的工程范式
@@ -239,6 +239,172 @@ graph TD
 - 能设计 Harness 的版本管理和 A/B 测试
 - 能输出团队级别的 Harness 最佳实践
 
+---
+
+## 反馈回路进阶：双 LLM 交叉校验
+
+交叉校验是 Harness 反馈回路的高级实现——用另一个独立模型来校验产出质量。
+
+### 为什么需要两个模型
+
+单模型有"自我一致性幻觉"——你问它"你确定吗？"它大概率说"是的"。用同一个模型检查自己 ≈ 让考生自己批改试卷。两个不同模型的训练数据、架构、偏好不同，犯同样错误的概率大幅降低。
+
+### 五个适合交叉校验的场景
+
+| 场景 | 怎么校验 | 为什么有效 |
+|------|---------|-----------|
+| **代码生成** | A 写代码，B 审查找 bug | 两个模型错误模式不同 |
+| **事实性内容** | A 生成回答，B 对比 RAG 原文一致性 | 拦截幻觉 |
+| **安全/合规** | A 正常处理，B（小模型）做安全分类 | 检测泄露/敏感信息 |
+| **翻译** | A 英→中翻译，B 中→英回译，比较差异 | 回译差异大→翻译有问题 |
+| **复杂推理** | A 和 B 独立推理，比较结论 | 一致→置信度高 |
+
+### 四种实现方式
+
+```mermaid
+flowchart TD
+    M["双模型校验"] --> M1["串行校验<br/>A生成 → B审查"]
+    M --> M2["并行投票<br/>AB同时生成 → 比较"]
+    M --> M3["辩论模式<br/>AB多轮对抗"]
+    M --> M4["大小模型分工<br/>大模型生成 + 小模型校验"]
+    
+    style M1 fill:#d4edda
+    style M2 fill:#cce5ff
+    style M3 fill:#fff3cd
+    style M4 fill:#f8d7da
+```
+
+#### 串行校验（最常用）
+
+```
+用户请求 → 模型A生成 → 模型B审查 → 通过则输出 / 不通过则重做
+
+伪代码:
+  result = claude.generate(user_input)
+  review = gpt.review(f"审查以下回答是否准确: {result}")
+  if review.pass:
+      return result
+  else:
+      return claude.generate(f"有以下问题请修正: {review.issues}")
+```
+
+**优点**：简单、容易落地。**缺点**：延迟翻倍。
+
+#### 并行投票（适合高可靠场景）
+
+```
+用户请求 → A 和 B 同时生成 → 第三方判断一致性 → 一致则输出 / 不一致则人工
+
+伪代码:
+  result_a, result_b = await gather(claude(input), gpt(input))
+  if judge("两个回答核心事实一致？", result_a, result_b):
+      return result_a
+  else:
+      return flag_for_human_review(result_a, result_b)
+```
+
+**优点**：两个独立意见，可靠性最高。**缺点**：成本翻倍。
+
+#### 辩论模式（适合复杂决策）
+
+```
+A 给观点 → B 质疑/反驳 → A 回应 → 多轮直到共识
+
+  Round 1: A 回答问题
+  Round 2: B 指出逻辑漏洞
+  Round 3: A 修正回答
+  Round 4: B "没有发现新问题" → 结束
+```
+
+**优点**：对抗挤出高质量。**缺点**：多轮调用，延迟成本高。
+
+#### 大小模型分工（性价比最高）
+
+```
+大模型（Claude/GPT-4）生成复杂回答
+小模型（GPT-4o-mini/Qwen-7B）做简单校验
+
+  大模型生成回答
+    → 小模型判断: 包含隐私信息？ yes/no（安全校验）
+    → 小模型判断: 数字和日期和参考资料一致？（事实校验）
+  校验成本低（小模型便宜 10-50 倍），延迟增加少
+```
+
+### 怎么选
+
+| 场景 | 推荐方式 | 原因 |
+|------|---------|------|
+| 客服答疑（高频低风险） | 大小模型分工 | 成本敏感，小模型做事实校验够用 |
+| 代码生成 | 串行校验 | 生成和审查天然是两步 |
+| 金融/法律/医疗（低频高风险） | 并行投票 | 需要最高可靠性 |
+| 复杂技术决策 | 辩论模式 | 需要从多角度充分论证 |
+
+### 实际产品中的应用
+
+| 产品 | 实现方式 |
+|------|---------|
+| **Claude Code** | 主 session 写代码 + code-reviewer 子 Agent 独立审查（同模型不同上下文） |
+| **OpenAI Agents SDK** | Engineer → Reviewer 的 Handoff 环形流程 |
+| **Cursor** | 多模型混用——Sonnet 写代码，小模型做 lint/补全 |
+| **企业级 RAG** | 大模型生成 + 小模型幻觉检测（对比原文一致性） |
+
+### 注意事项
+
+交叉校验不是万能的：
+- 两个模型可能犯同样的错（相同训练数据导致的共同偏差）
+- 校验模型本身也可能误判
+- 不是所有场景都需要——简单 FAQ 单模型 + RAG 就够，创意写作没有"对错"之分
+- 最终兜底还是需要人工抽检
+
+---
+
+## 用户视角：不写代码怎么实现双模型校验
+
+上面的四种实现方式偏开发者视角。作为用户（比如用 Claude Code 维护知识库），有更简单的操作方式。
+
+### 知识库维护：大小模型分工
+
+| 方式 | 怎么做 | 难度 |
+|------|--------|------|
+| **手动两步法** | Claude Code 产出 → 复制到 ChatGPT/DeepSeek 问"检查有没有错" | 零成本 |
+| **cc-connect 群聊** | 群里绑定多个 Bot，@Claude 写内容 → @GPT 校验 | 需要配置 |
+| **校验脚本** | 写 bash 脚本用 DeepSeek API 自动校验最新修改的 md 文件 | 写个脚本 |
+
+校验脚本示例（加到 exit-check.sh 中）：
+
+```bash
+# 用 DeepSeek API（便宜）校验最新修改的文件
+FILE=$(git diff --name-only HEAD~1 | grep "\.md$" | head -1)
+curl -s https://api.deepseek.com/chat/completions \
+  -H "Authorization: Bearer $DEEPSEEK_API_KEY" \
+  -d '{"model":"deepseek-chat","messages":[{
+    "role":"user",
+    "content":"检查以下内容有无事实错误:\n'"$(cat $FILE)"'"
+  }]}' | jq '.choices[0].message.content'
+```
+
+### 编码时：技术方案辩论
+
+| 方式 | 怎么做 | 难度 |
+|------|--------|------|
+| **双窗口手动对比** | Claude Code 给方案 → 复制到 ChatGPT 让它质疑 → 综合判断 | 零成本 |
+| **Claude Code 内调 API** | 让 Claude Code 用 bash + curl 调另一个模型 API 做辩论 | 需 API Key |
+| **Dify/Coze 工作流** | 可视化编排：Claude 给方案 → GPT 质疑 → Claude 回应 → 循环 | 注册平台 |
+
+Claude Code 内辩论的用法——直接告诉它：
+
+```
+"我有一个技术方案，请你先给出你的观点，
+ 然后用 curl 调用 DeepSeek API 让它从反面论证，
+ 最后你综合两方观点给出最终建议。"
+```
+
+Claude Code 会自己执行 bash 调用另一个 API，拿到结果后综合分析。
+
+**建议路径**：从手动复制粘贴开始 → 频繁使用后升级到脚本化 → 长期使用搭 Dify 工作流。
+
 > 关联: [Agent 开发实战](./agent-development-practice.md) — 四大设计范式、vs 传统 Java 开发
 > 关联: [Claude Code 架构](./claude-code-architecture.md) — Claude Code 的 Harness 实现（REPL 循环、工具链、上下文管理）
+> 关联: [Claude Code 远程操控](./claude-code-remote-control.md) — cc-connect 多 Bot 群聊
 > 关联: [Agent 与 MCP](../大模型/llm-agent-mcp.md) — MCP 协议、Skill 概念
+> 关联: [LLM 应用设计](./llm-app-design.md) — 幻觉防控、可观测性

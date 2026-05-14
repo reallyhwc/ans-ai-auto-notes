@@ -111,6 +111,11 @@
         "date": "2026-05-12",
         "summary": "技术/AI：Harness Engineering（驾驭工程）深度讲解——Agent=Model+Harness 公式、用本项目 CLAUDE.md 举例拆解六大组件、与 Prompt/Context Engineering 对比、六项核心能力、四阶段成长路径",
         "links": [{"label": "Harness Engineering", "url": "kb/技术/AI/应用生态/harness-engineering.md"}]
+      },
+      {
+        "date": "2026-05-14",
+        "summary": "技术/AI：双 LLM 交叉校验——五个适合场景（代码审查/事实校验/安全合规/翻译/复杂推理），四种实现方式（串行校验/并行投票/辩论模式/大小模型分工）及选型指南，追加到 Harness Engineering 反馈回路章节",
+        "links": [{"label": "Harness Engineering", "url": "kb/技术/AI/应用生态/harness-engineering.md"}]
       }
     ]
   }
