@@ -1,4 +1,4 @@
-- [User Profile](user-profile.md) — 28岁男性Java后端程序员，已婚未育，在读《我看见的世界》
+- [User Profile](user-profile.md) — 28岁男性Java后端程序员，已婚未育，在读《我看见的世界》和《世界的逻辑》
 - [Project: Knowledge Base](project-knowledge-base.md) — AI对话驱动个人知识库，git+md双轨制，含拆分阈值
 - [Feedback: Note Style](feedback-note-style.md) — 笔记必须保留Demo示例，不能写成教科书定义
 - [Feedback: Exit Checklist](feedback-exit-checklist.md) — 用户说退出时必须先执行5项检查再结束
@@ -10,3 +10,4 @@
 - [Feedback: Timeline Completeness](feedback_timeline_completeness.md) — timeline 要记录所有变更（包括 bug 修复、配置变更），不只记"大件事"
 - [Feedback: FILE_INDEX Traversal](feedback-file-index-traversal.md) — FILE_INDEX 结构升级时必须 grep 全扫所有遍历函数（renderCategories/buildFileIndex/searchKB/checkServer），不能"修完报错的就停"
 - [Feedback: Tree Depth CSS Limit](feedback-tree-depth-css-limit.md) — 菜单嵌套 JS 递归无限制，但 CSS 视觉极限 ~5 层（sidebar 200px / margin-left 16px 累加）
+- [Project: Cross-Environment Workflow](cross-environment-workflow.md) — 公司Mac(Aone Copilot+Claude Opus)和个人Mac(Claude Code CLI)双环境维护，git同步
