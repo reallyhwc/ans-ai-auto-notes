@@ -242,7 +242,78 @@ MCP Client                         MCP Server
     │                       ]}}          │
 ```
 
-### 3.2 Agent 怎么知道何时调用
+### 3.2 stdio 通信的 OS 层细节
+
+**本质：不是 HTTP，不是 RPC，不是 Socket——就是父进程和子进程之间的管道传文本。**
+
+```
+Claude Code (Node.js 父进程)
+  │
+  │  spawn("java", ["-jar", "app.jar"])
+  │
+  ├── childProcess.stdin  ──── pipe ────→ System.in   (Java 子进程)
+  │                                        ↓
+  │                                  BufferedReader.readLine()
+  │                                        ↓
+  │                                  你的业务逻辑（通过 @Tool 反射调用）
+  │                                        ↓
+  │                                  System.out.println()
+  │                                        ↓
+  └── childProcess.stdout ←── pipe ────────┘
+```
+
+Claude Code 做的事，和你打开终端手动敲完全一样：
+
+```bash
+java -jar app.jar                          # 你启动进程
+{"jsonrpc":"2.0","method":"tools/list"}   # 你手动打字问"你能干什么"
+# ... 等它打印出工具列表，复制走
+```
+
+只是 Claude Code 替你打了字、替你读了结果。
+
+**完整交互序列**（一次工具调用）：
+
+```
+Claude Code (Node.js)                          Java 进程
+───────────────────                            ─────────
+
+① spawn 子进程
+   proc.stdin  = writable pipe
+   proc.stdout = readable pipe                 ② Spring Boot 启动
+                                                  @EnableMcpServer 初始化
+                                                   扫描 @Tool → 构建注册表
+                                                   block 在 readLine() 上
+
+③ LLM 决定调 queryOrders(userId="123")
+   拼 JSON-RPC 请求
+                                               ④ readLine() 读到一行完整 JSON
+   proc.stdin.write(                              解析: method="tools/call"
+     '{"jsonrpc":"2.0",\n'                        name="queryOrders"
+      '"method":"tools/call",\n'                  从注册表找到 ToolCallback
+      '"params":{"name":"queryOrders",\n'         method.invoke(bean, "123")
+      '"arguments":{"userId":"123"}},\n'            → orderService.queryByUser("123")
+      '"id":42}\n'                                   → DB → List<Order>
+   )
+                                                 拼 JSON-RPC 响应
+   proc.stdout.on("data", chunk →                 System.out.println(...)
+     JSON.parse(chunk)                            System.out.flush()
+     → 拿到订单数据
+   )
+
+⑤ 喂回 LLM 第二次推理 → 组织自然语言回复
+```
+
+**关键事实**：
+
+| 细节 | 说明 |
+|------|------|
+| **传输单元** | 每行一个完整 JSON-RPC 对象，`\n` 分隔——因为 `BufferedReader.readLine()` 天然以换行为界 |
+| **请求-响应匹配** | 通过 `id` 字段对应。stdio 模式通常同步（发一个等一个），但协议支持并发 |
+| **进程生命周期** | Java 只启动一次，while 循环持续处理。不是每次调用起一个新进程。Claude Code 退出时才 kill |
+| **不是 HTTP** | 没有 localhost，没有端口号，没有序列化框架。就是父进程往子进程 stdin 写字符串，子进程往 stdout 写字符串 |
+
+### 3.3 Agent 怎么知道何时调用
 
 Agent 不是"配置了 MCP 就自动会用"，分为两步：
 
