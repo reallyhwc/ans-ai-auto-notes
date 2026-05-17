@@ -334,9 +334,281 @@ public class MyMcpServer {
 
 本质就是：读 stdin → 解析 JSON-RPC → 执行业务逻辑 → 写 stdout。
 
+### 4.4 Java 方案一：Spring AI MCP Server（推荐）
+
+Spring AI 官方提供了 `spring-ai-starter-mcp-server`，直接把标注好的 Bean 暴露为 MCP 工具。和 Controller 共享 Service 层，不改原有代码。
+
+**架构**：
+
+```
+人类/Web ──HTTP──→  Controller ──→ Service ──→ DB
+                         ↑              ↑
+Claude Code ──stdio──→ MCP Server ────┘
+                         ↑
+               @Tool 方法（新的入口，共享同一个 Service）
+```
+
+**依赖**（`pom.xml`）：
+
+```xml
+<dependency>
+    <groupId>org.springframework.ai</groupId>
+    <artifactId>spring-ai-starter-mcp-server-webmvc</artifactId>
+    <version>1.0.0-M7</version>
+</dependency>
+```
+
+**代码**——和 Controller 共享 Service：
+
+```java
+@RestController
+public class OrderController {
+
+    @Autowired
+    private OrderService orderService;
+
+    // ← 原有 HTTP 接口，不动
+    @GetMapping("/api/orders")
+    public List<Order> queryOrders(@RequestParam String userId) {
+        return orderService.queryByUser(userId);
+    }
+}
+
+// ← 新增 MCP 工具，共享同一个 Service
+@Component
+public class OrderMcpTools {
+
+    @Autowired
+    private OrderService orderService;
+
+    @Tool(description = "根据用户ID查询订单列表，返回订单号、金额、状态")
+    public List<Order> queryOrders(
+        @ToolParam(description = "用户ID") String userId) {
+        return orderService.queryByUser(userId);
+    }
+
+    @Tool(description = "根据订单号发起退款，返回退款单号")
+    public String refundOrder(
+        @ToolParam(description = "订单号") String orderId,
+        @ToolParam(description = "退款金额(元)") double amount) {
+        return orderService.refund(orderId, amount);
+    }
+}
+```
+
+启动类：
+
+```java
+@SpringBootApplication
+@EnableMcpServer   // ← 加这一个注解
+public class Application {
+    public static void main(String[] args) {
+        SpringApplication.run(Application.class, args);
+    }
+}
+```
+
+**配置 Claude Code**（`.mcp.json`）：
+
+```json
+{
+  "mcpServers": {
+    "order-service": {
+      "command": "java",
+      "args": ["-jar", "target/your-app.jar"]
+    }
+  }
+}
+```
+
+### 4.5 Java 方案二：纯手写（零依赖）
+
+不用任何框架。本质：`while(readLine) → switch method → 调 Service → writeLine`。
+
+```java
+public class McpServer {
+    private static final ObjectMapper mapper = new ObjectMapper();
+
+    public static void main(String[] args) throws Exception {
+        BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+        OrderService orderService = new OrderService();  // 或手动初始化 Spring
+
+        String line;
+        while ((line = in.readLine()) != null) {
+            JsonNode req = mapper.readTree(line);
+            String method = req.get("method").asText();
+            int id = req.get("id").asInt();
+
+            String response;
+            if ("tools/list".equals(method)) {
+                response = buildToolListJson(id);
+            } else if ("tools/call".equals(method)) {
+                response = handleCall(id, req, orderService);
+            } else {
+                response = errorJson(id, "unknown method: " + method);
+            }
+
+            System.out.println(response);
+            System.out.flush();
+        }
+    }
+
+    private static String handleCall(int id, JsonNode req, OrderService svc) {
+        String name = req.get("params").get("name").asText();
+        JsonNode args = req.get("params").get("arguments");
+
+        Object result;
+        if ("query_orders".equals(name)) {
+            result = svc.queryByUser(args.get("userId").asText());
+        } else if ("refund_order".equals(name)) {
+            result = svc.refund(args.get("orderId").asText(), args.get("amount").asDouble());
+        } else {
+            result = Map.of("error", "unknown tool: " + name);
+        }
+
+        return """
+        {"jsonrpc":"2.0","id":%d,
+         "result":{"content":[{"type":"text","text":%s}]}}
+        """.formatted(id, escapeJson(mapper.writeValueAsString(result)));
+    }
+    // buildToolListJson, errorJson, escapeJson 省略...
+}
+```
+
+### 4.6 两个方案对比
+
+| | Spring AI MCP | 手写 |
+|------|-------------|------|
+| 代码量 | `@Tool` 注解 + `@EnableMcpServer` | ~150 行样板 |
+| Schema 生成 | 从方法签名 + `@ToolParam` 自动推断 | 手写 JSON Schema |
+| 参数类型映射 | 自动（String→string, int→integer 等） | 手动从 JsonNode 提取 |
+| 和现有 Controller 的关系 | 同名 Service，两个入口 | 同名 Service，两个入口 |
+| 依赖 | 一个 starter | 零依赖 |
+| 适合 | 生产，多工具 | 学习原理，1-2 个工具 |
+
+### 4.7 和 Dubbo/Nacos 的对比
+
+| | Dubbo + Nacos | MCP |
+|------|-------------|-----|
+| 注册中心 | Nacos 动态注册 | 无——JSON 文件静态声明 |
+| 服务发现 | 启动时订阅注册中心 | 启动时读 `.mcp.json`，spawn 子进程 |
+| 通信协议 | Dubbo 协议（TCP 长连接） | JSON-RPC 2.0 over stdio |
+| 接口定义 | Java Interface | JSON Schema（由 `@Tool` 注解推断） |
+| 提供者 | Provider 注册到 Nacos | 子进程，由 Client 管理生命周期 |
+| 调用方式 | RPC 代理，透明调用 | Agent 框架收到 LLM tool_call → 发 JSON-RPC |
+
 ---
 
-## 5. AI 工具的层级分类
+## 5. `@Tool` 注解的内部机制
+
+### 5.1 启动阶段：做了什么
+
+和 `@GetMapping` 是同类东西——标记方法为"外部可调用入口"。启动时三步：
+
+```
+① 扫描: ApplicationContext.getBeansWithAnnotation(Tool.class)
+        → 找到所有带 @Tool 的 Bean 和它们的 public 方法
+
+② 提取: 对每个 @Tool 方法反射读取:
+   @Tool(description = "查询订单")          → tool.description
+   @ToolParam(description = "用户ID")       → inputSchema.userId.description
+   String userId                             → inputSchema.userId.type = "string"
+   int amount                                → inputSchema.amount.type = "integer"
+
+③ 注册: 存入 Map<String, ToolCallback>
+   key = "queryOrders"
+   value = (arguments) → method.invoke(bean, deserialize(args))
+```
+
+**Java → JSON Schema 类型映射**：
+
+| Java 类型 | JSON Schema type |
+|-----------|-----------------|
+| String | `"string"` |
+| int / Integer / long | `"integer"` |
+| double / BigDecimal | `"number"` |
+| boolean | `"boolean"` |
+| List\<String\> | `{"type":"array","items":{"type":"string"}}` |
+| 自定义 DTO | `{"type":"object","properties":{...}}` |
+
+如果一个 `@Tool` 方法的参数是自定义 DTO，Spring AI 会递归展开其字段，自动生成完整的 JSON Schema。
+
+### 5.2 工具发现：tools/list 流程
+
+```
+Claude Code 启动
+  │
+  ├─ 读 .mcp.json → 找到 command + args
+  ├─ spawn 子进程 → Java 应用启动
+  │     └─ Spring Boot init
+  │          └─ @EnableMcpServer → 注册 MCP 端点
+  │               └─ 扫描所有 @Tool → 构建注册表 (Map<String, ToolCallback>)
+  │
+  ├─ 发 tools/list ──stdin──→ {"method":"tools/list", "id":1}
+  │                           │
+  │                     Java  └─ 遍历注册表 → 生成工具列表 JSON → stdout
+  │
+  └─ 收到 [{"name":"queryOrders","description":"...","inputSchema":{...}}, ...]
+       │
+       └─ 注入 LLM System Prompt:
+           "你可以使用以下工具:
+            - queryOrders(userId): 查询订单
+            - refundOrder(orderId, amount): 发起退款"
+```
+
+**LLM 看到的不是 Java 代码，是 `tools/list` 返回的 JSON Schema。**
+
+### 5.3 完整请求链路：从你说一句话到方法被调用
+
+```
+你: "帮我查 user_id=123 的订单"
+          │
+          ▼
+① LLM 推理（第 1 次，不出声）
+   看到 System Prompt 里有工具 "queryOrders(userId)"
+   → 判断: 用户要查订单，该调 queryOrders
+   → LLM 输出 tool_call JSON（不是文字回复）:
+     {"tool_calls":[{"function":{"name":"queryOrders",
+                     "arguments":{"userId":"123"}}}]}
+
+② Claude Code MCP Client 拦截
+   拼 JSON-RPC:
+   {"jsonrpc":"2.0","method":"tools/call","id":42,
+    "params":{"name":"queryOrders","arguments":{"userId":"123"}}}
+
+③ 通过 stdin → Java 子进程
+
+④ Spring AI 收到 → 解析 method="tools/call"
+   → 从注册表 Map 找到 "queryOrders" 的 ToolCallback
+   → 反序列化 arguments → userId="123"
+   → 反射调用: method.invoke(orderMcpTools, "123")
+
+⑤ 你的 @Tool 方法执行
+   queryOrders("123")
+     → orderService.queryByUser("123")    ← 走到已有的 Service
+       → SELECT * FROM orders WHERE user_id = '123'
+         → 返回 List<Order> [Order#8842, Order#8843]
+
+⑥ 序列化 → JSON → 装进 MCP 响应格式
+   {"jsonrpc":"2.0","id":42,
+    "result":{"content":[{"type":"text","text":"[{\"orderId\":8842,...}]"}]}}
+
+⑦ stdout → Claude Code 收到结果
+
+⑧ 把结果喂回 LLM（第 2 次推理）
+   "之前你让我查的订单结果: 订单#8842 ¥299 已发货, 订单#8843 ¥158 待付款"
+
+⑨ LLM 组织自然语言:
+   "你共有 2 个订单: #8842 ¥299 已发货, #8843 ¥158 待付款"
+```
+
+**关键：每次工具调用 = LLM 被调了 2 次**（第 1 次决定调哪个工具，第 2 次把工具结果组织成自然语言）。如果对话涉及多个工具调用（先查订单 → 再发起退款），每一步都是一次独立的 LLM 推理 + 工具执行循环。
+
+### 5.4 一句话总结
+
+`@Tool` → 启动时反射扫描生成 JSON Schema → `tools/list` 返回给 LLM → LLM 决定调用 → 框架反射执行你标注的方法 → 结果序列化返回 → LLM 组织成自然语言。
+
+和 Spring MVC 的 `@GetMapping` → DispatcherServlet → 反射调用 Controller 是同一条思路，只是协议从 HTTP 换成了 JSON-RPC over stdio。
 
 ```
 L1: 基座模型 (Foundation Model)
