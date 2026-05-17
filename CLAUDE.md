@@ -115,12 +115,22 @@ ans-ai-auto-notes/
 
 ### 会话退出检查（重要）
 
-当用户说"准备退出"、"不聊了"、"下次再继续"或类似结束语时，主动执行以下检查：
+**自动化 Hook 体系**（`.claude/settings.local.json`，基于 Harness Engineering 三层模型）：
+
+| 层级 | Hook | 脚本 | 检查内容 |
+|------|------|------|---------|
+| **约束层** | SessionStart | `scripts/preflight.sh` → `scripts/arch-lint.sh` | 机械检查 frontmatter 完整性、交叉链接有效性（死链扫描）、元信息头规范、重复标题、memory 过期（>14天告警）、遗留未提交变更、manifest.json 过期、上次 session 摘要 |
+| **约束层** | UserPromptSubmit | `scripts/commit-reminder.sh` | **每次用户发消息时**检查未提交变更数量，分级提醒（1-2: 轻提示 / 3-5: 警告 / 6+: 强烈建议立即 commit）——不再靠人"记得提醒 AI"，改为机械触发 |
+| **约束层** | Stop | `exit-check.sh` → `lint.sh` + `check-overview.js` + `session-log.sh` + `permission-audit.sh` | markdown 格式、git 状态、INDEX 日期、overview.html 健康 + session 日志 + **权限审计**（扫描新脚本 vs allowlist，建议安全命令加白）|
+| **文档层** | — | `.claude/session-logs/` | 每日 session 日志存档，SessionStart 时自动读取上次进度 |
+| **文档层** | — | `memory/*.md` | 所有记忆文件带 `lastUpdated` 时间戳，>14 天未更新自动告警 |
+
+当用户说"准备退出"、"不聊了"、"下次再继续"或类似结束语时，Stop hook 会自动执行上述检查并输出建议的 commit 命令。除此之外，AI 还需主动完成：
 
 1. **文件格式检查**：运行 `./lint.sh` 做自动格式校验（heading、空行等），然后人工扫描本次变动的 md 文件，确认元信息头（`> 最后整理: YYYY-MM-DD | 来源: xxx`）符合规范。发现格式不一致的文件立即修正。
 2. **交叉链接检查**：确认新增/修改的文件有指向关联文件的双向链接（`[[./xxx]]` 或 `> 关联:` 格式）。
 3. **Memory 检查**：确认本次会话中用户的新偏好、新反馈、新项目上下文已写入 `memory/` 目录并更新 `MEMORY.md` 索引。
-4. **Git 检查**：确认所有变更已提交，`git status` 显示 clean。
+4. **Git 检查**：确认所有变更已提交，`git status` 显示 clean。Stop hook 输出中已包含建议的 commit 命令，可直接执行。
 5. **INDEX.md 日期**：确认索引日期已更新至本次会话日期。
 
 上述检查全部通过后，向用户报告检查结果，确认可以安全退出。

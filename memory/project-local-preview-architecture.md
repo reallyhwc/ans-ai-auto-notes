@@ -2,7 +2,7 @@
 name: Local Preview Architecture
 description: overview.html 改为本地 HTTP 服务器 + runtime fetch 模式，serve.sh 一键启动
 type: project
-originSessionId: 712f8494-9951-406a-9368-fd194238f662
+lastUpdated: 2026-05-17originSessionId: 712f8494-9951-406a-9368-fd194238f662
 ---
 **架构**：`./serve.sh` → `python3 -m http.server`（端口 8765）→ 浏览器打开 `http://localhost:8765/overview.html`。
 

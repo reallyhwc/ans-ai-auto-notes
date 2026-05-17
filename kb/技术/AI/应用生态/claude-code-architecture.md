@@ -254,7 +254,9 @@ graph LR
 
 ### Layer 4：Hook 系统（钩子）
 
-Hooks 是自动触发的脚本，类似"条件反射"：
+Hooks 是自动触发的脚本，类似"条件反射"。由 Claude Code 的 harness 执行，不是 AI 执行的——不消耗 context，不依赖 AI 的"理解"，每次都会跑。
+
+> **实践指南**: [Claude Code 进阶工作流](./claude-code-advanced-workflow.md) — 如何用 SessionStart/Stop hooks 构建自动化的环境体检、架构守卫、session 存档系统
 
 ```
 事件触发型 Hooks：
@@ -554,6 +556,7 @@ Claude Code 就是一个**带手脚的大脑**：
 - 本地配置: `~/.claude/settings.json`
 - 项目指令: `CLAUDE.md`（当前项目根目录）
 - 记忆系统: `~/.claude/projects/.../memory/`
+- 进阶实践: [Claude Code 进阶工作流](./claude-code-advanced-workflow.md) — 四阶段成熟度、三层模型、hooks/memory/plan/manifest 实战
 
 Sources:
 - [Claude Code Docs - Quickstart](https://code.claude.com/docs/en/quickstart)

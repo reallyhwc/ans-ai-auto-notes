@@ -1,19 +1,20 @@
 # 知识库索引
 
-> 最后更新: 2026-05-14 | 由 build-index.js 自动生成，勿手改
+> 最后更新: 2026-05-17 | 由 build-index.js 自动生成，勿手改
 
-## 实战 (3 篇)
+## 实战 (4 篇)
 
 - [overview.html 踩坑记录](kb/实战/overview-html-踩坑记录.md) — overview.html 维护过程中踩过的坑 & 解决方案
 
-### 技巧 (2 篇)
+### 技巧 (3 篇)
 
 - [GitHub 项目创建与同步](kb/实战/技巧/github-repo-setup.md) — SSH key 配置、仓库初始化、CI 基础
 - [知识管理工具对比](kb/实战/技巧/knowledge-management-tools.md) — Obsidian/Notion/本项目方案 对比分析
+- [外部参考链接](kb/实战/技巧/外部参考链接.md) — 优质外部技术文章、博客、演讲的链接汇总，附带核心要点
 
-## 技术 (23 篇)
+## 技术 (26 篇)
 
-### AI (20 篇)
+### AI (23 篇)
 
 #### 基础 (3 篇)
 
@@ -30,13 +31,16 @@
 - [本地部署 LLM](kb/技术/AI/大模型/local-llm-deployment.md) — Ollama安装使用+进阶玩法(API/Embedding/Modelfile/Web UI)、小模型推荐
 - [多模态 LLM](kb/技术/AI/大模型/multimodal-llm.md) — LLM+视觉编码器，图片/音频输入理解
 
-#### 应用生态 (11 篇)
+#### 应用生态 (14 篇)
 
 - [Agent 开发实战：设计范式与落地实践](kb/技术/AI/应用生态/agent-development-practice.md) — Agent开发实战：四大设计范式、vs传统Java开发六维对比、工具设计六要点、测试/可观测/成本模型差异
 - [AI Agent 工具生态](kb/技术/AI/应用生态/ai-agent-tools.md) — Hermes Agent（养马）vs OpenClaw（养龙虾）对比、微信 AI 机器人接入
+- [AI 编程 Agent 工具](kb/技术/AI/应用生态/ai-coding-agents.md) — 终端 AI 编程 Agent 三方对比：DeepSeek-TUI vs Claude Code vs Codex CLI，同模型下拼的是 Agent 框架，不同模型下拼的是模型能力
 - [AI 编程 IDE](kb/技术/AI/应用生态/ai-coding-ides.md) — Cursor vs Windsurf 对比，AI 编程工具的两种交互哲学
 - [AI 编程的递进路径：从古法编程到多 Agent 协作](kb/技术/AI/应用生态/ai-coding-levels.md) — 从古法编程到多Agent协作6个Level、程序员未来展望
+- [AI Coding 团队治理：从个人提效到团队工程化](kb/技术/AI/应用生态/ai-coding-team-governance.md) — 美团31万行代码AI重构实践：人人对齐→人机对齐方法论、Pre-PR机制、零排期重构、高阶模型审查低阶模型
 - [AI 工作流平台：Dify、Coze 与 Claude Code 的组合](kb/技术/AI/应用生态/ai-workflow-platforms.md) — AI工作流平台(Dify/Coze)：低代码编排多模型协作、与Claude Code的关系和组合方式、MCP多模型调度方案
+- [Claude Code 进阶工作流：从能用到高效](kb/技术/AI/应用生态/claude-code-advanced-workflow.md) — 四阶段成熟度模型（裸聊→文件化→自动化→生态化）、约束>文档>对话三层模型、hooks/memory/plan/manifest/dev-log实战配置
 - [Claude Code 整体架构 & 工作流程](kb/技术/AI/应用生态/claude-code-architecture.md) — 整体架构、REPL循环、工具链、Hooks、上下文管理、完整数据流
 - [Claude Code 远程操控：Remote Control 与 cc-connect](kb/技术/AI/应用生态/claude-code-remote-control.md) — Claude Code远程操控：官方Remote Control vs cc-connect消息桥接、手机编程工作流、微信/飞书接入
 - [Harness Engineering：AI Agent 时代的工程范式](kb/技术/AI/应用生态/harness-engineering.md) — Harness Engineering(驾驭工程)：Agent=Model+Harness、六项核心能力、四阶段成长路径、双LLM交叉校验四种实现方式

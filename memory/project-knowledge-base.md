@@ -2,7 +2,7 @@
 name: project-knowledge-base
 description: 通过AI对话自动构建个人知识库，git+md形式，主题分类+时间线双轨制
 type: project
-originSessionId: ff641dae-a73b-4600-9f28-4c7bd678dcac
+lastUpdated: 2026-05-17originSessionId: ff641dae-a73b-4600-9f28-4c7bd678dcac
 ---
 项目 `ans-ai-auto-notes` 旨在通过与 AI 对话逐步沉淀个人知识库。
 采用 git + markdown 形式，主题分类（技术/读书笔记/日常思考/action）和时间线按周归档双轨并行。

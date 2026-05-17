@@ -2,7 +2,7 @@
 name: feedback-exit-checklist
 description: 用户说退出时，先执行5项检查（格式/链接/Memory/Git/索引）再结束
 type: feedback
-originSessionId: ff641dae-a73b-4600-9f28-4c7bd678dcac
+lastUpdated: 2026-05-17originSessionId: ff641dae-a73b-4600-9f28-4c7bd678dcac
 ---
 **规则**：当用户说"准备退出"、"不聊了"、"下次再继续"等结束语时，不能直接结束。必须先执行 5 项检查：文件格式、交叉链接、Memory 持久化、Git 提交、INDEX.md 日期。
 

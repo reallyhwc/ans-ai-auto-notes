@@ -2,7 +2,7 @@
 name: Cross-Environment Workflow
 description: 用户在公司和家之间切换，用不同工具维护同一知识库
 type: project
----
+lastUpdated: 2026-05-17---
 
 用户在两台机器上维护知识库：
 - **公司电脑**：Mac，使用 Aone Copilot IDE 插件 + Claude Opus

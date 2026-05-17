@@ -11,7 +11,7 @@ description: "Cursor vs Windsurf 对比，AI 编程工具的两种交互哲学"
 
 **Cursor** 是"会读你整个项目的 Copilot"，**Windsurf** 是"有全局视野的 AI 协作伙伴"。两者都是 VS Code fork，但交互思路完全不同——前者是你告诉它改哪里，后者是它感知你要去哪。
 
-> 关联: [ai-agent-tools](./ai-agent-tools.md) — AI Agent 工具生态（Hermes/OpenClaw） | [llm-agent-mcp](../大模型/llm-agent-mcp.md) — Agent 与 MCP 基础概念 | [知识管理工具对比](../../action/技巧/knowledge-management-tools.md) — Obsidian vs AI 知识库方案
+> 关联: [ai-agent-tools](./ai-agent-tools.md) — AI Agent 工具生态（Hermes/OpenClaw） | [ai-coding-agents](./ai-coding-agents.md) — 终端 AI 编程 Agent 对比 (DeepSeek-TUI vs Claude Code) | [llm-agent-mcp](../大模型/llm-agent-mcp.md) — Agent 与 MCP 基础概念 | [知识管理工具对比](../../action/技巧/knowledge-management-tools.md) — Obsidian vs AI 知识库方案
 
 ---
 

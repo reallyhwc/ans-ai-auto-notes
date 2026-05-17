@@ -2,7 +2,7 @@
 name: Auto Record Notes After Every Q&A
 description: 每次QA对话结束后必须自动提取知识追加到kb，不需要用户提醒
 type: feedback
-originSessionId: b4a02ce7-aa53-4e91-9b6b-65df681070f4
+lastUpdated: 2026-05-17originSessionId: b4a02ce7-aa53-4e91-9b6b-65df681070f4
 ---
 每次回答完用户的问题后，必须主动提取本次对话中的知识点，追加到对应的 kb 主题文件中，无需等用户提醒。
 

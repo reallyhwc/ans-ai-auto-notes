@@ -133,8 +133,8 @@ results = collection.query(
 # 返回: ["支持7天无理由退货", ...]
 ```
 
-> 关联: [llm-prompt-rag](./llm-prompt-rag.md) — RAG 原理详解
-> 关联: [local-llm-deployment](./local-llm-deployment.md) — Embedding 模型本地部署
+> 关联: [llm-prompt-rag](../大模型/llm-prompt-rag.md) — RAG 原理详解
+> 关联: [local-llm-deployment](../大模型/local-llm-deployment.md) — Embedding 模型本地部署
 
 ---
 
@@ -480,5 +480,5 @@ flowchart TB
 ---
 
 > 关联: [llm-app-design](../应用生态/llm-app-design.md) — LLM 应用设计 9 大维度
-> 关联: [llm-prompt-rag](./llm-prompt-rag.md) — RAG 原理详解
-> 关联: [local-llm-deployment](./local-llm-deployment.md) — Ollama 本地部署
+> 关联: [llm-prompt-rag](../大模型/llm-prompt-rag.md) — RAG 原理详解
+> 关联: [local-llm-deployment](../大模型/local-llm-deployment.md) — Ollama 本地部署

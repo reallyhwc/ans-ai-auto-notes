@@ -2,7 +2,7 @@
 name: overview.html Maintenance Rules
 description: overview.html 从 content embedding 改为 runtime fetch，新规则：用 serve.sh 启动、FILE_INDEX 元数据、禁止裸链接
 type: feedback
-originSessionId: 712f8494-9951-406a-9368-fd194238f662
+lastUpdated: 2026-05-17originSessionId: 712f8494-9951-406a-9368-fd194238f662
 ---
 **架构变更（2026-05-05）**：overview.html 从"构建时嵌入所有 md 内容"改为"运行时 fetch .md 文件"。旧规则（KB_DATA、content 字段、JS 语法检查、vm.runInContext 同步）全部废弃。
 
