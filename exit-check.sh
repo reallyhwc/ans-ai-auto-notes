@@ -1,48 +1,55 @@
 #!/bin/bash
-# 会话退出自动检查 + session 日志存档
+# 会话退出自动检查 + session 日志存档 + 未 push 提醒
 # 由 Stop hook 自动触发（.claude/settings.local.json）
 cd "$(dirname "$0")"
 
 echo ""
 echo "========== 退出检查 =========="
 
-# [1/5] 格式检查
+# [1/6] 格式检查
 echo ""
-echo "[1/5] 格式检查 (markdownlint)..."
+echo "[1/6] 格式检查 (markdownlint)..."
 bash lint.sh
 
-# [2/5] Git 状态
+# [2/6] Git 状态
 echo ""
-echo "[2/5] Git 状态..."
+echo "[2/6] Git 状态..."
 git status --short
 
-# [3/5] INDEX.md 日期
+# [3/6] INDEX.md 日期
 echo ""
-echo "[3/5] INDEX.md 日期..."
+echo "[3/6] INDEX.md 日期..."
 grep "最后更新" INDEX.md
 
-# [4/5] overview.html 健康检查
+# [4/6] overview.html 健康检查
 echo ""
-echo "[4/5] overview.html 健康检查..."
+echo "[4/6] overview.html 健康检查..."
 node scripts/check-overview.js
 
-# [5/5] 生成 session 日志 + 建议 commit 消息
+# [5/6] 生成 session 日志
 echo ""
-echo "[5/5] 生成 session 日志..."
+echo "[5/6] 生成 session 日志..."
 bash scripts/session-log.sh
+
+# [6/6] 未 push 提醒
+echo ""
+echo "[6/6] 未 push 检查..."
+
+# 检查当前分支
+BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+REMOTE=$(git remote get-url origin 2>/dev/null)
+
+# 检查是否有未 push 的 commit
+UNPUSHED=$(git log @{u}.. 2>/dev/null | wc -l | awk '{print $1}')
+if [ "$UNPUSHED" -gt 0 ] 2>/dev/null; then
+  echo ""
+  echo "  🚨 $UNPUSHED 个 commit 未 push 到 remote！"
+  echo "  分支: $BRANCH → $REMOTE"
+  echo "  建议: git push origin $BRANCH"
+  echo ""
+else
+  echo "  ✓ 所有 commit 已 push"
+fi
 
 echo ""
 echo "========== 退出检查完成 =========="
-
-# 如果有未提交变更，给出明确提示
-HAS_CHANGES=$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ')
-if [ "$HAS_CHANGES" -gt 0 ]; then
-  echo ""
-  echo "⚠️  有 $HAS_CHANGES 个未提交变更。请 AI 执行 git commit。"
-  echo ""
-  echo "   检查清单:"
-  echo "   □ 交叉链接: 新文件已双向链接到关联文件？"
-  echo "   □ Memory: 用户新偏好/反馈已写入 memory/？"
-  echo "   □ Git: git add -A && git commit"
-  echo ""
-fi

@@ -12,3 +12,4 @@
 - [Feedback: Tree Depth CSS Limit](feedback-tree-depth-css-limit.md) — 菜单嵌套 JS 递归无限制，但 CSS 视觉极限 ~5 层（sidebar 200px / margin-left 16px 累加）
 - [Project: Cross-Environment Workflow](cross-environment-workflow.md) — 公司Mac(Aone Copilot+Claude Opus)和个人Mac(Claude Code CLI)双环境维护，git同步
 - [Feedback: Proactive Divergent Suggestions](feedback-proactive-divergent-suggestions.md) — 用户认可"小的发散性想法"作为知识库特色，AI应主动提议改进点而非被动执行指令
+- [Feedback: Auto-Commit After Changes](feedback-auto-commit.md) — AI必须在每批文件变更后立即git commit，不等提醒；退出时只提醒未push的commit

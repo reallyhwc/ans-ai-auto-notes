@@ -104,7 +104,7 @@ ans-ai-auto-notes/
 
 ### Git 规则
 
-1. 每次会话结束后，主动提交变更。
+1. **每次完成一批文件变更后立即自动 commit**，不等用户提醒。判断标准：一个逻辑主题的改动完成（如一篇文章的笔记沉淀、一个脚本的编写）→ 立刻 `git add -A && git commit`。
 2. Commit message 采用 [Conventional Commits](https://www.conventionalcommits.org/) 格式：
    - `feat: xxx` — 新功能（如新增 lint 工具、live reload）
    - `fix: xxx` — 修复 bug 或格式问题
@@ -112,6 +112,7 @@ ans-ai-auto-notes/
    - `docs: xxx` — 纯文档/知识内容变更
    - `refactor: xxx` — 重构（不改变行为）
 3. 消息用中文或英文均可，简明描述"做了什么、为什么"。
+4. **退出时提醒未 push 的 commit**，由 Stop hook 自动检查。
 
 ### 会话退出检查（重要）
 
@@ -120,8 +121,10 @@ ans-ai-auto-notes/
 | 层级 | Hook | 脚本 | 检查内容 |
 |------|------|------|---------|
 | **约束层** | SessionStart | `scripts/preflight.sh` → `scripts/arch-lint.sh` | 机械检查 frontmatter 完整性、交叉链接有效性（死链扫描）、元信息头规范、重复标题、memory 过期（>14天告警）、遗留未提交变更、manifest.json 过期、上次 session 摘要 |
-| **约束层** | UserPromptSubmit | `scripts/commit-reminder.sh` | **每次用户发消息时**检查未提交变更数量，分级提醒（1-2: 轻提示 / 3-5: 警告 / 6+: 强烈建议立即 commit）——不再靠人"记得提醒 AI"，改为机械触发 |
-| **约束层** | Stop | `exit-check.sh` → `lint.sh` + `check-overview.js` + `session-log.sh` + `permission-audit.sh` | markdown 格式、git 状态、INDEX 日期、overview.html 健康 + session 日志 + **权限审计**（扫描新脚本 vs allowlist，建议安全命令加白）|
+| **约束层** | Stop | `exit-check.sh` → `lint.sh` + `check-overview.js` + `session-log.sh` + `permission-audit.sh` + **未 push 检查** | markdown 格式、git 状态、INDEX 日期、overview.html 健康 + session 日志 + 权限审计 + **检查是否有 commit 未 push 到 remote** |
+
+> 注：UserPromptSubmit hook 已移除——由 AI 主动 auto-commit 替代机械提醒。AI 每完成一批文件变更后立即 `git add -A && git commit`，不等用户提醒。
+
 | **文档层** | — | `.claude/session-logs/` | 每日 session 日志存档，SessionStart 时自动读取上次进度 |
 | **文档层** | — | `memory/*.md` | 所有记忆文件带 `lastUpdated` 时间戳，>14 天未更新自动告警 |
 
@@ -130,7 +133,7 @@ ans-ai-auto-notes/
 1. **文件格式检查**：运行 `./lint.sh` 做自动格式校验（heading、空行等），然后人工扫描本次变动的 md 文件，确认元信息头（`> 最后整理: YYYY-MM-DD | 来源: xxx`）符合规范。发现格式不一致的文件立即修正。
 2. **交叉链接检查**：确认新增/修改的文件有指向关联文件的双向链接（`[[./xxx]]` 或 `> 关联:` 格式）。
 3. **Memory 检查**：确认本次会话中用户的新偏好、新反馈、新项目上下文已写入 `memory/` 目录并更新 `MEMORY.md` 索引。
-4. **Git 检查**：确认所有变更已提交，`git status` 显示 clean。Stop hook 输出中已包含建议的 commit 命令，可直接执行。
+4. **Git 检查**：确认所有变更已提交（AI 应在变更发生后立即 auto-commit，无需等退出），`git status` 显示 clean。同时检查是否有未 push 的 commit，如有则提醒用户 `git push`。
 5. **INDEX.md 日期**：确认索引日期已更新至本次会话日期。
 
 上述检查全部通过后，向用户报告检查结果，确认可以安全退出。
