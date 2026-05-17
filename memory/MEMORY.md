@@ -11,3 +11,4 @@
 - [Feedback: FILE_INDEX Traversal](feedback-file-index-traversal.md) — FILE_INDEX 结构升级时必须 grep 全扫所有遍历函数（renderCategories/buildFileIndex/searchKB/checkServer），不能"修完报错的就停"
 - [Feedback: Tree Depth CSS Limit](feedback-tree-depth-css-limit.md) — 菜单嵌套 JS 递归无限制，但 CSS 视觉极限 ~5 层（sidebar 200px / margin-left 16px 累加）
 - [Project: Cross-Environment Workflow](cross-environment-workflow.md) — 公司Mac(Aone Copilot+Claude Opus)和个人Mac(Claude Code CLI)双环境维护，git同步
+- [Feedback: Proactive Divergent Suggestions](feedback-proactive-divergent-suggestions.md) — 用户认可"小的发散性想法"作为知识库特色，AI应主动提议改进点而非被动执行指令
