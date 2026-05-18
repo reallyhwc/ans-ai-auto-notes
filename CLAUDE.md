@@ -16,24 +16,27 @@
 ans-ai-auto-notes/
 ├── kb/                          ← 知识库主目录（按主题分类）
 │   ├── 技术/                    ← 技术领域
-│   │   ├── AI/                  ← AI/机器学习（基础、大模型、应用生态）
+│   │   ├── AI/                  ← AI/机器学习（基础、大模型、应用生态 三层）
 │   │   ├── Java/                ← Java 技术栈
-│   │   ├── 计算机基础/          ← 图灵机、贝叶斯等基础理论
-│   │   ├── 中间件/              ← (规划中)
-│   │   └── 系统设计/            ← (规划中)
-│   ├── 实战/                    ← 排查记录、好文摘要、技巧（原 action/）
-│   ├── 读书笔记/                ← 读书相关，一本书一个文件
-│   └── 日常思考/                ← 随笔、想法
+│   │   └── 计算机基础/          ← 图灵机、贝叶斯等基础理论
+│   ├── 实战/                    ← 排查记录、好文摘要、技巧
+│   └── 读书笔记/                ← 读书相关，一本书一个文件
 ├── timeline/                    ← 按周归档的对话摘要
 ├── scripts/                     ← 构建/检查脚本
 │   ├── build-index.js           ← 扫描 kb/ 生成 manifest.json + INDEX.md
-│   └── check-overview.js        ← 6 项健康检查
+│   ├── check-overview.js        ← 12 项健康检查（含行数限制）
+│   ├── arch-lint.sh             ← 8 项 KB 架构检查
+│   ├── preflight.sh             ← SessionStart 预检
+│   ├── session-log.sh           ← 自动生成 session 日志
+│   ├── permission-audit.sh      ← 权限审计
+│   └── app.js                   ← overview.html 前端逻辑
 ├── INDEX.md                     ← 总目录索引（由 build-index.js 自动生成，勿手改）
 ├── manifest.json                ← 分类数据（构建产物，.gitignore 中，勿手改）
 ├── timeline.json                ← 时间线数据（手维护）
 ├── overview.html                ← 可视化导览页（运行时 fetch manifest.json + timeline.json）
 ├── server.js                    ← 本地预览服务器（端口 8765 + SSE live reload）
 ├── serve.sh                     ← 启动脚本（build-index.js → server.js）
+├── package.json                 ← Node 依赖锁版本（markdownlint-cli 等）
 ├── CLAUDE.md                    ← 本文件
 └── .gitignore
 ```
@@ -42,9 +45,9 @@ ans-ai-auto-notes/
 
 ### 文件组织规则
 
-1. **同主题聚合到一个文件**：同一个主题的知识点持续追加到同一个 md 文件，不按日期拆分。例如所有 JVM GC 内容都在 `kb/技术/java/jvm-gc.md` 中。
+1. **同主题聚合到一个文件**：同一个主题的知识点持续追加到同一个 md 文件，不按日期拆分。例如所有 JVM GC 内容都在 `kb/技术/Java/jvm-gc.md` 中。
 2. **文件内按时间倒序**：最新内容追加在文件顶部，以 `## YYYY-MM-DD - 标题` 作为二级标题。
-3. **子目录最多两层**：`技术/java/jvm-gc.md`，不要超过这个深度。
+3. **目录深度规则**：默认两层（如 `技术/Java/jvm-gc.md`）；当一个领域内容显著膨胀且能划分清晰子领域时（如 AI 已经分化出"基础/大模型/应用生态"），允许使用三层。第三层需要满足：每个子目录有 ≥3 篇文件 且 子领域之间边界清晰。
 4. **新主题新建文件**：遇到全新主题时创建新文件。
 
 ### 文件拆分规则（重要）
@@ -53,7 +56,7 @@ ans-ai-auto-notes/
 
 | 维度 | 阈值 | 说明 |
 |------|------|------|
-| **行数** | >1000 行关注，>1500 行必须拆 | 笔记含大量 demo/Mermaid/代码块，1000 行内为舒适区；由 `arch-lint.sh [7/8]` 自动检查 |
+| **行数** | >1000 行关注，>1500 行必须拆 | 笔记含大量 demo/Mermaid/代码块，1000 行内为舒适区；由 `arch-lint.sh [7/8]` 与 `check-overview.js [12/12]` 自动检查（双 hook 覆盖 SessionStart 和 Stop） |
 | **章节数** | > 7-8 个 `##` 级章节 | 章节过多说明主题开始发散 |
 | **主题凝聚度** | 覆盖 3+ 个可独立成文的方向 | 即使行数不达标，如果内容明显属于不同子领域也应拆分 |
 
@@ -123,13 +126,12 @@ ans-ai-auto-notes/
 
 | 层级 | Hook | 脚本 | 检查内容 |
 |------|------|------|---------|
-| **约束层** | SessionStart | `scripts/preflight.sh` → `scripts/arch-lint.sh` | 机械检查 frontmatter 完整性、交叉链接有效性（死链扫描）、元信息头规范、重复标题、memory 过期（>14天告警）、遗留未提交变更、manifest.json 过期、上次 session 摘要 |
-| **约束层** | Stop | `exit-check.sh` → `lint.sh` + `check-overview.js` + `session-log.sh` + `permission-audit.sh` + **未 push 检查** | markdown 格式、git 状态、INDEX 日期、overview.html 健康 + session 日志 + 权限审计 + **检查是否有 commit 未 push 到 remote** |
-
-> 注：UserPromptSubmit hook 已移除——由 AI 主动 auto-commit 替代机械提醒。AI 每完成一批文件变更后立即 `git add -A && git commit`，不等用户提醒。
-
-| **文档层** | — | `.claude/session-logs/` | 每日 session 日志存档，SessionStart 时自动读取上次进度 |
+| **约束层** | SessionStart | `scripts/preflight.sh` → `scripts/arch-lint.sh` | 机械检查 frontmatter 完整性、交叉链接有效性（死链扫描）、元信息头规范、重复标题、行数限制（>1000 警告/>1500 错误）、memory 过期（>14天告警）、遗留未提交变更、manifest.json 过期、上次 session 摘要 |
+| **约束层** | Stop | `exit-check.sh` → `lint.sh` + `check-overview.js` + `session-log.sh` + `permission-audit.sh` + 未 push 检查 | markdown 格式、git 状态、INDEX 日期、overview.html 健康（12 项含行数限制）、session 日志、权限审计、未 push 的 commit（>5 自动 push） |
+| **文档层** | — | `.claude/session-logs/` | 每日 session 日志存档（同日多次 Stop 累加 append） |
 | **文档层** | — | `memory/*.md` | 所有记忆文件带 `lastUpdated` 时间戳，>14 天未更新自动告警 |
+
+> 注：UserPromptSubmit hook 已移除（commit-reminder.sh 已淘汰）——由 AI 主动 auto-commit 替代机械提醒。AI 每完成一批文件变更后立即 `git add -A && git commit`，不等用户提醒。
 
 当用户说"准备退出"、"不聊了"、"下次再继续"或类似结束语时，Stop hook 会自动执行上述检查并输出建议的 commit 命令。除此之外，AI 还需主动完成：
 

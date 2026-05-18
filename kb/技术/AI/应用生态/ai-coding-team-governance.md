@@ -55,8 +55,8 @@ flowchart TD
 
 ## 三条核心经验
 
-> 关联: [Harness Engineering](./harness-engineering.md) — AI 时代工程范式 | [AI 编程递进路径](./ai-coding-levels.md) — 6 个 Level | [AI 编程 Agent 工具](./ai-coding-agents.md) — 三方工具对比
-> 关联: [外部参考链接](../../../实战/技巧/外部参考链接.md) — 本文原文链接
+> 关联: [Harness Engineering](./harness-engineering.md) — AI 时代工程范式 | [AI 编程递进路径](./ai-coding-levels.md) — 6 个 Level | [AI 编程工具](./ai-coding-tools.md) — CLI Agent + GUI IDE 全景对比
+> 关联: [外部参考链接](../../../实战/技巧/external-references.md) — 本文原文链接
 
 ---
 
@@ -452,5 +452,5 @@ flowchart TD
 
 > 关联: [Harness Engineering](./harness-engineering.md) — 六个核心组件详解
 > 关联: [AI 编程递进路径](./ai-coding-levels.md) — L4 Skill → L5 多 Agent
-> 关联: [AI 编程 Agent 工具](./ai-coding-agents.md) — Claude Code/Codex CLI/DeepSeek-TUI
-> 关联: [外部参考链接](../../../实战/技巧/外部参考链接.md) — 本文原文链接
+> 关联: [AI 编程工具](./ai-coding-tools.md) — Claude Code/Codex CLI/DeepSeek-TUI + Cursor/Windsurf
+> 关联: [外部参考链接](../../../实战/技巧/external-references.md) — 本文原文链接

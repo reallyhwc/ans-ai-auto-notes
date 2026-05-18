@@ -80,7 +80,7 @@
       {
         "date": "2026-05-07",
         "summary": "Bug/工程：overview.html 三层嵌套渲染修复——4 处独立 bug 同根因（FILE_INDEX 升级三层后，遍历它的代码硬编码两层 forEach）。renderCategories/buildFileIndex/searchKB/checkServer 全部改为递归 walk()",
-        "links": [{"label": "踩坑记录 #6", "url": "kb/实战/overview-html-踩坑记录.md"}]
+        "links": [{"label": "踩坑记录 #6", "url": "kb/实战/overview-html-pitfalls.md"}]
       },
       {
         "date": "2026-05-07",

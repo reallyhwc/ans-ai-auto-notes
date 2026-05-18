@@ -1,23 +1,31 @@
 ---
-title: "AI 编程 Agent 工具"
-description: "终端 AI 编程 Agent 三方对比：DeepSeek-TUI vs Claude Code vs Codex CLI，同模型下拼的是 Agent 框架，不同模型下拼的是模型能力"
+title: "AI 编程工具：CLI Agent 与 GUI IDE 全景对比"
+description: "AI 编程工具全景对比：终端 Agent (Claude Code / Codex CLI / DeepSeek-TUI) 三方对比，以及 GUI IDE (Cursor / Windsurf) 的两种交互哲学"
 ---
 
-# AI 编程 Agent 工具：三方对比
+# AI 编程工具：CLI Agent 与 GUI IDE 全景对比
 
-> 最后整理: 2026-05-17 | 来源: 多轮对话
+> 最后整理: 2026-05-18 | 来源: 多轮对话
 
 ## 一句话定位
 
-三款终端 AI 编程 Agent，分别代表了 AI 编程工具的三条路线：
+AI 编程工具分两大形态——**终端 Agent**（Part A）和 **GUI IDE**（Part B），各自代表不同的人机协作哲学：
 
-- **Claude Code**：推理最强，Agent Loop 最成熟，权限系统最完善
-- **Codex CLI**：速度最快，OS 级沙箱最安全，执行入口最多样
-- **DeepSeek-TUI**：成本碾压，上下文最大（1M），并行处理独门优势
+| 形态 | 工具 | 特点 |
+|------|------|------|
+| **终端 Agent** | Claude Code | 推理最强，Agent Loop 最成熟，权限系统最完善 |
+| | Codex CLI | 速度最快，OS 级沙箱最安全，执行入口最多样 |
+| | DeepSeek-TUI | 成本碾压，1M 上下文，并行处理独门优势 |
+| **GUI IDE** | Cursor | "精准手术刀"——你告诉它改哪里 |
+| | Windsurf | "协作副驾驶"——它感知你要去哪 |
 
-**选哪一个，取决于你优先考虑模型能力上限、工程安全、还是成本。**
+**选哪一个，取决于你优先考虑模型能力、工程安全、成本，或交互形态。**
 
-> 关联: [claude-code-architecture](./claude-code-architecture.md) — Claude Code 技术架构 | [ai-coding-ides](./ai-coding-ides.md) — GUI IDE 对比 (Cursor vs Windsurf) | [llm-agent-mcp](../大模型/llm-agent-mcp.md) — Agent 与 MCP 基础
+> 关联: [claude-code-architecture](./claude-code-architecture.md) — Claude Code 技术架构 | [llm-agent-mcp](../大模型/llm-agent-mcp.md) — Agent 与 MCP 基础
+
+---
+
+# Part A · 终端 AI 编程 Agent
 
 ---
 
@@ -314,6 +322,73 @@ RLM:   任务1 ↘
 核心发现：混合架构在长链推理任务上有价值，但简单任务性价比低（延迟 ≈ 两者之和 + 编排成本）。
 
 > 💡 一个有意思的现象：Codex CLI 和 DeepSeek-TUI 的主要作者都不是传统程序员出身（一个是 OpenAI 团队，一个是法学院学生），但他们用 AI 辅助造出了顶级 AI 编程工具。这本身就在证明 AI 编程正在大幅降低软件开发的准入门槛——不管你最后选了哪个工具。
+
+---
+
+# Part B · GUI IDE：Cursor vs Windsurf
+
+终端 Agent 之外，还有一类把 AI 集成进图形化 IDE 的方案。两个主流产品都是 VS Code fork，但**交互哲学完全相反**——一个等你下指令，一个主动感知。
+
+## B.1 Cursor —— 以"上下文"为核心
+
+想象你在 Terminal 里问 Claude Code 一个问题，它能读你的整个项目、改文件、跑命令。Cursor 就是把这个体验搬进了图形化 IDE。
+
+```
+传统 Copilot:  你写代码 → 它猜下一行（只看当前文件）
+Cursor:        你选一堆文件 → 它全部读完 → 在某个文件里改代码
+```
+
+### 核心机制
+
+- **Cmd+K 就地编辑**：选中一段代码，用自然语言说"把这个改成流式调用"，它在原位替换
+- **Tab 补全（Cursor Tab）**：不只是补一行，能跳多个位置、补整个函数体，预测你下一步编辑哪里
+- **Composer（Agent 模式）**：给它一个任务描述，它能跨多个文件改代码、跑终端命令、看 lint 错误自己修
+- **上下文来源**：当前文件 + @ 引用的文件/文档/网页 + 最近查看的文件 + 全局 codebase 索引
+
+### 与 Claude Code 的对比
+
+| | Cursor | Claude Code |
+|---|---|---|
+| 形态 | GUI IDE | 终端 CLI |
+| 编辑方式 | 原位 diff 预览，逐个 accept/reject | 直接写文件 |
+| 使用场景 | 喜欢 IDE 图形交互 | 喜欢终端一条命令到底 |
+
+## B.2 Windsurf —— 以"流程"为核心
+
+Windsurf 是 Codeium 公司做的，口号是 "Flow State"（心流）。核心理念：**AI 不应该等你下指令，而应该感知你在干什么，主动参与**。
+
+```
+Cursor 模式:  你选中代码 → 按 Cmd+K → 输入指令 → AI 执行
+Windsurf 模式: 你改了一个函数名 → AI 自动检测到 → 提示"要把引用它的 3 个文件也改了吗？"
+```
+
+### 核心机制
+
+- **Cascade（级联智能）**：AI 持续分析你的操作意图，不是等你问才回答。比如你开始写一个 REST 接口，它自动推断你需要 controller → service → repository 全套
+- **多步骤自动执行**：跟 Claude Code 更像——它能自动创建文件、安装依赖、跑测试，然后在结果上迭代
+- **Supercomplete**：比 Cursor Tab 更激进，能预测你接下来要做的多步编辑
+
+### 交互模型差异
+
+```
+Cursor 的交互模型：
+  用户主动 → 选上下文 → 发指令 → AI 响应
+
+Windsurf 的交互模型：
+  AI 持续感知 → 预判意图 → 主动建议 → 用户确认
+  用户也可以主动 → 发指令 → AI 多步执行
+```
+
+## B.3 Cursor vs Windsurf 对比
+
+| | Cursor | Windsurf |
+|---|---|---|
+| 设计哲学 | 精准手术刀——你告诉它改哪里 | 协作副驾驶——它感知你要去哪 |
+| 核心优势 | 上下文控制精细，diff 预览好 | 主动感知意图，流程级自动化 |
+| 适合人群 | 喜欢掌控感的开发者 | 想要更少操作的开发者 |
+| AI 模型 | 自带 + 可接 Claude/OpenAI 等 | 自带 + 可接外部模型 |
+
+两边的方向其实在收敛——Cursor 在加 Agent 自动化，Windsurf 在加强上下文控制。选哪个更多是交互偏好问题，能力和 Claude Code 本质上是同一类东西的不同 UI 形态。
 
 ---
 
