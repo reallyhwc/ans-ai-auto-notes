@@ -80,7 +80,11 @@ function setFontSize(size) {
 }
 
 function initFontSize() {
-  var saved = localStorage.getItem('font-size') || 'medium';
+  var saved = localStorage.getItem('font-size') || 'md';
+  // 兼容旧值迁移
+  if (saved === 'small') saved = 'sm';
+  if (saved === 'medium') saved = 'md';
+  if (saved === 'large') saved = 'lg';
   document.documentElement.setAttribute('data-font-size', saved);
   document.querySelectorAll('.font-size-btn').forEach(function(btn) {
     btn.classList.toggle('active', btn.dataset.size === saved);

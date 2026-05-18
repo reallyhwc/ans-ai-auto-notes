@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script>(function(){try{var t=localStorage.getItem('theme');if(!t){t=window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';}document.documentElement.setAttribute('data-theme',t);var s=localStorage.getItem('font-size')||'medium';document.documentElement.setAttribute('data-font-size',s);}catch(e){}})();</script>
+<script>(function(){try{var t=localStorage.getItem('theme');if(!t){t=window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';}document.documentElement.setAttribute('data-theme',t);var s=localStorage.getItem('font-size')||'md';if(s==='small')s='sm';if(s==='medium')s='md';if(s==='large')s='lg';document.documentElement.setAttribute('data-font-size',s);}catch(e){}})();</script>
 <title>个人知识库导览</title>
 <style>
   :root {
@@ -178,29 +178,50 @@
   .mermaid .nodeLabel { line-height: 1.2; }
   .mermaid foreignObject { overflow: visible; }
 
-  /* 全局字体大小调节 — 三档：small / medium / large */
-  [data-font-size="small"] .main { font-size: 14px; }
-  [data-font-size="small"] .md-content { font-size: 14px; }
-  [data-font-size="small"] .md-content h1 { font-size: 24px; }
-  [data-font-size="small"] .md-content h2 { font-size: 18px; }
-  [data-font-size="small"] .md-content h3 { font-size: 15px; }
-  [data-font-size="small"] .md-content code { font-size: 12px; }
-  [data-font-size="small"] .md-content pre code { font-size: 12px; }
-  [data-font-size="small"] .md-content table { font-size: 13px; }
+  /* 全局字体大小调节 — 五档：xs(13) / sm(14) / md(15 默认) / lg(17) / xl(19) */
+  [data-font-size="xs"] .main { font-size: 13px; }
+  [data-font-size="xs"] .md-content { font-size: 13px; }
+  [data-font-size="xs"] .md-content h1 { font-size: 22px; }
+  [data-font-size="xs"] .md-content h2 { font-size: 17px; }
+  [data-font-size="xs"] .md-content h3 { font-size: 14px; }
+  [data-font-size="xs"] .md-content code { font-size: 11px; }
+  [data-font-size="xs"] .md-content pre code { font-size: 11px; }
+  [data-font-size="xs"] .md-content table { font-size: 12px; }
 
-  /* medium 是默认值，不需要额外样式 */
+  [data-font-size="sm"] .main { font-size: 14px; }
+  [data-font-size="sm"] .md-content { font-size: 14px; }
+  [data-font-size="sm"] .md-content h1 { font-size: 24px; }
+  [data-font-size="sm"] .md-content h2 { font-size: 18px; }
+  [data-font-size="sm"] .md-content h3 { font-size: 15px; }
+  [data-font-size="sm"] .md-content code { font-size: 12px; }
+  [data-font-size="sm"] .md-content pre code { font-size: 12px; }
+  [data-font-size="sm"] .md-content table { font-size: 13px; }
 
-  [data-font-size="large"] .main { font-size: 17px; }
-  [data-font-size="large"] .md-content { font-size: 17px; }
-  [data-font-size="large"] .md-content h1 { font-size: 30px; }
-  [data-font-size="large"] .md-content h2 { font-size: 23px; }
-  [data-font-size="large"] .md-content h3 { font-size: 19px; }
-  [data-font-size="large"] .md-content code { font-size: 15px; }
-  [data-font-size="large"] .md-content pre code { font-size: 15px; }
-  [data-font-size="large"] .md-content table { font-size: 16px; }
-  [data-font-size="large"] .tree-file { font-size: 16px; }
-  [data-font-size="large"] .timeline-entry { font-size: 16px; }
-  [data-font-size="large"] .search-result { font-size: 16px; }
+  /* md 是默认值，不需要额外样式 */
+
+  [data-font-size="lg"] .main { font-size: 17px; }
+  [data-font-size="lg"] .md-content { font-size: 17px; }
+  [data-font-size="lg"] .md-content h1 { font-size: 30px; }
+  [data-font-size="lg"] .md-content h2 { font-size: 23px; }
+  [data-font-size="lg"] .md-content h3 { font-size: 19px; }
+  [data-font-size="lg"] .md-content code { font-size: 15px; }
+  [data-font-size="lg"] .md-content pre code { font-size: 15px; }
+  [data-font-size="lg"] .md-content table { font-size: 16px; }
+  [data-font-size="lg"] .tree-file { font-size: 16px; }
+  [data-font-size="lg"] .timeline-entry { font-size: 16px; }
+  [data-font-size="lg"] .search-result { font-size: 16px; }
+
+  [data-font-size="xl"] .main { font-size: 19px; }
+  [data-font-size="xl"] .md-content { font-size: 19px; line-height: 1.9; }
+  [data-font-size="xl"] .md-content h1 { font-size: 34px; }
+  [data-font-size="xl"] .md-content h2 { font-size: 26px; }
+  [data-font-size="xl"] .md-content h3 { font-size: 21px; }
+  [data-font-size="xl"] .md-content code { font-size: 16px; }
+  [data-font-size="xl"] .md-content pre code { font-size: 16px; }
+  [data-font-size="xl"] .md-content table { font-size: 17px; }
+  [data-font-size="xl"] .tree-file { font-size: 18px; }
+  [data-font-size="xl"] .timeline-entry { font-size: 18px; }
+  [data-font-size="xl"] .search-result { font-size: 18px; }
 
   /* 字体调节控件 */
   .font-size-toggle { padding: 8px 20px; cursor: default; font-size: 13px; text-align: center; border-top: 1px solid rgba(255,255,255,0.1); user-select: none; display: flex; align-items: center; justify-content: center; gap: 6px; }
@@ -219,10 +240,12 @@
   <div class="tab" data-tab="timeline">时间线</div>
   <div class="tab" data-tab="search">搜索</div>
   <div class="font-size-toggle" id="fontSizeToggle">
-    <span style="font-size:12px;color:var(--text-muted)">字号</span>
-    <span class="font-size-btn" data-size="small" onclick="setFontSize('small')" title="小字体">A</span>
-    <span class="font-size-btn active" data-size="medium" onclick="setFontSize('medium')" title="默认字体" style="font-size:15px">A</span>
-    <span class="font-size-btn" data-size="large" onclick="setFontSize('large')" title="大字体" style="font-size:18px">A</span>
+    <span style="font-size:11px;color:var(--text-muted)">字号</span>
+    <span class="font-size-btn" data-size="xs" onclick="setFontSize('xs')" title="最小" style="font-size:11px">A</span>
+    <span class="font-size-btn" data-size="sm" onclick="setFontSize('sm')" title="小" style="font-size:13px">A</span>
+    <span class="font-size-btn active" data-size="md" onclick="setFontSize('md')" title="默认" style="font-size:15px">A</span>
+    <span class="font-size-btn" data-size="lg" onclick="setFontSize('lg')" title="大" style="font-size:17px">A</span>
+    <span class="font-size-btn" data-size="xl" onclick="setFontSize('xl')" title="最大" style="font-size:19px">A</span>
   </div>
   <div class="theme-toggle" id="themeToggle" title="切换深色模式" onclick="toggleTheme()" role="button" tabindex="0" aria-label="切换深色模式">
     <span class="theme-icon" id="themeIcon">&#127769;</span>
