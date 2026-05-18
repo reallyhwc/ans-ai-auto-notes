@@ -1,0 +1,23 @@
+#!/bin/bash
+# Pre-push hook：push 前自动跑 test.sh，失败阻断推送
+#
+# 安装：bash scripts/install-hooks.sh （一次性）
+# 绕过：git push --no-verify （不推荐——破坏 gate 的意义）
+set -uo pipefail
+cd "$(git rev-parse --show-toplevel)"
+
+echo ""
+echo "[pre-push] 运行测试..."
+if bash test.sh > /tmp/pre-push-test.log 2>&1; then
+  PASS_LINE=$(grep -E "^# tests [0-9]+|ℹ tests" /tmp/pre-push-test.log | tail -1)
+  echo "[pre-push] ✓ 测试通过 ($PASS_LINE)"
+  exit 0
+else
+  echo "[pre-push] ❌ 测试失败，阻断推送"
+  echo ""
+  tail -30 /tmp/pre-push-test.log
+  echo ""
+  echo "[pre-push] 完整日志: /tmp/pre-push-test.log"
+  echo "[pre-push] 修复后再 git push"
+  exit 1
+fi
