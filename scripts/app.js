@@ -67,9 +67,30 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', fun
   }
 });
 
+// ============================================================
+// 全局字体大小调节
+// ============================================================
+function setFontSize(size) {
+  document.documentElement.setAttribute('data-font-size', size);
+  localStorage.setItem('font-size', size);
+  // 更新按钮高亮状态
+  document.querySelectorAll('.font-size-btn').forEach(function(btn) {
+    btn.classList.toggle('active', btn.dataset.size === size);
+  });
+}
+
+function initFontSize() {
+  var saved = localStorage.getItem('font-size') || 'medium';
+  document.documentElement.setAttribute('data-font-size', saved);
+  document.querySelectorAll('.font-size-btn').forEach(function(btn) {
+    btn.classList.toggle('active', btn.dataset.size === saved);
+  });
+}
+
 // Apply theme on load (FOUC prevention already handled by inline <script> in <head>)
 (function() {
   applyTheme(getPreferredTheme());
+  initFontSize();
   var themeToggle = document.getElementById('themeToggle');
   if (themeToggle) {
     themeToggle.addEventListener('keydown', function(e) {
