@@ -175,6 +175,23 @@ function checkServer(callback) {
 // Markdown → HTML 渲染器（marked.js）
 // 替代自制渲染器，支持完整 GFM 语法
 // ============================================================
+// 把相对路径解析为相对项目根的绝对路径（基于当前正在查看的文件）
+function resolveRelativeMd(currentFilePath, href) {
+  var anchorIdx = href.indexOf('#');
+  var pathPart = anchorIdx >= 0 ? href.slice(0, anchorIdx) : href;
+  var anchor = anchorIdx >= 0 ? href.slice(anchorIdx) : '';
+  var segs = currentFilePath.split('/');
+  segs.pop(); // 去掉文件名
+  var hrefSegs = pathPart.split('/');
+  for (var i = 0; i < hrefSegs.length; i++) {
+    var s = hrefSegs[i];
+    if (s === '' || s === '.') continue;
+    if (s === '..') segs.pop();
+    else segs.push(s);
+  }
+  return { path: segs.join('/'), anchor: anchor };
+}
+
 marked.use({
   gfm: true,
   breaks: true,
@@ -184,6 +201,26 @@ marked.use({
         return '<div class="mermaid">' + token.text + '</div>';
       }
       return '<pre><code>' + escapeHtml(token.text) + '</code></pre>';
+    },
+    // 把 .md 链接转成调用 viewContent() 的 span，避免浏览器原生导航跳出 SPA
+    link: function(token) {
+      var href = token.href || '';
+      var text = this.parser.parseInline(token.tokens);
+      // 外链：标准 a + 新窗口
+      if (/^(https?:|mailto:)/i.test(href)) {
+        return '<a href="' + escapeAttr(href) + '" target="_blank" rel="noopener">' + text + '</a>';
+      }
+      // 纯锚点：保留为页内跳转
+      if (href.charAt(0) === '#') {
+        return '<a href="' + escapeAttr(href) + '">' + text + '</a>';
+      }
+      // .md 文件链接：路由到 viewContent
+      if (/\.md(#|$)/.test(href) && currentFile) {
+        var resolved = resolveRelativeMd(currentFile, href);
+        return '<span class="kb-link" onclick="viewContent(\'' + escapeAttr(resolved.path) + '\')">' + text + '</span>';
+      }
+      // 兜底：普通链接
+      return '<a href="' + escapeAttr(href) + '">' + text + '</a>';
     }
   }
 });
