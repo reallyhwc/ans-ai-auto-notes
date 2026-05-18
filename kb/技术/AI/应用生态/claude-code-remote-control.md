@@ -1,5 +1,5 @@
 ---
-
+title: "Claude Code 远程操控：Remote Control 与 cc-connect"
 tags: [ai, claude-code, remote-control, cc-connect, wechat, mobile-coding]
 related:
   - kb/技术/AI/应用生态/claude-code-architecture.md

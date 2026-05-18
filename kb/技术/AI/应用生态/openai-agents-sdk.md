@@ -1,8 +1,8 @@
 ---
-
+title: "OpenAI Agents SDK 与多角色协作"
 tags: [ai, multi-agent, openai, agent-sdk, handoff]
 related:
-  - kb/技术/ai/llm-agent-mcp.md
+  - kb/技术/AI/llm-agent-mcp.md
 description: "多角色协作、Handoff机制、Agent编排、与Claude Code对比"
 ---
 

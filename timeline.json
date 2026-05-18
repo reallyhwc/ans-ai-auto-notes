@@ -121,6 +121,16 @@
         "date": "2026-05-14",
         "summary": "技术/AI：AI 工作流平台整理——Dify vs Coze 对比、Dify 可视化搭建辩论工作流、Claude Code 与 Dify 的关系（不同层面互补）、三种组合方式（Dify+CC/MCP Server/bash调API）",
         "links": [{"label": "AI 工作流平台", "url": "kb/技术/AI/应用生态/ai-workflow-platforms.md"}]
+      },
+      {
+        "date": "2026-05-16",
+        "summary": "技术/计算机基础：新增计算机基础模块——图灵机与冯诺依曼结构（纸带类比、五部件、Mermaid 图）、贝叶斯统计与 AI 的关系（HIV 经典例子、四处 AI 交集）；新增《世界的逻辑》读书笔记",
+        "links": [{"label": "图灵机与冯诺依曼", "url": "kb/技术/计算机基础/turing-von-neumann.md"}, {"label": "贝叶斯统计", "url": "kb/技术/计算机基础/bayesian-statistics.md"}, {"label": "世界的逻辑", "url": "kb/读书笔记/世界的逻辑.md"}]
+      },
+      {
+        "date": "2026-05-17",
+        "summary": "技术/AI：AI Coding 三篇深度文章笔记——Vibe/Spec/Agentic Coding 三种编程范式、美团 31 万行 AI 重构（Pre-PR/零排期重构）、Claude Code 进阶工作流四阶段模型；MCP stdio 通信 OS 层细节；README 深度重写",
+        "links": [{"label": "AI 编程递进路径", "url": "kb/技术/AI/应用生态/ai-coding-levels.md"}, {"label": "AI Coding 团队治理", "url": "kb/技术/AI/应用生态/ai-coding-team-governance.md"}, {"label": "Claude Code 进阶工作流", "url": "kb/技术/AI/应用生态/claude-code-advanced-workflow.md"}]
       }
     ]
   }

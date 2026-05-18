@@ -98,3 +98,5 @@ flowchart TD
     PGM --> APP2["语音识别<br/>主题建模"]
     GEN --> APP3["Stable Diffusion<br/>DALL·E"]
 ```
+
+> 关联: [LLM（大语言模型）](../AI/大模型/llm.md) · [生成式 AI](../AI/大模型/generative-ai.md) · [Transformer](../AI/基础/transformer.md)

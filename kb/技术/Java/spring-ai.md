@@ -33,3 +33,5 @@ Flux<String> replyFlux = chatClient.prompt("介绍一下 Java 21 虚拟线程")
 - **流式** `stream().content()`：底层发 `stream: true`，服务端返回 SSE（Server-Sent Events）流，`WebClient` 原生支持读取 `Flux`。
 
 本质：两种模式用的是**同一个 HTTP POST 请求**，只是响应体的传输方式不同（一次性 JSON vs 分块 SSE）。
+
+> 关联: [Agent 与 MCP](../AI/大模型/llm-agent-mcp.md) · [Agent 开发实战](../AI/应用生态/agent-development-practice.md)

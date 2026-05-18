@@ -1,6 +1,6 @@
 # 知识库索引
 
-> 最后更新: 2026-05-17 | 由 build-index.js 自动生成，勿手改
+> 最后更新: 2026-05-18 | 由 build-index.js 自动生成，勿手改
 
 ## 实战 (4 篇)
 
@@ -12,9 +12,9 @@
 - [知识管理工具对比](kb/实战/技巧/knowledge-management-tools.md) — Obsidian/Notion/本项目方案 对比分析
 - [外部参考链接](kb/实战/技巧/外部参考链接.md) — 优质外部技术文章、博客、演讲的链接汇总，附带核心要点
 
-## 技术 (26 篇)
+## 技术 (28 篇)
 
-### AI (23 篇)
+### AI (25 篇)
 
 #### 基础 (3 篇)
 
@@ -22,13 +22,15 @@
 - [RNN（循环神经网络）](kb/技术/AI/基础/rnn.md) — 序列数据处理，LSTM/GRU
 - [Transformer](kb/技术/AI/基础/transformer.md) — 自注意力机制，现代大模型底座
 
-#### 大模型 (6 篇)
+#### 大模型 (8 篇)
 
 - [生成式 AI](kb/技术/AI/大模型/generative-ai.md) — 扩散模型：图片/视频/音频生成原理
 - [Agent 与 MCP](kb/技术/AI/大模型/llm-agent-mcp.md) — Agent循环、MCP协议、FC机制、Skill定位、五者关系
+- [微调与 LoRA：让通用模型学你的领域](kb/技术/AI/大模型/llm-finetuning.md) — LLM微调基础：全量微调vs LoRA、具体客服案例、成本对比
 - [Prompt 与 RAG](kb/技术/AI/大模型/llm-prompt-rag.md) — Prompt工程、RAG、向量数据库/Milvus、Embedding、LangChain
 - [LLM（大语言模型）](kb/技术/AI/大模型/llm.md) — 核心原理：架构、因果推理、逐字生成、KV Cache
 - [本地部署 LLM](kb/技术/AI/大模型/local-llm-deployment.md) — Ollama安装使用+进阶玩法(API/Embedding/Modelfile/Web UI)、小模型推荐
+- [MCP 协议：AI 界的 USB-C](kb/技术/AI/大模型/mcp-protocol.md) — MCP协议实现内幕：JSON-RPC通信、stdio OS层细节、服务发现、Spring AI集成、@Tool注解机制
 - [多模态 LLM](kb/技术/AI/大模型/multimodal-llm.md) — LLM+视觉编码器，图片/音频输入理解
 
 #### 应用生态 (14 篇)
