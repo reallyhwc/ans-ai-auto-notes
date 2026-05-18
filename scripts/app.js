@@ -573,15 +573,34 @@ function searchKB(query) {
 
 // ============================================================
 // Live reload — 监听 kb/ 目录变化，自动刷新当前视图
+// 带断线指数退避重连（serve.sh 重启后页面不需手动刷新）
 // ============================================================
 function setupLiveReload() {
-  var es = new EventSource('/__reload');
-  es.onmessage = function() {
-    contentCache = {};
-    if (currentView === 'content' && currentFile) {
-      viewContent(currentFile);
-    }
-  };
+  var retryDelay = 1000;
+  var maxDelay = 30000;
+  function connect() {
+    var es = new EventSource('/__reload');
+    es.onopen = function() {
+      retryDelay = 1000; // 连上后重置退避
+    };
+    es.onmessage = function() {
+      // manifest 可能已更新，重新加载分类数据
+      loadManifest(function() {
+        contentCache = {};
+        if (currentView === 'content' && currentFile) {
+          viewContent(currentFile);
+        } else if (currentView === 'categories') {
+          renderCategories();
+        }
+      });
+    };
+    es.onerror = function() {
+      es.close();
+      setTimeout(connect, retryDelay);
+      retryDelay = Math.min(retryDelay * 2, maxDelay);
+    };
+  }
+  connect();
 }
 
 // ============================================================

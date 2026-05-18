@@ -32,3 +32,6 @@ Icon
 
 # 构建产物（由 build-index.js 生成，不入库）
 manifest.json
+
+# Node 依赖（package.json 锁版本，按需 npm install）
+node_modules/
