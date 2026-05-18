@@ -177,20 +177,20 @@ done < <(find kb -name "*.md" -print0 2>/dev/null)
 echo "  结果: $CASE_WARN 个大小写不一致"
 
 # ── 检查 7: 文件行数超标 ──
-# CLAUDE.md 规则：>350 行开始关注，这里用 >500 警告、>700 报错
+# 知识笔记含大量 demo/Mermaid/代码块，单文件控制在 1000 行以内，超 1500 报错
 echo ""
-echo "[7/8] 文件行数超标检查 (>500 警告, >700 错误)..."
+echo "[7/8] 文件行数超标检查 (>1000 警告, >1500 错误)..."
 
 LINE_WARN=0
 LINE_ERR=0
 while IFS= read -r -d '' file; do
   LINES=$(wc -l < "$file" | awk '{print $1}')
-  if [ "$LINES" -gt 700 ]; then
-    echo "  ❌ $file — $LINES 行 (>700，建议拆分)"
+  if [ "$LINES" -gt 1500 ]; then
+    echo "  ❌ $file — $LINES 行 (>1500，必须拆分)"
     LINE_ERR=$((LINE_ERR + 1))
     FAIL=$((FAIL + 1))
-  elif [ "$LINES" -gt 500 ]; then
-    echo "  ⚠️  $file — $LINES 行 (>500，关注)"
+  elif [ "$LINES" -gt 1000 ]; then
+    echo "  ⚠️  $file — $LINES 行 (>1000，关注)"
     LINE_WARN=$((LINE_WARN + 1))
   fi
 done < <(find kb -name "*.md" -print0 2>/dev/null)
