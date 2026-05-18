@@ -108,15 +108,10 @@ function initFontSize() {
 
 // ============================================================
 // 工具函数
+// 纯函数已抽到 scripts/lib.js（escapeHtml / escapeAttr / slugify /
+// buildToc / resolveRelativeMd / renderKbLink），由 overview.html 在 app.js
+// 之前 <script> 加载，作为全局可用。
 // ============================================================
-function escapeHtml(str) {
-  var div = document.createElement('div');
-  div.appendChild(document.createTextNode(str));
-  return div.innerHTML;
-}
-function escapeAttr(str) {
-  return String(str).replace(/&/g, '&amp;').replace(/'/g, '&#39;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
 
 // ============================================================
 // FILE_INDEX — 运行时从 manifest.json + timeline.json 加载
@@ -175,23 +170,6 @@ function checkServer(callback) {
 // Markdown → HTML 渲染器（marked.js）
 // 替代自制渲染器，支持完整 GFM 语法
 // ============================================================
-// 把相对路径解析为相对项目根的绝对路径（基于当前正在查看的文件）
-function resolveRelativeMd(currentFilePath, href) {
-  var anchorIdx = href.indexOf('#');
-  var pathPart = anchorIdx >= 0 ? href.slice(0, anchorIdx) : href;
-  var anchor = anchorIdx >= 0 ? href.slice(anchorIdx) : '';
-  var segs = currentFilePath.split('/');
-  segs.pop(); // 去掉文件名
-  var hrefSegs = pathPart.split('/');
-  for (var i = 0; i < hrefSegs.length; i++) {
-    var s = hrefSegs[i];
-    if (s === '' || s === '.') continue;
-    if (s === '..') segs.pop();
-    else segs.push(s);
-  }
-  return { path: segs.join('/'), anchor: anchor };
-}
-
 marked.use({
   gfm: true,
   breaks: true,
@@ -202,25 +180,10 @@ marked.use({
       }
       return '<pre><code>' + escapeHtml(token.text) + '</code></pre>';
     },
-    // 把 .md 链接转成调用 viewContent() 的 span，避免浏览器原生导航跳出 SPA
+    // 把 .md 链接路由到 viewContent，避免原生导航跳出 SPA
+    // 渲染逻辑全部在 lib.js 的 renderKbLink，便于 Node 端单测
     link: function(token) {
-      var href = token.href || '';
-      var text = this.parser.parseInline(token.tokens);
-      // 外链：标准 a + 新窗口
-      if (/^(https?:|mailto:)/i.test(href)) {
-        return '<a href="' + escapeAttr(href) + '" target="_blank" rel="noopener">' + text + '</a>';
-      }
-      // 纯锚点：保留为页内跳转
-      if (href.charAt(0) === '#') {
-        return '<a href="' + escapeAttr(href) + '">' + text + '</a>';
-      }
-      // .md 文件链接：路由到 viewContent
-      if (/\.md(#|$)/.test(href) && currentFile) {
-        var resolved = resolveRelativeMd(currentFile, href);
-        return '<span class="kb-link" onclick="viewContent(\'' + escapeAttr(resolved.path) + '\')">' + text + '</span>';
-      }
-      // 兜底：普通链接
-      return '<a href="' + escapeAttr(href) + '">' + text + '</a>';
+      return renderKbLink(token.href || '', currentFile, this.parser.parseInline(token.tokens));
     }
   }
 });
@@ -230,31 +193,8 @@ function renderMarkdown(md) {
 }
 
 // ============================================================
-// TOC 生成
+// TOC 渲染（slugify、buildToc 在 lib.js 中）
 // ============================================================
-function slugify(text) {
-  return text.toLowerCase().replace(/[^\w一-鿿]+/g, '-').replace(/^-|-$/g, '');
-}
-
-function buildToc(markdown) {
-  var lines = markdown.split('\n');
-  var toc = [];
-  var inCodeBlock = false;
-  for (var i = 0; i < lines.length; i++) {
-    var line = lines[i];
-    if (/^```/.test(line)) { inCodeBlock = !inCodeBlock; continue; }
-    if (inCodeBlock) continue;
-    var h2 = /^##\s(.+)/.exec(line);
-    var h3 = /^###\s(.+)/.exec(line);
-    if (h2) {
-      toc.push({ level: 2, text: h2[1], id: slugify(h2[1]) });
-    } else if (h3) {
-      toc.push({ level: 3, text: h3[1], id: slugify(h3[1]) });
-    }
-  }
-  return toc;
-}
-
 function renderToc(tocItems, container) {
   var html = '<div class="toc-title">目录</div>';
   if (tocItems.length === 0) {
