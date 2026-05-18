@@ -2,6 +2,7 @@
 # 权限审计 —— 扫描项目脚本和常用命令，对比 settings.local.json allowlist
 # 找出"应该加白但还没加"的安全命令，减少重复审批
 # 由 Stop hook 触发
+set -uo pipefail
 
 cd "$(dirname "$0")/.."
 SETTINGS=".claude/settings.local.json"

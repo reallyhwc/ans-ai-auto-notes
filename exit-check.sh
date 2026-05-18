@@ -1,6 +1,8 @@
 #!/bin/bash
 # 会话退出自动检查 + session 日志存档 + 未 push 提醒
 # 由 Stop hook 自动触发（.claude/settings.local.json）
+# 不开 -e：每个检查独立，前面失败不应中断后续
+set -uo pipefail
 cd "$(dirname "$0")"
 
 echo ""
@@ -36,13 +38,18 @@ echo ""
 echo "[6/6] 未 push 检查..."
 
 # 检查当前分支
-BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
-REMOTE=$(git remote get-url origin 2>/dev/null)
+BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "HEAD")
+REMOTE=$(git remote get-url origin 2>/dev/null || echo "")
 
-# 计算未 push 的 commit 数量
+# 计算未 push 的 commit 数量（detached HEAD 或无 upstream 时返回 0）
 UNPUSHED_COUNT=$(git rev-list @{u}..HEAD --count 2>/dev/null || echo "0")
+# 防御：确保是纯数字（避免 [ -gt ] 报 syntax error）
+[[ "$UNPUSHED_COUNT" =~ ^[0-9]+$ ]] || UNPUSHED_COUNT=0
 
-if [ "$UNPUSHED_COUNT" -gt 5 ]; then
+# detached HEAD 跳过 push（无明确分支可推）
+if [ "$BRANCH" = "HEAD" ]; then
+  echo "  ⚠️  当前为 detached HEAD，跳过 push 检查"
+elif [ "$UNPUSHED_COUNT" -gt 5 ]; then
   echo ""
   echo "  🚀 $UNPUSHED_COUNT 个 commit 未 push（>5），自动 push..."
   git push origin "$BRANCH" 2>&1

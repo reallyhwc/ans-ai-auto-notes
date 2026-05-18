@@ -4,6 +4,7 @@
 #   约束层 = hooks + linter，机器执行，不依赖 AI 记忆
 #   文档层 = session-log + memory，文件系统持久化
 # 由 SessionStart hook 自动触发（.claude/settings.local.json）
+set -uo pipefail
 
 cd "$(dirname "$0")/.."
 

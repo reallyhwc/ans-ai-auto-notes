@@ -2,6 +2,7 @@
 # 自动生成 session 日志 —— 从 git 信息提取变更摘要，持久化到文件
 # 用法: bash scripts/session-log.sh [--quiet]
 #   --quiet  静默模式，只写文件不输出（用于 hook 自动触发）
+set -uo pipefail
 
 cd "$(dirname "$0")/.."
 
@@ -60,42 +61,41 @@ if [ -n "$FILE_LIST" ]; then
   fi
 fi
 
-# 构建日志内容
-cat > "$LOG_FILE" << EOF
-## $DATE Session
-
-- **时间**: ~$TIME
-- **文件变更**: $CHANGED_FILES files modified, +$ADDED/-$DELETED lines
-- **新增文件**: $NEW_FILES
-- **今日 Commits**: $COMMITS_TODAY
-EOF
-
-if [ -n "$MAIN_TOPICS" ]; then
-  echo "- **涉及主题**: $MAIN_TOPICS" >> "$LOG_FILE"
-fi
-
-echo "" >> "$LOG_FILE"
-echo "### 变更文件" >> "$LOG_FILE"
-echo "" >> "$LOG_FILE"
-
-if [ -n "$FILE_LIST" ]; then
-  echo "$FILE_LIST" | while read f; do
-    if [ -f "$f" ]; then
-      echo "- \`$f\`" >> "$LOG_FILE"
-    fi
-  done
-else
-  echo "（无变更）" >> "$LOG_FILE"
-fi
-
-if [ -n "$SUGGESTED_COMMIT" ]; then
+# 写日志：当日首次写入时建立日级头部，之后每次 append 一段 session
+if [ ! -f "$LOG_FILE" ]; then
+  echo "# $DATE Session 日志" > "$LOG_FILE"
   echo "" >> "$LOG_FILE"
-  echo "### 建议 Commit" >> "$LOG_FILE"
-  echo "" >> "$LOG_FILE"
-  echo '```' >> "$LOG_FILE"
-  echo "$SUGGESTED_COMMIT" >> "$LOG_FILE"
-  echo '```' >> "$LOG_FILE"
 fi
+
+{
+  echo "## $TIME"
+  echo ""
+  echo "- **文件变更**: $CHANGED_FILES files modified, +$ADDED/-$DELETED lines"
+  echo "- **新增文件**: $NEW_FILES"
+  echo "- **今日 Commits**: $COMMITS_TODAY"
+  if [ -n "$MAIN_TOPICS" ]; then
+    echo "- **涉及主题**: $MAIN_TOPICS"
+  fi
+  echo ""
+  echo "### 变更文件"
+  echo ""
+  if [ -n "$FILE_LIST" ]; then
+    echo "$FILE_LIST" | while read -r f; do
+      [ -f "$f" ] && echo "- \`$f\`"
+    done
+  else
+    echo "（无变更）"
+  fi
+  if [ -n "$SUGGESTED_COMMIT" ]; then
+    echo ""
+    echo "### 建议 Commit"
+    echo ""
+    echo '```'
+    echo "$SUGGESTED_COMMIT"
+    echo '```'
+  fi
+  echo ""
+} >> "$LOG_FILE"
 
 # 输出
 if [ "$1" != "--quiet" ]; then

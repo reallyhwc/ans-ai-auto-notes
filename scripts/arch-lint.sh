@@ -3,6 +3,7 @@
 # 理念（来自 Harness Engineering 三层模型）：
 #   "写在 CLAUDE.md 里的规则是建议，跑在 hook 里的 linter 是法律。"
 # 由 SessionStart hook 自动触发，不消耗 context，不依赖 AI 记忆。
+set -uo pipefail
 
 cd "$(dirname "$0")/.."
 
@@ -96,14 +97,21 @@ echo ""
 echo "[4/8] 重复标题检查..."
 
 DUP_FOUND=0
-find kb -name "*.md" -print0 2>/dev/null | while IFS= read -r -d '' file; do
-  head -10 "$file" | grep "^title:" | sed 's/^title: *//' | sed 's/^"//;s/"$//'
-done | sort | uniq -d | while read -r dup; do
-  if [ -n "$dup" ]; then
+# 用进程替换收集所有 title，避免 pipeline 子 shell 计数丢失
+DUPS=$(
+  while IFS= read -r -d '' file; do
+    head -10 "$file" | grep "^title:" | sed 's/^title: *//;s/^"//;s/"$//'
+  done < <(find kb -name "*.md" -print0 2>/dev/null) | sort | uniq -d
+)
+if [ -n "$DUPS" ]; then
+  while IFS= read -r dup; do
+    [ -z "$dup" ] && continue
     echo "  ⚠️  重复标题: \"$dup\""
     echo "      $(grep -rl "^title:.*$dup" kb/ 2>/dev/null | paste -sd '，' -)"
-  fi
-done
+    DUP_FOUND=$((DUP_FOUND + 1))
+  done <<< "$DUPS"
+fi
+[ "$DUP_FOUND" -eq 0 ] && echo "  ✓ 无重复标题"
 
 # ── 检查 5: CLAUDE.md 目录结构与磁盘一致性 ──
 echo ""
