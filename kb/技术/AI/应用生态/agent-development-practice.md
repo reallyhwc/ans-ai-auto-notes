@@ -1,12 +1,5 @@
 ---
 title: "Agent 开发实战：设计范式与落地实践"
-tags: [ai, agent, function-calling, intent-routing, tool-use, react, plan-execute, multi-agent]
-related:
-  - kb/技术/AI/大模型/llm-agent-mcp.md
-  - kb/技术/AI/应用生态/openai-agents-sdk.md
-  - kb/技术/AI/应用生态/llm-customer-service.md
-  - kb/技术/Java/spring-ai.md
-  - kb/技术/AI/应用生态/ai-coding-team-governance.md
 description: "Agent开发实战：四大设计范式、vs传统Java开发六维对比、工具设计六要点、测试/可观测/成本模型差异"
 ---
 

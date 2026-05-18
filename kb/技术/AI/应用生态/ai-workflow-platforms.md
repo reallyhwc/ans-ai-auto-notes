@@ -1,11 +1,5 @@
 ---
 title: "AI 工作流平台：Dify、Coze 与 Claude Code 的组合"
-tags: [ai, dify, coze, workflow, low-code, multi-model, claude-code]
-related:
-  - kb/技术/AI/应用生态/harness-engineering.md
-  - kb/技术/AI/应用生态/agent-development-practice.md
-  - kb/技术/AI/应用生态/claude-code-architecture.md
-  - kb/技术/AI/大模型/llm-agent-mcp.md
 description: "AI工作流平台(Dify/Coze)：低代码编排多模型协作、与Claude Code的关系和组合方式、MCP多模型调度方案"
 ---
 

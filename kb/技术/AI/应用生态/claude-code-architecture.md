@@ -1,8 +1,5 @@
 ---
-
 title: "Claude Code 整体架构 & 工作流程"
-date: 2026-05-06
-tags: [AI, Claude Code, 架构, 开发工具]
 description: "整体架构、REPL循环、工具链、Hooks、上下文管理、完整数据流"
 ---
 

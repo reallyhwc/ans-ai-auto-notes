@@ -57,7 +57,9 @@ fi
 # ── 5. Memory 淘汰检查 (项目层文件 > 14 天未更新) ──
 echo ""
 echo "── Memory 淘汰检查 ──"
-MEMORY_DIR="$HOME/.claude/projects/-Users-xuhu-workspace-ans-ai-auto-notes/memory"
+# 项目目录路径转 Claude memory 目录名（/ → -）
+PROJECT_DIR=$(pwd)
+MEMORY_DIR="$HOME/.claude/projects$(echo "$PROJECT_DIR" | tr '/' '-')/memory"
 STALE_COUNT=0
 if [ -d "$MEMORY_DIR" ]; then
   TWO_WEEKS_AGO=$(date -v-14d +%Y-%m-%d 2>/dev/null || date -d "14 days ago" +%Y-%m-%d 2>/dev/null || echo "")

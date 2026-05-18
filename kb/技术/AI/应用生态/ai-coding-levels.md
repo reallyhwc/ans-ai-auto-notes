@@ -1,11 +1,5 @@
 ---
 title: "AI 编程的递进路径：从古法编程到多 Agent 协作"
-tags: [ai-coding, vibe-coding, agent, copilot, skill, multi-agent, 编程范式]
-related:
-  - kb/技术/AI/llm-agent-mcp.md
-  - kb/技术/AI/openai-agents-sdk.md
-  - kb/技术/AI/claude-code-architecture.md
-  - kb/技术/AI/ai-coding-team-governance.md
 description: "从古法编程到多Agent协作6个Level、程序员未来展望"
 ---
 
