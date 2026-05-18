@@ -22,6 +22,8 @@ ans-ai-auto-notes/
 │   ├── 实战/                    ← 排查记录、好文摘要、技巧
 │   └── 读书笔记/                ← 读书相关，一本书一个文件
 ├── timeline/                    ← 按周归档的对话摘要
+├── tests/                       ← 单元 + 集成测试（node --test，零依赖）
+├── test.sh                      ← 测试入口
 ├── scripts/                     ← 构建/检查脚本
 │   ├── build-index.js           ← 扫描 kb/ 生成 manifest.json + INDEX.md
 │   ├── check-overview.js        ← 12 项健康检查（含行数限制）
@@ -29,7 +31,10 @@ ans-ai-auto-notes/
 │   ├── preflight.sh             ← SessionStart 预检
 │   ├── session-log.sh           ← 自动生成 session 日志
 │   ├── permission-audit.sh      ← 权限审计
-│   └── app.js                   ← overview.html 前端逻辑
+│   ├── lib.js                   ← 纯函数库（浏览器+Node 双环境，便于单测）
+│   ├── app.js                   ← overview.html 前端逻辑
+│   ├── install-hooks.sh         ← 一次性安装 git pre-push hook
+│   └── git-hooks/pre-push       ← push 前跑 test.sh，失败阻断
 ├── INDEX.md                     ← 总目录索引（由 build-index.js 自动生成，勿手改）
 ├── manifest.json                ← 分类数据（构建产物，.gitignore 中，勿手改）
 ├── timeline.json                ← 时间线数据（手维护）
@@ -106,6 +111,44 @@ ans-ai-auto-notes/
 4. **md 文件内容变更时**：不涉及任何其他文件更新——刷新浏览器即生效。
 5. **timeline 更新**：手动维护 `timeline.json`，格式见现有条目。
 6. 保留规则：overview.html 中禁止裸链接（`<a href="xxx.md">`），统一使用 `<span onclick="viewContent()">`。
+
+### 测试纪律（软 TDD）
+
+**错误趋向区域必须 TDD**——先写一个能复现问题的失败测试 → 跑红 → 实现 → 跑绿 → 重构。这些区域是历史 bug 高发地：
+
+- **markdown 渲染链路**：marked 配置、自定义 renderer（`renderKbLink` 等）
+- **路径解析**：`resolveRelativeMd`、build-index 的扫描逻辑
+- **frontmatter 解析**：build-index.js 的 YAML/字段提取
+- **静态校验脚本**：check-overview.js、arch-lint.sh 自身的检查逻辑
+
+**Bug 修复同样 TDD**：先在 tests/ 加一个能复现该 bug 的失败测试（红），再修代码让它转绿。这样同类 bug 不会重现。
+
+**豁免**（不强制 TDD）：
+- 纯文本编辑：`kb/*.md`、CLAUDE.md、README 等的内容修订
+- UI 样式调整：overview.html 的 CSS
+- 配置变更：settings.local.json、.gitignore 等
+
+**push 前自动跑测试，双层 gate**：
+1. `scripts/git-hooks/pre-push` —— git 层硬拦截（手动/自动 push 都过这一道）
+2. `exit-check.sh` 的 auto-push 块 —— Stop 时若 >5 commits 未 push，先跑测试通过才 push
+
+**测试入口**：
+- `bash test.sh`（推荐）—— 跑 `tests/*.test.js`，spec reporter
+- 直接：`node --test tests/*.test.js`
+- 单文件：`node --test tests/lib.test.js`
+
+**首次安装 hook**：`bash scripts/install-hooks.sh`（设置 `core.hooksPath = scripts/git-hooks`，新机器克隆后跑一次）
+
+**测试文件组织**：
+```
+tests/
+├── lib.test.js              ← scripts/lib.js 纯函数
+├── link-renderer.test.js    ← marked link renderer 输出契约
+├── build-index.test.js      ← manifest.json 数据完整性
+└── integration.test.js      ← 全量 kb/ markdown 链接静态解析
+```
+
+新增测试时按"被测对象"命名为 `<source>.test.js`。需要在 Node 中可用的纯逻辑统一放 `scripts/lib.js`（UMD 双导出，浏览器和 Node 都能加载）。
 
 ### Git 规则
 
