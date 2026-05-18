@@ -13,3 +13,7 @@
 - [Project: Cross-Environment Workflow](cross-environment-workflow.md) — 公司Mac(Aone Copilot+Claude Opus)和个人Mac(Claude Code CLI)双环境维护，git同步
 - [Feedback: Proactive Divergent Suggestions](feedback-proactive-divergent-suggestions.md) — 用户认可"小的发散性想法"作为知识库特色，AI应主动提议改进点而非被动执行指令
 - [Feedback: Auto-Commit After Changes](feedback-auto-commit.md) — AI必须在每批文件变更后立即git commit，不等提醒；退出时只提醒未push的commit
+- [Feedback: Zero NPM Deps](feedback-zero-npm-deps.md) — 项目坚持零 npm 依赖；优先 Node 内置 / vendoring / vanilla，引入 package.json 须用户确认（2026-05-18 两次确认）
+- [Feedback: Self-Review Before Next Task](feedback-self-review-before-next-task.md) — 多步任务完成后下个大动作前主动 self-review，不等用户提示（2026-05-18 review 出 4 个真实问题）
+- [Feedback: Physical Structure Over Metadata](feedback-physical-structure-over-metadata.md) — 分类决策默认选物理目录拆分，不要 frontmatter 字段/脚本逻辑做隐式分组
+- [Directory Structure Preference](目录结构偏好.md) — AI 子树 5 个并列子目录（基础/大模型/Claude-Code/AI-Coding/应用），manifest+INDEX 由 build-index 自动生成不要手改
