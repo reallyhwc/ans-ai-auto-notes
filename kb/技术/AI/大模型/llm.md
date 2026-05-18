@@ -29,7 +29,9 @@ GPT-4  (2023):  ~1.8 万亿参数 (推测), ~13 万亿 token 训练数据
 参数越多 + 数据越多 → 能力越强, 且没有明显天花板 (Scaling Law)
 ```
 
-架构本身没变——还是 Attention + FFN 堆 N 层。变的是**规模**。
+**2025-2026 年的转向：稠密参数停滞、MoE 路线主导。** 单纯堆稠密参数的边际收益放缓，主流前沿模型（GPT-5、Claude Opus 4.x、Gemini 2.x、DeepSeek-V3、Llama 4）转向 **MoE（Mixture of Experts）架构**——总参数巨大、但每次推理只激活其中一小部分（如 DeepSeek-V3 总参数 671B、激活 37B；Llama 4 Scout/Maverick 同思路）。同样能力下推理成本和访存量大幅降低，定价能压到 70B 稠密模型的 50% 左右。
+
+架构本身没变——还是 Attention + FFN 堆 N 层。变的是**规模 + 激活方式**。
 
 ```
 Transformer Block × N
@@ -247,7 +249,7 @@ Step 3: 模型预测到 EOS（结束标记）或达到最大长度 → 停止
 | 存储位置 | GPU 显存 | API 服务端 |
 | 粒度 | 每个 token 的 K, V 向量 | prompt 前缀的完整中间计算结果 |
 | 谁在做 | 所有推理框架（vLLM、TGI、llama.cpp） | DeepSeek、OpenAI、Anthropic 等 |
-| 收费 | 免费（内部实现细节） | 缓存命中部分收费减半 |
+| 收费 | 免费（内部实现细节） | 命中折扣按厂商不同：Anthropic 约 10%、OpenAI 50%、DeepSeek 约 10-50% |
 | 生命周期 | 一次对话内有效，对话结束就丢了 | 跨请求有效（通常几分钟到几小时） |
 
 ```
@@ -277,7 +279,7 @@ KV Cache:
 Prompt Cache:
   上次考试的整张卷子被老师复印存档
   这次考试题目和前 80% 一样，老师直接让你抄上次的答案
-  只收后 20% 题目的钱
+  缓存命中部分按厂商打折（Anthropic 约 1 折、OpenAI 5 折）
   → 老师的存档 = API 服务端缓存
 ```
 

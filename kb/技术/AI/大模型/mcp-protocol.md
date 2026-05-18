@@ -92,7 +92,7 @@ MCP Server 暴露三种能力：
 
 ### 3.1 通信层：JSON-RPC 2.0
 
-MCP 底层是 **JSON-RPC 2.0**，通过 stdio（标准输入输出）或 HTTP SSE 传输：
+MCP 底层是 **JSON-RPC 2.0**，通过 stdio（标准输入输出）或 **Streamable HTTP** 传输（单端点、双向流式；早期的 HTTP+SSE 传输已在 2025-03 规范中弃用）：
 
 ```
 MCP Client                         MCP Server
@@ -314,7 +314,7 @@ Claude Code ──stdio──→ MCP Server ────┘
 <dependency>
     <groupId>org.springframework.ai</groupId>
     <artifactId>spring-ai-starter-mcp-server-webmvc</artifactId>
-    <version>1.0.0-M7</version>
+    <version>1.0.0</version>  <!-- 2025-09 GA，请按需用最新 patch 版 -->
 </dependency>
 ```
 

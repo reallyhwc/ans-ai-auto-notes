@@ -206,8 +206,12 @@ LLM（大模型）:
 Embedding 模型:
   输入: 文本 → 输出: 向量 [0.23, -0.15, 0.78, ...]
   用途: 判断文本相似度
-  例子: text-embedding-3-small (OpenAI), bge-large (BAAI), m3e (Moka AI)
-  大小: 几百 MB，速度快
+  例子（2025-2026 主流）:
+    - OpenAI: text-embedding-3-small（1536d）/ text-embedding-3-large（3072d）
+    - BAAI:   bge-large（1024d，中文）/ BGE-M3（多语言+稀疏+稠密统一模型，1024d）
+    - Voyage: voyage-3 / voyage-3-large（多语言强）
+    - Cohere: embed-v3
+  大小: 几百 MB，速度快；维度从早期 BERT 时代的 768d 涨到现代 1024-3072d
 ```
 
 ### 4.2 训练原理：对比学习
