@@ -29,7 +29,24 @@
 对话层（AI 实时理解）     →  CLAUDE.md 项目规则 + AI 推理
 ```
 
-**详细规则、目录结构、维护指南均在 [CLAUDE.md](CLAUDE.md)，README 仅做快速开始指引。**
+| 层级 | 触发时机 | 做什么 |
+|------|---------|--------|
+| **约束层** | SessionStart | 环境体检 + 遗留变更提醒 + memory 过期检查（>14天）+ 架构 Linter（frontmatter 完整性 / 死链扫描 / 重复标题 / 行数限制 / 大小写一致性 / memory frontmatter 格式） |
+| **约束层** | Stop | Markdown 格式校验 + Git 状态 + INDEX 日期 + 健康检查（12 项含行数）+ Session 日志 + 权限审计 + 未 push 提醒（>5 自动 push） |
+| **文档层** | Stop → 文件 | 自动从 git diff 生成结构化 session 日志（变更文件、主题、建议 commit），同日多次 Stop 累加 append |
+| **文档层** | 跨 Session | Memory 分层（稳定层/项目层/流水层），所有记忆带 `lastUpdated` 时间戳，>14 天自动告警 |
+
+### Hook 脚本体系
+
+| 脚本 | 触发 | 功能 |
+|------|------|------|
+| `scripts/preflight.sh` | SessionStart | 上次 session 摘要、遗留变更、manifest 过期、INDEX 日期、memory 淘汰、调用 arch-lint |
+| `scripts/arch-lint.sh` | SessionStart（由 preflight 调用） | 8 项 KB 架构检查 |
+| `exit-check.sh` | Stop | 串联 lint + check-overview + session-log + permission-audit + 未 push 检查 |
+| `scripts/session-log.sh` | Stop（由 exit-check 调用） | 从 git diff 自动生成 session 日志 |
+| `scripts/permission-audit.sh` | Stop（由 exit-check 调用） | 扫描 scripts/ vs settings.local.json allowlist，建议安全命令加白 |
+| `scripts/check-overview.js` | Stop（由 exit-check 调用） | 12 项健康检查（数据完整性、链接、行数等） |
+| `scripts/build-index.js` | 手动 / `serve.sh` | 扫描 kb/ 重建 manifest.json + INDEX.md |
 
 ## 快速开始
 
@@ -45,13 +62,7 @@ git clone git@github.com:reallyhwc/ans-ai-auto-notes.git
 cd ans-ai-auto-notes
 ```
 
-### 2. 安装依赖（可选，仅用于格式检查）
-
-```bash
-npm install   # 锁定 markdownlint-cli 版本，避免每次 npx 远程拉取
-```
-
-### 3. 启动知识库预览
+### 2. 启动知识库预览
 
 ```bash
 ./serve.sh
@@ -59,7 +70,7 @@ npm install   # 锁定 markdownlint-cli 版本，避免每次 npx 远程拉取
 
 启动本地 HTTP 服务器（端口 8765，仅监听 `127.0.0.1`）并自动打开浏览器。`kb/` 下的 Markdown 文件变更时浏览器实时刷新，新增/删除文件自动重建索引。
 
-### 4. 用 Claude Code 开始对话
+### 3. 用 Claude Code 开始对话
 
 ```bash
 claude
@@ -70,13 +81,16 @@ AI 会根据 `CLAUDE.md` 中的规则提取知识到 `kb/` 目录。每次文件
 ## 常用命令
 
 ```bash
-npm run build     # 重建 manifest.json + INDEX.md
-npm run lint      # markdownlint 格式检查
-npm run check     # check-overview.js 12 项健康 + arch-lint.sh 8 项架构
-npm run serve     # 启停本地预览
+node scripts/build-index.js   # 重建 manifest.json + INDEX.md
+./lint.sh                     # markdownlint 格式检查
+node scripts/check-overview.js # 12 项健康检查
+bash scripts/arch-lint.sh     # 8 项 KB 架构检查
+./serve.sh                    # 启停本地预览
 ```
 
 ## 定制
+
+详细规则、目录组织、文件拆分阈值、笔记风格规则均在 [CLAUDE.md](CLAUDE.md)。
 
 - **修改个人背景** → 编辑 `CLAUDE.md` 中的"用户背景"
 - **调整知识库结构** → 修改 `CLAUDE.md` 中的目录规则、文件拆分阈值

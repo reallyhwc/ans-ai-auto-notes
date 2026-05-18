@@ -36,7 +36,6 @@ ans-ai-auto-notes/
 ├── overview.html                ← 可视化导览页（运行时 fetch manifest.json + timeline.json）
 ├── server.js                    ← 本地预览服务器（端口 8765 + SSE live reload）
 ├── serve.sh                     ← 启动脚本（build-index.js → server.js）
-├── package.json                 ← Node 依赖锁版本（markdownlint-cli 等）
 ├── CLAUDE.md                    ← 本文件
 └── .gitignore
 ```

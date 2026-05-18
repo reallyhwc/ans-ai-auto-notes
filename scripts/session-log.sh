@@ -98,7 +98,7 @@ fi
 } >> "$LOG_FILE"
 
 # 输出
-if [ "$1" != "--quiet" ]; then
+if [ "${1:-}" != "--quiet" ]; then
   echo ""
   echo "========== Session 日志 =========="
   cat "$LOG_FILE"
