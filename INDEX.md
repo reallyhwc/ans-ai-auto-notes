@@ -12,9 +12,9 @@
 - [知识管理工具对比](kb/实战/技巧/knowledge-management-tools.md) — Obsidian/Notion/本项目方案 对比分析
 - [外部参考链接](kb/实战/技巧/外部参考链接.md) — 优质外部技术文章、博客、演讲的链接汇总，附带核心要点
 
-## 技术 (28 篇)
+## 技术 (29 篇)
 
-### AI (25 篇)
+### AI (26 篇)
 
 #### 基础 (3 篇)
 
@@ -33,7 +33,7 @@
 - [MCP 协议：AI 界的 USB-C](kb/技术/AI/大模型/mcp-protocol.md) — MCP协议实现内幕：JSON-RPC通信、stdio OS层细节、服务发现、Spring AI集成、@Tool注解机制
 - [多模态 LLM](kb/技术/AI/大模型/multimodal-llm.md) — LLM+视觉编码器，图片/音频输入理解
 
-#### 应用生态 (14 篇)
+#### 应用生态 (15 篇)
 
 - [Agent 开发实战：设计范式与落地实践](kb/技术/AI/应用生态/agent-development-practice.md) — Agent开发实战：四大设计范式、vs传统Java开发六维对比、工具设计六要点、测试/可观测/成本模型差异
 - [AI Agent 工具生态](kb/技术/AI/应用生态/ai-agent-tools.md) — Hermes Agent（养马）vs OpenClaw（养龙虾）对比、微信 AI 机器人接入
@@ -49,6 +49,7 @@
 - [LLM 应用设计](kb/技术/AI/应用生态/llm-app-design.md) — 大模型应用 vs 传统 MySQL/ES 检索：确定性、Tool Calling、幻觉、上下文管理
 - [LLM 智能客服实战](kb/技术/AI/应用生态/llm-customer-service.md) — 从零到一搭建客服系统：知识整理→RAG→LLM接入→Tool Calling→防幻觉→部署运维
 - [OpenAI Agents SDK 与多角色协作](kb/技术/AI/应用生态/openai-agents-sdk.md) — 多角色协作、Handoff机制、Agent编排、与Claude Code对比
+- [Superpowers TDD Skill 工作流拆解](kb/技术/AI/应用生态/superpowers-tdd-workflow.md) — TDD 是什么、Superpowers 在其中的角色、LLM 工具调用链详细拆解
 
 ### Java (1 篇)
 
