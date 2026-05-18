@@ -436,4 +436,4 @@ AI Agent 自主完成 Plan → Act → Observe → Fix 闭环，人从"驱动者
   - 同一个项目中可能早上 Vibe 探索，下午 Spec 硬化
 ```
 
-> 关联: [Harness Engineering](./harness-engineering.md) — Agentic Coding 的工程基础（六原则、机械约束、分离评估）
+> 关联: [Harness Engineering](../Claude-Code/harness-engineering.md) — Agentic Coding 的工程基础（六原则、机械约束、分离评估）

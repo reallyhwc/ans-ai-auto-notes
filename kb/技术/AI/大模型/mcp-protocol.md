@@ -459,4 +459,4 @@ public class McpServer {
 
 ---
 
-> 关联: [Agent 与 MCP](./llm-agent-mcp.md) · [Agent 开发实战](../应用生态/agent-development-practice.md)
+> 关联: [Agent 与 MCP](./llm-agent-mcp.md) · [Agent 开发实战](../应用/agent-development-practice.md)

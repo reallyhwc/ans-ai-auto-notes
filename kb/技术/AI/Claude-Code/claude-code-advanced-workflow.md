@@ -403,5 +403,5 @@ flowchart TD
 
 > 关联: [Harness Engineering](./harness-engineering.md) — 三层模型与 Harness 六组件的对照
 > 关联: [Claude Code 架构](./claude-code-architecture.md) — Hook 系统技术细节
-> 关联: [AI Coding 团队治理](./ai-coding-team-governance.md) — 团队级实践（美团案例）
+> 关联: [AI Coding 团队治理](../AI-Coding/ai-coding-team-governance.md) — 团队级实践（美团案例）
 > 关联: [外部参考链接](../../../实战/技巧/external-references.md) — 本文原文链接

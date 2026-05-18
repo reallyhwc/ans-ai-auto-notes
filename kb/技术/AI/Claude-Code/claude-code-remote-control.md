@@ -191,4 +191,4 @@ cc-connect
 两者不互斥，可以同时使用。
 
 > 关联: [Claude Code 架构](./claude-code-architecture.md) — Claude Code 整体架构与工作流程
-> 关联: [Agent 开发实战](./agent-development-practice.md) — Agent 开发范式与设计要点
+> 关联: [Agent 开发实战](../应用/agent-development-practice.md) — Agent 开发范式与设计要点

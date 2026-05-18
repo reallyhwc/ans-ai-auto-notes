@@ -45,12 +45,12 @@
       {
         "date": "2026-05-06",
         "summary": "技术/AI：探讨 OpenAI Agents SDK 多角色协作、Handoff、Function Calling 底层；与 Claude Code Agent 机制对比；创建可运行 demo 并沉淀笔记",
-        "links": [{"label": "OpenAI Agents SDK", "url": "kb/技术/AI/应用生态/openai-agents-sdk.md"}]
+        "links": [{"label": "OpenAI Agents SDK", "url": "kb/技术/AI/应用/openai-agents-sdk.md"}]
       },
       {
         "date": "2026-05-06",
         "summary": "技术/AI：梳理 AI 编程的 6 个递进层级（古法→Copilot→Agent→Vibe→Skill→多 Agent 协作），讨论程序员角色从'写代码'到'管 AI'的漂移",
-        "links": [{"label": "AI 编程递进路径", "url": "kb/技术/AI/应用生态/ai-coding-levels.md"}]
+        "links": [{"label": "AI 编程递进路径", "url": "kb/技术/AI/AI-Coding/ai-coding-levels.md"}]
       },
       {
         "date": "2026-05-06",
@@ -65,7 +65,7 @@
       {
         "date": "2026-05-07",
         "summary": "技术/AI：LLM 应用设计——智能客服 vs 传统 MySQL/ES 检索的 9 大维度差异；Temperature 详解、Function Calling 完整 5 步流程",
-        "links": [{"label": "LLM 应用设计", "url": "kb/技术/AI/应用生态/llm-app-design.md"}]
+        "links": [{"label": "LLM 应用设计", "url": "kb/技术/AI/应用/llm-app-design.md"}]
       },
       {
         "date": "2026-05-07",
@@ -75,7 +75,7 @@
       {
         "date": "2026-05-07",
         "summary": "技术/AI：智能客服系统搭建实战 8 步走（知识收集→分块→向量化→RAG→LLM→Tool Calling→上下文→防幻觉），20-35 人天估算",
-        "links": [{"label": "LLM 智能客服实战", "url": "kb/技术/AI/应用生态/llm-customer-service.md"}]
+        "links": [{"label": "LLM 智能客服实战", "url": "kb/技术/AI/应用/llm-customer-service.md"}]
       },
       {
         "date": "2026-05-07",
@@ -90,12 +90,12 @@
       {
         "date": "2026-05-09",
         "summary": "技术/AI：Agent 开发实战——梳理四大设计范式（意图路由/ReAct/Plan-Execute/Multi-Agent），以电商客服为例拆解 Function Calling 交互流程，整理主流框架速查表，规划学习路径",
-        "links": [{"label": "Agent 开发实战", "url": "kb/技术/AI/应用生态/agent-development-practice.md"}]
+        "links": [{"label": "Agent 开发实战", "url": "kb/技术/AI/应用/agent-development-practice.md"}]
       },
       {
         "date": "2026-05-09",
         "summary": "技术/AI：Agent 开发 vs 传统 Java 应用开发——六维对比（核心逻辑/IO/流程控制/测试/调试/技能），退款场景对比演示，六个设计要点（工具描述/业务校验/测试三层/可观测性/错误处理/成本模型）",
-        "links": [{"label": "Agent 开发实战", "url": "kb/技术/AI/应用生态/agent-development-practice.md"}]
+        "links": [{"label": "Agent 开发实战", "url": "kb/技术/AI/应用/agent-development-practice.md"}]
       }
     ]
   },
@@ -105,22 +105,22 @@
       {
         "date": "2026-05-11",
         "summary": "技术/AI：搜索整理 Claude Code 远程操控生态——区分官方 Remote Control（手机扫码接入本地会话）和第三方 cc-connect（消息桥接器，11 平台 + 10+ Agent），微信接入基于 iLink Bot API",
-        "links": [{"label": "Claude Code 远程操控", "url": "kb/技术/AI/应用生态/claude-code-remote-control.md"}]
+        "links": [{"label": "Claude Code 远程操控", "url": "kb/技术/AI/Claude-Code/claude-code-remote-control.md"}]
       },
       {
         "date": "2026-05-12",
         "summary": "技术/AI：Harness Engineering（驾驭工程）深度讲解——Agent=Model+Harness 公式、用本项目 CLAUDE.md 举例拆解六大组件、与 Prompt/Context Engineering 对比、六项核心能力、四阶段成长路径",
-        "links": [{"label": "Harness Engineering", "url": "kb/技术/AI/应用生态/harness-engineering.md"}]
+        "links": [{"label": "Harness Engineering", "url": "kb/技术/AI/Claude-Code/harness-engineering.md"}]
       },
       {
         "date": "2026-05-14",
         "summary": "技术/AI：双 LLM 交叉校验——五个场景、四种实现方式（串行/并行/辩论/大小模型分工）及选型指南，追加到 Harness Engineering",
-        "links": [{"label": "Harness Engineering", "url": "kb/技术/AI/应用生态/harness-engineering.md"}]
+        "links": [{"label": "Harness Engineering", "url": "kb/技术/AI/Claude-Code/harness-engineering.md"}]
       },
       {
         "date": "2026-05-14",
         "summary": "技术/AI：AI 工作流平台整理——Dify vs Coze 对比、Dify 可视化搭建辩论工作流、Claude Code 与 Dify 的关系（不同层面互补）、三种组合方式（Dify+CC/MCP Server/bash调API）",
-        "links": [{"label": "AI 工作流平台", "url": "kb/技术/AI/应用生态/ai-workflow-platforms.md"}]
+        "links": [{"label": "AI 工作流平台", "url": "kb/技术/AI/应用/ai-workflow-platforms.md"}]
       },
       {
         "date": "2026-05-16",
@@ -130,7 +130,7 @@
       {
         "date": "2026-05-17",
         "summary": "技术/AI：AI Coding 三篇深度文章笔记——Vibe/Spec/Agentic Coding 三种编程范式、美团 31 万行 AI 重构（Pre-PR/零排期重构）、Claude Code 进阶工作流四阶段模型；MCP stdio 通信 OS 层细节；README 深度重写",
-        "links": [{"label": "AI 编程递进路径", "url": "kb/技术/AI/应用生态/ai-coding-levels.md"}, {"label": "AI Coding 团队治理", "url": "kb/技术/AI/应用生态/ai-coding-team-governance.md"}, {"label": "Claude Code 进阶工作流", "url": "kb/技术/AI/应用生态/claude-code-advanced-workflow.md"}]
+        "links": [{"label": "AI 编程递进路径", "url": "kb/技术/AI/AI-Coding/ai-coding-levels.md"}, {"label": "AI Coding 团队治理", "url": "kb/技术/AI/AI-Coding/ai-coding-team-governance.md"}, {"label": "Claude Code 进阶工作流", "url": "kb/技术/AI/Claude-Code/claude-code-advanced-workflow.md"}]
       }
     ]
   }

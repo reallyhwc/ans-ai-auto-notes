@@ -42,4 +42,4 @@ description: "Obsidian/Notion/本项目方案 对比分析"
 - **AI 对话** → 自动生成和重组笔记
 - **Obsidian** → 可视化浏览、手动编辑、图谱探索
 
-> 关联: [AI 编程工具](../../技术/AI/应用生态/ai-coding-tools.md) — Claude Code/Codex/DeepSeek-TUI + Cursor/Windsurf · [AI Agent 工具生态](../../技术/AI/应用生态/ai-agent-tools.md)
+> 关联: [AI 编程工具](../../技术/AI/AI-Coding/ai-coding-tools.md) — Claude Code/Codex/DeepSeek-TUI + Cursor/Windsurf · [AI Agent 工具生态](../../技术/AI/应用/ai-agent-tools.md)

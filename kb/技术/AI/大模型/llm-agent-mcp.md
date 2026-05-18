@@ -11,7 +11,7 @@ description: "Agent循环、MCP协议、FC机制、Skill定位、五者关系"
 
 Agent 是"能调用工具、多步循环完成任务"的 LLM 应用形态。MCP 是连接 Agent 和外部工具的开放协议。微调是让通用模型学会你的领域。
 
-> 关联: [llm](./llm.md) — LLM 核心原理 | [llm-prompt-rag](./llm-prompt-rag.md) — Prompt 与 RAG 体系 | [ai-agent-tools](../应用生态/ai-agent-tools.md) — Agent 工具生态对比 | [claude-code-architecture](../应用生态/claude-code-architecture.md) — Claude Code 整体架构与工作流程
+> 关联: [llm](./llm.md) — LLM 核心原理 | [llm-prompt-rag](./llm-prompt-rag.md) — Prompt 与 RAG 体系 | [ai-agent-tools](../应用/ai-agent-tools.md) — Agent 工具生态对比 | [claude-code-architecture](../Claude-Code/claude-code-architecture.md) — Claude Code 整体架构与工作流程
 
 ---
 

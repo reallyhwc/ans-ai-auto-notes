@@ -274,7 +274,7 @@ LLM 连续调用:
   Step 3: 综合两个结果 → "您的退货申请 R001 已受理，退款 RF001 将在 3 个工作日内到账。"
 ```
 
-> 关联: [llm-app-design](../应用生态/llm-app-design.md) — Function Calling 完整 5 步流程
+> 关联: [llm-app-design](./llm-app-design.md) — Function Calling 完整 5 步流程
 
 ---
 
@@ -479,6 +479,6 @@ flowchart TB
 
 ---
 
-> 关联: [llm-app-design](../应用生态/llm-app-design.md) — LLM 应用设计 9 大维度
+> 关联: [llm-app-design](./llm-app-design.md) — LLM 应用设计 9 大维度
 > 关联: [llm-prompt-rag](../大模型/llm-prompt-rag.md) — RAG 原理详解
 > 关联: [local-llm-deployment](../大模型/local-llm-deployment.md) — Ollama 本地部署

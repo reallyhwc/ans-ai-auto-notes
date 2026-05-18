@@ -11,7 +11,7 @@ description: "Hermes Agent（养马）vs OpenClaw（养龙虾）对比、微信 
 
 2025-2026 年 AI Agent 工具爆发。Hermes Agent（"养马"）和 OpenClaw（"养龙虾"）是最火的两个开源 Agent 框架。前者像"会自我进化的数字员工"，后者像"能操作系统的高级工具"。本章记录它们的工作原理、Mac 安装方式和程序员最佳实践。
 
-> 关联: [llm-agent-mcp](../大模型/llm-agent-mcp.md) — Agent 基础概念、MCP 协议、Function Calling 机制 | [ai-coding-tools](./ai-coding-tools.md) — AI 编程 IDE 与 CLI Agent 对比 | [知识管理工具对比](../../../实战/技巧/knowledge-management-tools.md) — Obsidian vs AI 知识库方案
+> 关联: [llm-agent-mcp](../大模型/llm-agent-mcp.md) — Agent 基础概念、MCP 协议、Function Calling 机制 | [ai-coding-tools](../AI-Coding/ai-coding-tools.md) — AI 编程 IDE 与 CLI Agent 对比 | [知识管理工具对比](../../../实战/技巧/knowledge-management-tools.md) — Obsidian vs AI 知识库方案
 
 ---
 

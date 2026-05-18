@@ -116,7 +116,7 @@ flowchart LR
   完全切到 Dify → 会失去 Claude Code 的本地操作能力
 ```
 
-> 关联: [Harness Engineering](./harness-engineering.md) — 双 LLM 交叉校验的四种实现方式
+> 关联: [Harness Engineering](../Claude-Code/harness-engineering.md) — 双 LLM 交叉校验的四种实现方式
 > 关联: [Agent 开发实战](./agent-development-practice.md) — 四大设计范式
-> 关联: [Claude Code 架构](./claude-code-architecture.md) — Claude Code 工具链与 REPL 循环
+> 关联: [Claude Code 架构](../Claude-Code/claude-code-architecture.md) — Claude Code 工具链与 REPL 循环
 > 关联: [Agent 与 MCP](../大模型/llm-agent-mcp.md) — MCP 协议、自定义 MCP Server

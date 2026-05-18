@@ -421,4 +421,4 @@ LLM 会一本正经地胡说八道：
 ```
 
 > 关联: [openai-agents-sdk](./openai-agents-sdk.md) — Agent SDK 实践
-> 关联: [claude-code-architecture](./claude-code-architecture.md) — Claude Code 架构参考
+> 关联: [claude-code-architecture](../Claude-Code/claude-code-architecture.md) — Claude Code 架构参考

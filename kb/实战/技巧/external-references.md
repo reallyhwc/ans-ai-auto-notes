@@ -25,7 +25,7 @@ description: "优质外部技术文章、博客、演讲的链接汇总，附带
   - **零排期重构**：不申请专项，把技术债拆解为业务需求的"顺带动作"渐进消化
   - AI 帮团队发现 10 个靠人力无法穷举的隐藏性能隐患
   - Human-in-the-loop AI 辅助测试 SOP（5 步法）
-- **关联笔记**: [AI Coding 团队治理](../../技术/AI/应用生态/ai-coding-team-governance.md)
+- **关联笔记**: [AI Coding 团队治理](../../技术/AI/AI-Coding/ai-coding-team-governance.md)
 
 ### Claude Code 使用感受如何？——从能用到高效的四阶段工作流
 
@@ -40,7 +40,7 @@ description: "优质外部技术文章、博客、演讲的链接汇总，附带
   - **Memory 分层**：稳定层（月级 review）/ 项目层（周级）/ 流水层（日级），不删的 memory 是负债
   - **Plan 文件化 + Manifest 双向依赖声明 + Dev-log 指标驱动反思**
   - 一个人维护 6 个应用 + 4 个基础库 + 2000+ 自动化测试 + 每日自动数据分析日报
-- **关联笔记**: [Claude Code 进阶工作流](../../技术/AI/应用生态/claude-code-advanced-workflow.md)
+- **关联笔记**: [Claude Code 进阶工作流](../../技术/AI/Claude-Code/claude-code-advanced-workflow.md)
 
 ### 别学歪了：Harness 不是新概念，是你已经在做的事
 
@@ -53,7 +53,7 @@ description: "优质外部技术文章、博客、演讲的链接汇总，附带
   - **机械约束 > 文档约束**："Agent 会复制已有的坏模式"，Linter 比 Prompt 管用
   - **分离评估**：模型不能可靠地评估自己，关键产出用独立 Evaluator Agent
   - **跨 Session 工件化**：Plan 文件加 checkbox + Decision log，文件系统比 memory 可靠
-- **关联笔记**: [Harness Engineering](../../技术/AI/应用生态/harness-engineering.md)
+- **关联笔记**: [Harness Engineering](../../技术/AI/Claude-Code/harness-engineering.md)
 
 ### 不写代码的工程师，才是 AI 时代最值钱的人
 
@@ -63,7 +63,7 @@ description: "优质外部技术文章、博客、演讲的链接汇总，附带
   - OpenAI 3 人团队 5 个月产出 100 万行代码，禁止人类写代码
   - **复利工程（Compound Engineering）**：Plan → Work → Review → Compound 五步闭环
   - 工程师角色从"写代码"转向"设计并维护能让 AI 可靠产出代码的工程环境"
-- **关联笔记**: [Harness Engineering](../../技术/AI/应用生态/harness-engineering.md)
+- **关联笔记**: [Harness Engineering](../../技术/AI/Claude-Code/harness-engineering.md)
 
 ---
 

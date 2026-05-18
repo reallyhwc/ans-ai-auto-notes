@@ -548,7 +548,7 @@ Pre-PR:   编码 → AI 自查多轮 → 修复AI能发现的问题 → AI生成
 
 **核心原则**：AI 负责"生成"和"扫描"（体力活），人负责"判断"和"确认"（需要业务认知），每步都有 Human-in-the-loop。
 
-> 关联: [AI Coding 团队治理](./ai-coding-team-governance.md) — Pre-PR 机制详解 + 完整 5 步测试 SOP 表格
+> 关联: [AI Coding 团队治理](../AI-Coding/ai-coding-team-governance.md) — Pre-PR 机制详解 + 完整 5 步测试 SOP 表格
 
 #### 4. 可观测性要求更高
 
