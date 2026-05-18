@@ -51,12 +51,20 @@ if [ "$BRANCH" = "HEAD" ]; then
   echo "  ⚠️  当前为 detached HEAD，跳过 push 检查"
 elif [ "$UNPUSHED_COUNT" -gt 5 ]; then
   echo ""
-  echo "  🚀 $UNPUSHED_COUNT 个 commit 未 push（>5），自动 push..."
-  git push origin "$BRANCH" 2>&1
-  if [ $? -eq 0 ]; then
-    echo "  ✅ 自动 push 成功"
+  echo "  🚀 $UNPUSHED_COUNT 个 commit 未 push（>5），先跑测试..."
+  if bash test.sh > /tmp/exit-check-test.log 2>&1; then
+    PASS_LINE=$(grep -E "^# tests [0-9]+|ℹ tests" /tmp/exit-check-test.log | tail -1 || echo "")
+    echo "  ✓ 测试通过 ($PASS_LINE)，自动 push..."
+    if git push origin "$BRANCH" 2>&1; then
+      echo "  ✅ 自动 push 成功"
+    else
+      echo "  ❌ 自动 push 失败，请手动: git push origin $BRANCH"
+    fi
   else
-    echo "  ❌ 自动 push 失败，请手动执行: git push origin $BRANCH"
+    echo "  ❌ 测试失败，已阻断自动 push"
+    echo "  详情: cat /tmp/exit-check-test.log"
+    tail -10 /tmp/exit-check-test.log
+    echo "  修复后手动: git push origin $BRANCH"
   fi
 elif [ "$UNPUSHED_COUNT" -gt 0 ]; then
   echo ""
