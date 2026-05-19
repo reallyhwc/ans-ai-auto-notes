@@ -2,7 +2,8 @@
 name: 主动提醒检查权限白名单
 description: 当一轮对话中反复出现相同的低风险命令请求（如 git status、ls、grep、find、cat 等只读操作），或用户抱怨"老是让我确认"时，主动建议检查 .claude/settings.local.json 的 allowlist，减少不必要的权限提示。
 type: feedback
-lastUpdated: 2026-05-17---
+lastUpdated: 2026-05-17
+---
 
 当用户在对话中反复执行相同的只读命令（git status、git diff、ls、find、grep、cat、head、tail 等），且表现出"每次都要确认很烦"的反馈时，应主动提醒用户更新 .claude/settings.local.json 的 allow 列表，将这些命令加入白名单。
 
