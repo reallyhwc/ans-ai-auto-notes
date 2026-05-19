@@ -16,4 +16,5 @@
 - [Feedback: Zero NPM Deps](feedback-zero-npm-deps.md) — 项目坚持零 npm 依赖；优先 Node 内置 / vendoring / vanilla，引入 package.json 须用户确认（2026-05-18 两次确认）
 - [Feedback: Self-Review Before Next Task](feedback-self-review-before-next-task.md) — 多步任务完成后下个大动作前主动 self-review，不等用户提示（2026-05-18 review 出 4 个真实问题）
 - [Feedback: Physical Structure Over Metadata](feedback-physical-structure-over-metadata.md) — 分类决策默认选物理目录拆分，不要 frontmatter 字段/脚本逻辑做隐式分组
-- [Directory Structure Preference](目录结构偏好.md) — AI 子树 5 个并列子目录（基础/大模型/Claude-Code/AI-Coding/应用），manifest+INDEX 由 build-index 自动生成不要手改
+- [Directory Structure Preference](目录结构偏好.md) — AI 子树 5 个并列子目录（基础/大模型/Claude-Code/AI-Coding/应用 五子目录），manifest+INDEX 由 build-index 自动生成不要手改
+- [Feedback: RAG Threshold Reminder](feedback-rag-threshold-reminder.md) — 知识库 >50 篇时提醒启动 BM25 索引，>80 篇时提醒启动 MCP Server（规划详见 kb/技术/AI/应用/rag-for-personal-kb.md）
