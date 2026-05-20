@@ -1,6 +1,6 @@
 ---
 title: "热点账户高并发记账方案"
-description: "单账户高并发写入场景下的 6 种解决方案对比与选型"
+description: "单账户高并发写入场景下的 7 种解决方案对比、选型及异步一致性设计"
 ---
 
 # 热点账户高并发记账方案
@@ -800,7 +800,171 @@ graph TB
 
 ---
 
-## §11 核心认知
+## §11 方案7：数据库内核级优化（Inventory Hint）
+
+### 11.1 背景
+
+阿里云 RDS MySQL / PolarDB 提供了内核级的热点行优化能力——**Inventory Hint**。通过 SQL Hint 语法，在数据库内核层面对同一行的并发 UPDATE 做**组提交（Group Commit）**，把多次"加锁→更新→释放锁"合并为一次"加锁→批量更新N条→释放锁"。
+
+**性能**：单行热点 UPDATE 从 ~9 TPS 提升到 **~31000 TPS**（约 3400 倍，阿里云官方测试数据）。
+
+### 11.2 原理
+
+```mermaid
+graph LR
+    subgraph 普通MySQL
+        direction TB
+        R1["请求1: lock→update→commit→unlock"]
+        R2["请求2: 等待...lock→update→commit→unlock"]
+        R3["请求3: 等待...lock→update→commit→unlock"]
+    end
+
+    subgraph Inventory Hint
+        direction TB
+        Q["Statement Queue<br/>请求1,2,3 按热点行分桶排队"]
+        G["Group Commit<br/>lock → update×3(内存计算) → commit → unlock"]
+    end
+```
+
+**核心机制**：
+1. **Statement Queue**：内核自动识别操作同一行的 SQL，放入同一个排队桶
+2. **组提交**：队列中的多条 UPDATE 只获取一次行锁，在内存中连续执行多次加减操作，一次提交
+3. **自动事务管理**：通过 Hint 指定"成功自动提交、失败自动回滚"，省去应用层 BEGIN/COMMIT 开销
+
+### 11.3 SQL 语法
+
+```sql
+-- 普通写法（每笔独占行锁，串行等待）
+BEGIN;
+UPDATE account SET balance = balance - 100 WHERE account_id = 'A001' AND balance >= 100;
+COMMIT;
+
+-- Inventory Hint 写法（内核组提交，批量处理）
+UPDATE /*+ COMMIT_ON_SUCCESS ROLLBACK_ON_FAIL TARGET_AFFECT_ROW 1 */
+    account
+SET balance = balance - 100
+WHERE account_id = 'A001' AND balance >= 100;
+```
+
+**Hint 参数说明**：
+
+| Hint | 作用 |
+|------|------|
+| `COMMIT_ON_SUCCESS` | affected_rows > 0 → 自动 COMMIT |
+| `ROLLBACK_ON_FAIL` | affected_rows = 0（如余额不足）→ 自动 ROLLBACK |
+| `TARGET_AFFECT_ROW 1` | 期望影响 1 行，不满足则触发 ROLLBACK |
+
+### 11.4 使用限制
+
+| 限制 | 说明 |
+|------|------|
+| **仅阿里云 RDS / PolarDB** | AliSQL 自研功能，开源 MySQL 不支持 |
+| **单 SQL = 单事务** | `COMMIT_ON_SUCCESS` 会在当前 SQL 成功后立即提交，无法包含多条 SQL |
+| **不支持多表事务** | 如果一个事务需要同时更新余额 + 写流水，不能直接用全套 Hint |
+
+### 11.5 多表事务场景的适配
+
+如果记账逻辑涉及"更新余额 + 写流水"两步，有三种适配方式：
+
+| 方式 | 做法 | 效果 | 代价 |
+|------|------|------|------|
+| **余额独立 + 流水异步** | 余额用 Inventory Hint 单 SQL 提交，流水通过本地消息表异步写入 | 万级 TPS | 余额与流水短暂不一致（秒级） |
+| **仅用 Statement Queue** | 不用 COMMIT_ON_SUCCESS，仅开启排队减少锁切换 | 3-5 倍提升 | 改动最小 |
+| **PolarDB hotspot 参数** | 开启 `hotspot=ON`，内核自动识别热点行做组提交 | 显著提升 | 需迁移到 PolarDB，对应用透明 |
+
+**方式一的实现模式（余额独立 + 流水异步）**：
+
+```java
+// 1. 余额更新：Inventory Hint，单 SQL 自动提交
+jdbcTemplate.update(
+    "UPDATE /*+ COMMIT_ON_SUCCESS ROLLBACK_ON_FAIL TARGET_AFFECT_ROW 1 */ " +
+    "account SET balance = balance + ? WHERE account_id = ? AND balance + ? >= 0",
+    amount, accountId, amount);
+
+// 2. 流水写入：本地消息表模式（和余额更新不在同一事务，通过对账保证最终一致）
+//    具体见 §12 "真相锚点"设计
+```
+
+### 11.6 选型建议
+
+| 条件 | 方案 |
+|------|------|
+| 阿里云 RDS + 能接受余额与流水短暂不一致 | Inventory Hint + 流水异步（万级 TPS） |
+| 阿里云 RDS + 必须余额与流水强一致 | Statement Queue（3-5 倍提升） |
+| PolarDB | hotspot=ON（内核透明优化） |
+| 非阿里云 / 开源 MySQL | 只能用应用层方案（缓冲记账 / 子账户拆分） |
+
+---
+
+## §12 缓冲记账方案的异步一致性设计
+
+当使用缓冲记账或 Inventory Hint + 流水异步方案时，需要解决一系列异步一致性问题。
+
+### 12.1 Redis 缓存与 DB 的双写策略
+
+**原则：DB 是 source of truth，Redis 是加速层。**
+
+```
+写入顺序：先 DB（本地事务保证）→ 再 Redis（Best Effort）
+失败处理：Redis 写失败 → 记补偿表 → 定时重试
+故障恢复：Redis 重启后 → 从 DB 重建缓存数据
+```
+
+```java
+// 事务提交后更新 Redis + 补偿兜底
+@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+public void syncToRedis(BufferInsertEvent event) {
+    try {
+        redisTemplate.execute(luaScript, 
+            List.of("pending:" + event.getAccountId()), 
+            event.getAmount().toPlainString());
+    } catch (Exception e) {
+        // Redis 写失败 → 写补偿表，定时任务重试
+        compensateMapper.insert(event.getAccountId(), event.getAmount(), "REDIS_SYNC");
+    }
+}
+
+// Redis 重启后重建：从 DB 缓冲表 SUM 恢复 pending 值
+public void rebuildRedisPending() {
+    List<PendingSummary> summaries = bufferMapper.sumPendingGroupByAccount();
+    for (PendingSummary s : summaries) {
+        redisTemplate.opsForValue().set(
+            "pending:" + s.getAccountId(), s.getTotalAmount().toPlainString());
+    }
+}
+```
+
+### 12.2 定时合并任务的幂等与故障恢复
+
+**状态机**：
+
+```
+缓冲流水状态: 0(待处理) → 1(已抢占) → 2(已入账) / 3(异常)
+```
+
+**孤儿批次恢复**（任务 crash 后重启）：
+
+```java
+// 查找超时的"处理中"批次 → 判断是否已入账 → 未入账则重置
+@Scheduled(fixedRate = 60000)
+public void recoverOrphanBatches() {
+    List<String> orphans = bufferMapper.findOrphanBatches(Duration.ofMinutes(10));
+    for (String batchNo : orphans) {
+        boolean alreadySettled = flowMapper.existsByBatchNo(batchNo);
+        if (alreadySettled) {
+            bufferMapper.markProcessed(batchNo);      // 已入账，补更新状态
+        } else {
+            bufferMapper.resetToWaiting(batchNo);     // 未入账，重置为待处理
+        }
+    }
+}
+```
+
+---
+
+## §13 核心认知
+
+### 13.1 方案选型认知
 
 | 认知点 | 说明 |
 |--------|------|
@@ -810,3 +974,48 @@ graph TB
 | **缓存做主 ≠ 正确** | Redis 做余额主时，必须有完善的持久化 + 对账 + 降级方案 |
 | **热点检测要自动化** | 不是所有账户都热点，为非热点账户增加复杂度是浪费；动态识别热点 + 动态路由 |
 | **对账是最后一道防线** | 无论方案多优雅，异步场景必须有对账，发现不一致能自动/人工修复 |
+| **数据库内核优化是降维打击** | 如果基础设施支持（阿里云 RDS/PolarDB），Inventory Hint 能直接把问题从应用层消解到数据库层 |
+
+### 13.2 分布式系统的"递归终止"认知
+
+**问题**：异步方案引入了更多组件（MQ、Redis、定时任务），每个组件都可能失败。沿着失败链追下去似乎无穷无尽——MQ 失败要重试，重试机制本身也可能失败...
+
+**核心认知：找到"真相锚点"，递归就终止。**
+
+```
+分布式系统一致性的三层保障模型：
+
+第一层：尽力而为（Best Effort）
+  → 正常路径执行，失败立即重试 2-3 次
+
+第二层：本地消息表（Outbox Pattern）
+  → 重试仍失败 → 写入同库的补偿表（本地事务保证原子性！）
+  → 定时任务持续扫描重试
+
+第三层：对账兜底（Last Resort）
+  → T+1 对账发现不一致 → 告警 → 人工/自动修复
+```
+
+**为什么能"到此为止"？**
+
+```
+关键洞察：补偿记录和核心数据放在同一个 DB → 本地事务保证原子性
+
+这就是链条的"锚点"：
+- "余额更新 + 写 outbox" 在同一个本地事务里
+- 无论 MQ 挂了、Redis 挂了、定时任务挂了
+- 只要 DB 不丢数据，outbox 里的记录最终一定能被处理
+
+递归终止条件 = 将"需要保证原子性的两件事"收敛到同一个本地事务
+```
+
+**"真相锚点"设计原则**：
+
+| 原则 | 说明 |
+|------|------|
+| **明确谁是 source of truth** | 任何时刻，有且只有一个组件的数据是"权威的" |
+| **所有异步链条以锚点为准** | 补偿、重试、对账，最终都以锚点数据为终审依据 |
+| **锚点内部用本地事务保证原子性** | 不再依赖分布式协议，用最简单可靠的机制 |
+| **锚点之外允许最终一致** | 接受短暂不一致，通过补偿收敛到一致状态 |
+
+> 任何分布式系统的一致性设计，最终都要回到一个问题：**你的"真相锚点"在哪？** 找到它，所有异步补偿链条都以它为准，对账以它为终审。不要试图让每一环都"绝对不失败"，而是让失败可恢复、可追溯、可兜底。
