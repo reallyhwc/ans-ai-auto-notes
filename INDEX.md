@@ -1,6 +1,6 @@
 # 知识库索引
 
-> 最后更新: 2026-05-19 | 由 build-index.js 自动生成，勿手改
+> 最后更新: 2026-05-20 | 由 build-index.js 自动生成，勿手改
 
 ## 实战 (4 篇)
 
@@ -12,7 +12,7 @@
 - [GitHub 项目创建与同步](kb/实战/技巧/github-repo-setup.md) — SSH key 配置、仓库初始化、CI 基础
 - [知识管理工具对比](kb/实战/技巧/knowledge-management-tools.md) — Obsidian/Notion/本项目方案 对比分析
 
-## 技术 (29 篇)
+## 技术 (30 篇)
 
 ### AI (26 篇)
 
@@ -57,8 +57,9 @@
 - [OpenAI Agents SDK 与多角色协作](kb/技术/AI/应用/openai-agents-sdk.md) — 多角色协作、Handoff机制、Agent编排、与Claude Code对比
 - [个人知识库接入 RAG 的规划](kb/技术/AI/应用/rag-for-personal-kb.md) — 何时需要 RAG、渐进式实现路径、架构全景
 
-### Java (1 篇)
+### Java (2 篇)
 
+- [RocketMQ 底层实现原理](kb/技术/Java/rocketmq-internals.md) — 从 Producer 到 Broker 存储到 Consumer 的全链路底层机制
 - [Spring AI](kb/技术/Java/spring-ai.md) — Spring 生态 LLM 集成，流式/非流式调用
 
 ### 计算机基础 (2 篇)
