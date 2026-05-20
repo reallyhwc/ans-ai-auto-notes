@@ -485,7 +485,7 @@ var wordCloudRendered = false;
 function renderSearch() {
   var html = '<h2>搜索</h2>';
   html += '<input type="text" class="search-input" id="searchInput" placeholder="输入关键词检索知识库...">';
-  html += '<div id="wordCloudContainer" style="width:100%;height:350px;margin-top:20px;"></div>';
+  html += '<div id="wordCloudContainer" style="width:100%;height:calc(100vh - 200px);min-height:400px;margin-top:20px;"></div>';
   html += '<div id="searchResults" style="display:none;"></div>';
   main.innerHTML = html;
 
@@ -541,7 +541,7 @@ function renderWordCloud(container) {
   var minWeight = data[data.length - 1][1];
   var list = data.map(function(item) {
     var normalized = minWeight === maxWeight ? 1 : (item[1] - minWeight) / (maxWeight - minWeight);
-    var fontSize = Math.round(14 + normalized * 42);  // 14px ~ 56px
+    var fontSize = Math.round(16 + normalized * 52);  // 16px ~ 68px
     return [item[0], fontSize];
   });
 
