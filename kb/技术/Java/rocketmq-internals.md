@@ -1067,3 +1067,84 @@ Leader 宕机 → Follower 触发选举 → 新 Leader 自动升级为 Master
 | **零拷贝（mmap+write）** | 网络传输 | mmap 映射文件到用户态内存 → write 直接从 Page Cache 发送，减少一次内核态到用户态的数据拷贝（注：Kafka 用 sendfile，RocketMQ 用 mmap+write，因为 RocketMQ 有小块数据随机读需求） |
 | **长轮询** | 实时性 vs CPU | 不是死循环拉，而是 hold 住等通知 |
 | **批量拉取** | 网络 RT 摊销 | 一次拉 32 条，减少网络往返 |
+
+---
+
+## §7 主流 MQ 横向对比与选型
+
+### 核心维度对比
+
+| 维度 | RocketMQ | Kafka | RabbitMQ | ActiveMQ |
+|------|----------|-------|----------|----------|
+| **开发方** | 阿里巴巴（Apache） | LinkedIn（Apache） | Pivotal（Erlang） | Apache（Java） |
+| **单机吞吐** | 10 万+ TPS | 百万级 TPS | 万级 TPS | 万级 TPS |
+| **消息延迟** | ms 级 | ms~百 ms（批量） | μs 级 | ms 级 |
+| **堆积能力** | 极强（TB 级） | 极强（TB 级） | 弱（堆积后性能断崖） | 弱 |
+| **顺序消息** | ✅ 原生 | ✅ 分区内有序 | ❌ | ❌ |
+| **延迟消息** | ✅ 原生（18级/5.x任意） | ❌ 不原生 | ✅（TTL+死信） | ✅ |
+| **事务消息** | ✅ Half Message | ❌ 仅幂等生产者 | ❌ | ✅ JMS 事务 |
+| **消息回溯** | ✅ 按时间戳 | ✅ 按 offset | ❌ 消费即删 | ❌ |
+| **消费模式** | Push（长轮询）+ Pull | Pull | Push（Broker 推） | Push + Pull |
+| **运维复杂度** | 中 | 高（ZK/KRaft） | 低 | 低 |
+| **社区生态** | 国内强 | 全球最活跃 | 成熟稳定 | 趋于衰落 |
+
+### 架构本质差异
+
+| | Kafka | RocketMQ | RabbitMQ |
+|--|-------|----------|----------|
+| **设计哲学** | 分布式日志系统 | 业务消息中间件 | 消息代理（Broker 中心） |
+| **消息模型** | Topic-Partition | Topic-Queue | Exchange-Queue（AMQP） |
+| **存储模型** | 每 Partition 独立日志 | 所有 Topic 混写 CommitLog | 每 Queue 独立存储 |
+| **零拷贝** | sendfile | mmap+write | 无（Erlang VM 管理） |
+| **核心优势** | 吞吐量、流处理、生态 | 业务功能、低延迟、金融级可靠 | 灵活路由、协议兼容、极低延迟 |
+
+### 按场景对比
+
+**吞吐量**：Kafka >> RocketMQ >> RabbitMQ ≈ ActiveMQ
+- Kafka 高在：批量发送+压缩、sendfile 零拷贝、分区级线性扩展
+- RocketMQ 略低：单条发送为主、mmap+write 多一次拷贝、功能更重（事务/延迟/过滤增加 Broker 开销）
+
+**延迟**：RabbitMQ(μs) < RocketMQ(ms) < Kafka(ms~百ms)
+- Kafka 的 linger.ms 攒批 + fetch.min.bytes 凑够才返回 → 百 ms 级
+- RocketMQ 长轮询有消息立即唤醒 → 1-5ms
+- RabbitMQ Erlang 天然低延迟 + Broker Push → μs 级
+
+**堆积能力**：Kafka ≈ RocketMQ >> RabbitMQ
+- Kafka/RocketMQ：消息存磁盘顺序写，堆积 TB 不影响性能
+- RabbitMQ：优先内存存储，堆积超内存 → 换页 → 性能断崖，百万堆积可能 OOM
+
+**功能丰富度（业务消息场景）**：RocketMQ > RabbitMQ > Kafka
+- RocketMQ 独有/强势：事务消息、延迟消息、Broker 端 Tag/SQL92 过滤、消息回溯、死信+重试队列
+- Kafka 功能简单（by design）但 Kafka Streams/Connect 生态极强
+
+### 选型指南
+
+| 场景 | 推荐 | 原因 |
+|------|------|------|
+| 大数据/日志/流处理 | Kafka | 吞吐王者 + Streams/Connect 生态 |
+| 电商/金融/订单 | RocketMQ | 事务+延迟+顺序+低延迟 |
+| IM/实时推送/轻量级 | RabbitMQ | μs 延迟 + 灵活路由 + 简单运维 |
+| 遗留系统/JMS 规范 | ActiveMQ | 兼容 JMS（不推荐新项目） |
+
+### 选型关键维度
+
+| 维度 | 判断标准 |
+|------|---------|
+| **消息量级** | <100万/天 三者都行；100万~10亿 RocketMQ/Kafka；>10亿 Kafka |
+| **事务消息** | 需要分布式事务 → RocketMQ（唯一原生支持） |
+| **堆积容忍** | Consumer 可能长时间宕机 → Kafka/RocketMQ |
+| **延迟敏感** | μs 级 → RabbitMQ；ms 级 → RocketMQ；百 ms 可接受 → Kafka |
+| **团队栈** | Java → RocketMQ；大数据(Spark/Flink) → Kafka；多语言 → RabbitMQ(AMQP) |
+| **流处理** | 需要实时流计算 → Kafka(Streams/ksqlDB) |
+| **顺序性** | 严格顺序 → RocketMQ 或 Kafka |
+
+### 常见选型陷阱
+
+| 陷阱 | 说明 |
+|------|------|
+| "Kafka 万能论" | 吞吐高但功能少，业务消息场景（事务、延迟、过滤）力不从心 |
+| "RabbitMQ 够用论" | 小规模够用，堆积能力是硬伤，量上来后会崩 |
+| "ActiveMQ 还能用" | 社区停滞，性能和功能落后，新项目不应选择 |
+| "不考虑运维成本" | Kafka 的 ZK/KRaft + 分区管理 + ISR 监控成本不低 |
+| "忽略消息丢失场景" | 异步刷盘+异步复制 = 宕机可能丢数据，金融场景必须同步 |
+| "盲目追求高吞吐" | 大部分系统日消息 <1 亿，RocketMQ/RabbitMQ 绰绰有余 |
