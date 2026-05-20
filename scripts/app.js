@@ -536,19 +536,28 @@ function renderWordCloud(container) {
   var data = extractWordCloudData({ categories: FILE_INDEX.categories }, FILE_INDEX.timeline);
   if (data.length === 0) return;
 
+  // 根据容器实际尺寸动态计算字号范围
+  var containerWidth = container.offsetWidth || 600;
+  var containerHeight = container.offsetHeight || 400;
+  var area = containerWidth * containerHeight;
+  // 面积越大，字号越大，基准：800x500=400000 对应 18~72px
+  var scaleFactor = Math.sqrt(area / 400000);
+  var minFont = Math.round(16 * scaleFactor);
+  var maxFont = Math.round(80 * scaleFactor);
+
   // 归一化权重到字号范围
   var maxWeight = data[0][1];
   var minWeight = data[data.length - 1][1];
   var list = data.map(function(item) {
     var normalized = minWeight === maxWeight ? 1 : (item[1] - minWeight) / (maxWeight - minWeight);
-    var fontSize = Math.round(16 + normalized * 52);  // 16px ~ 68px
+    var fontSize = Math.round(minFont + normalized * (maxFont - minFont));
     return [item[0], fontSize];
   });
 
   // 使用 Canvas 渲染词云
   WordCloud(container, {
     list: list,
-    gridSize: 8,
+    gridSize: Math.max(4, Math.round(6 * scaleFactor)),
     weightFactor: 1,
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
     color: function() {
@@ -557,6 +566,7 @@ function renderWordCloud(container) {
     rotateRatio: 0,
     rotationSteps: 0,
     backgroundColor: 'transparent',
+    shrinkToFit: true,
     click: function(item) {
       // 点击词云关键词 → 填入搜索框并触发搜索
       var input = document.getElementById('searchInput');
