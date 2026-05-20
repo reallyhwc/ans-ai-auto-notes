@@ -100,7 +100,7 @@
     ]
   },
   {
-    "week": "2026-W20 (05.11 - 05.17)",
+    "week": "2026-W20 (05.11 - 05.20)",
     "entries": [
       {
         "date": "2026-05-11",
@@ -131,6 +131,11 @@
         "date": "2026-05-17",
         "summary": "技术/AI：AI Coding 三篇深度文章笔记——Vibe/Spec/Agentic Coding 三种编程范式、美团 31 万行 AI 重构（Pre-PR/零排期重构）、Claude Code 进阶工作流四阶段模型；MCP stdio 通信 OS 层细节；README 深度重写",
         "links": [{"label": "AI 编程递进路径", "url": "kb/技术/AI/AI-Coding/ai-coding-levels.md"}, {"label": "AI Coding 团队治理", "url": "kb/技术/AI/AI-Coding/ai-coding-team-governance.md"}, {"label": "Claude Code 进阶工作流", "url": "kb/技术/AI/Claude-Code/claude-code-advanced-workflow.md"}]
+      },
+      {
+        "date": "2026-05-20",
+        "summary": "技术/Java：分布式事务全景笔记——理论基础(CP vs AP)、XA/2PC(含DRDS内置XA原理)、TCC三大难题+防御代码、Saga两种模式、本地消息表(最实用方案)、Seata四模式+AT undo_log原理、选型决策树、实战Checklist",
+        "links": [{"label": "分布式事务全景", "url": "kb/技术/Java/distributed-transaction.md"}, {"label": "RocketMQ 底层实现", "url": "kb/技术/Java/rocketmq-internals.md"}]
       }
     ]
   }
