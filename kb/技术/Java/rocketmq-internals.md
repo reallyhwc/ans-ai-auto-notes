@@ -560,6 +560,31 @@ SendResult result = producer.send(msg, new MessageQueueSelector() {
 - 异步发送无法保证网络层的到达顺序
 - 必须等上一条 ACK 回来再发下一条（或者至少用 FIFO 队列串行化发送）
 
+#### 易混淆点：串行消费 ≠ 一次一条
+
+**单 Queue FIFO 不等于"一次只能消费一条消息"。** 实际是"批量拉取 + 本地串行处理"：
+
+```
+Consumer 线程（每 Queue 独占一个线程）:
+  ① 一次从 Broker 拉 32 条消息（pullBatchSize=32，网络层批量）
+  ② 放入本地 ProcessQueue（TreeMap 按 offset 排序）
+  ③ 逐条传给 MessageListenerOrderly（consumeMessageBatchMaxSize 默认=1）
+  ④ 处理完一条再处理下一条（串行保序）
+  ⑤ 32 条都处理完 → 提交 offset → 再拉下一批
+```
+
+**性能对比**：
+
+| 策略 | 网络请求次数（1亿条） | 单 Queue 吞吐 |
+|------|---------------------|--------------|
+| 每次只拉 1 条 | 1 亿次 | ~200 TPS（受网络 RT 瓶颈） |
+| 每次拉 32 条（默认） | 312.5 万次 | ~6400 TPS |
+| 每次拉 64 条 | 156 万次 | ~12800 TPS |
+
+**批量拉取把网络 RT 成本摊薄了 32 倍。瓶颈在业务处理耗时 × 消息数，不在网络 IO。**
+
+还可以调大 `consumeMessageBatchMaxSize`（如 16），让 Listener 一次收到 16 条消息，减少 Listener 调用开销（但循环内仍串行处理）。
+
 #### Broker 端：天然保证
 
 Broker 不需要额外逻辑——**CommitLog 本身就是顺序追加的**。同一个 Queue 的 ConsumeQueue 索引天然按写入顺序排列。只要 Producer 保证同一 Key 打到同一 Queue，Broker 侧无需任何特殊处理。
