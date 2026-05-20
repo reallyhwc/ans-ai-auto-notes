@@ -439,6 +439,97 @@ Rollback:
   （Half Message 本身不删除，等文件过期自然清理）
 ```
 
+#### 异常场景全梳理
+
+| # | 异常场景 | 系统状态 | RocketMQ 处置 | 最终结果 |
+|---|---------|---------|-------------|---------|
+| 1 | Half Message 发送失败 | 消息未入 Broker，本地事务未执行 | 直接失败 | 原子失败，无影响 |
+| 2 | Half 成功 + 本地事务失败 | 消息在 Half Topic，DB 未变更 | Rollback；若 Rollback 也失败 → 回查查 DB 无变更 → Rollback | 原子回滚 |
+| 3 | Half 成功 + 本地事务成功 + Commit 失败 | 消息在 Half Topic，DB 已变更 | 回查 → 查 DB 有记录 → Commit | 延迟投递（30s~几分钟），最终一致 |
+| 4 | Half 成功 + 本地事务执行中 + Producer 宕机 | 消息在 Half Topic，DB 事务未提交(回滚) | 回查 → 查 DB 无记录 → Rollback | 原子回滚 |
+| 5 | Half 成功 + 本地事务结果不确定(DB 超时) | 无法确定 DB 状态 | 回查 → UNKNOW → 等下次再查 | 最多等 15×30s ≈ 7.5 分钟 |
+| 6 | 回查 15 次仍 UNKNOW | 始终无法确定 | 消息丢弃 + WARN 日志 | **消息丢失，需对账补偿** |
+| 7 | Commit 成功但 Consumer 消费失败 | 消息已投递 | 普通重试机制（16 次 → 死信） | 需幂等消费 |
+
+**场景 3 是最常见的"看似异常但自动恢复"的 case：** 本地事务成功 + Commit 网络超时 → 回查自动补偿 → 最终消息正常投递。延迟 = transactionCheckInterval（默认 30s）。
+
+#### 最佳实践：本地事务表模式
+
+**核心思想**：在本地事务中同时写一张"事务记录表"，回查时只需查该表即可明确判断事务结果。
+
+```sql
+CREATE TABLE transaction_log (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    transaction_id VARCHAR(64) NOT NULL UNIQUE,
+    business_key VARCHAR(128) NOT NULL,
+    status VARCHAR(16) NOT NULL DEFAULT 'COMMITTED',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_business_key (business_key),
+    INDEX idx_created_at (created_at)
+);
+```
+
+**本地事务执行**（业务操作 + 事务记录在同一 DB 事务中）：
+
+```java
+@Transactional
+void executeWithTransactionLog(String orderId) {
+    orderService.deductStock(orderId);  // 业务操作
+    transactionLogMapper.insert(        // 同事务内写记录
+        new TransactionLog(orderId, "COMMITTED")
+    );
+}
+```
+
+**回查实现**：
+
+```java
+@Override
+public LocalTransactionState checkLocalTransaction(MessageExt msg) {
+    String orderId = msg.getProperty("orderId");
+    TransactionLog log = transactionLogMapper.selectByBusinessKey(orderId);
+
+    if (log != null) {
+        return LocalTransactionState.COMMIT_MESSAGE;  // 有记录 = 事务成功
+    }
+    // 判断是否等待过久（超过业务最大执行时间 → 认为失败）
+    if (System.currentTimeMillis() - msg.getBornTimestamp() > 60_000) {
+        return LocalTransactionState.ROLLBACK_MESSAGE;
+    }
+    return LocalTransactionState.UNKNOW;  // 可能还在执行中
+}
+```
+
+**为什么不直接查业务表？** 业务表状态可能有歧义（如订单状态"待支付"是"还没执行到"还是"执行失败回滚了"分不清），而事务记录表语义明确：有记录 = 事务已提交。
+
+#### 防御性设计清单
+
+| 设计点 | 为什么必须做 |
+|--------|------------|
+| 事务记录表与业务操作在同一 DB 事务 | 保证回查结果和实际状态一致 |
+| `checkLocalTransaction()` 区分"还没执行完"和"执行失败" | 避免过早 Rollback 正在执行中的事务 |
+| Consumer 端幂等 | 极端情况消息可能重复投递（回查导致多次 Commit） |
+| 设置合理的回查超时阈值 | 超过业务最大执行时间仍无记录 → 果断 Rollback |
+| T+1 对账任务兜底 | 回查 15 次后被丢弃的消息，需对账发现并补偿 |
+| 监控 Half Topic 堆积 | 持续增长 = Producer 异常或回查失败 |
+
+#### 认知纠偏：事务消息 ≠ 分布式事务银弹
+
+```
+事务消息保证的是: "本地事务" 和 "消息投递" 的原子性
+  → 要么都成功，要么都失败
+
+事务消息不保证: 下游消费一定成功
+  → 消息投递出去了，Consumer 可能消费失败
+
+完整的分布式事务 = 事务消息 + 幂等消费 + 对账补偿
+  ① 事务消息: 保证"发出去"
+  ② 幂等消费: 保证"重复投递不重复执行"
+  ③ 对账补偿: 兜底极端异常（回查 15 次失败的丢失消息）
+```
+
+---
+
 ### 5.3 延迟消息（深度实现原理）
 
 #### 为什么只有固定级别？
