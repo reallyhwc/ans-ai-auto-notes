@@ -371,20 +371,304 @@ sequenceDiagram
 
 **Half Message 存储**：内部转存到 `RMQ_SYS_TRANS_HALF_TOPIC`，Commit 后才把真实 ConsumeQueue 索引建好。
 
-### 5.3 延迟消息
+### 5.3 延迟消息（深度实现原理）
 
-RocketMQ 不支持任意延迟时间，只支持 **18 个固定延迟级别**：
+#### 为什么只有固定级别？
+
+RocketMQ 4.x 不支持任意延迟时间，只支持 **18 个固定延迟级别**：
 
 ```
-1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h
+Level:  1   2   3    4    5   6   7   8   9   10  11  12  13   14   15  16  17  18
+Delay:  1s  5s  10s  30s  1m  2m  3m  4m  5m  6m  7m  8m  9m  10m  20m  30m  1h  2h
 ```
 
-**实现**：
-1. Producer 设置 `delayLevel=3`（对应 10s）
-2. Broker 收到后不放真实 Topic，而是转存到 `SCHEDULE_TOPIC_XXXX`
-3. 定时线程每秒扫描到期消息 → 恢复原 Topic → Consumer 才能消费到
+**为什么不支持任意延迟？** 如果支持任意时间（如"延迟 3 天 7 小时 22 分"），需要对每条消息建立独立的定时器或排序队列，在海量消息（百万级）场景下内存和 CPU 开销不可控。固定级别 = 固定数量的定时队列 = 开销可控。
 
-### 5.4 主从同步
+> 注：RocketMQ 5.x 已支持任意延迟（基于 TimerWheel 时间轮实现），但 4.x 生产环境仍是主流。
+
+#### 核心数据结构
+
+```
+store/
+├── commitlog/                        ← 原始消息（Topic 被替换为 SCHEDULE_TOPIC_XXXX）
+└── consumequeue/
+    └── SCHEDULE_TOPIC_XXXX/
+        ├── 0/   ← 对应 delayLevel=1 (1s)
+        ├── 1/   ← 对应 delayLevel=2 (5s)
+        ├── 2/   ← 对应 delayLevel=3 (10s)
+        └── ...  ← 共 18 个 Queue，每个对应一个延迟级别
+```
+
+**关键设计：每个延迟级别独享一个 Queue。** 同一个 Queue 内的消息延迟时间相同 → 天然按到期时间有序 → 只需检查队头。
+
+#### 完整生命周期
+
+```mermaid
+sequenceDiagram
+    participant P as Producer
+    participant B as Broker(接收层)
+    participant CL as CommitLog
+    participant SCH as ScheduleMessageService
+    participant CQ as 真实 ConsumeQueue
+    participant C as Consumer
+
+    P->>B: 发送消息 (topic=OrderTopic, delayLevel=3)
+    Note over B: ① 篡改消息属性:<br/>真实 topic → Properties<br/>topic 改为 SCHEDULE_TOPIC_XXXX<br/>queueId 改为 delayLevel-1 = 2
+
+    B->>CL: ② 写入 CommitLog（Topic 已是 SCHEDULE）
+    Note over CL: ReputService 将索引写入<br/>SCHEDULE_TOPIC_XXXX/Queue2
+
+    loop 每 100ms 扫描一次
+        SCH->>SCH: ③ 检查 Queue2 的队头消息
+        Note over SCH: 队头消息的投递时间 =<br/>storeTimestamp + 10s
+        alt 当前时间 ≥ 投递时间
+            SCH->>CL: ④ 恢复真实 Topic 和 QueueId
+            SCH->>CL: ⑤ 重新写入 CommitLog（新消息）
+            Note over CL: ReputService 将索引写入<br/>OrderTopic/QueueX（真实队列）
+        else 未到期
+            Note over SCH: 等待下次扫描
+        end
+    end
+
+    CQ->>C: ⑥ Consumer 正常消费
+```
+
+#### 关键源码逻辑
+
+```java
+// ScheduleMessageService.java — 每个 delayLevel 一个 Timer 线程
+class DeliverDelayedMessageTimerTask implements Runnable {
+
+    @Override
+    public void run() {
+        // 1. 从 SCHEDULE_TOPIC 的 ConsumeQueue 按 offset 顺序取消息
+        ConsumeQueue cq = findConsumeQueue(SCHEDULE_TOPIC, delayLevel - 1);
+
+        for (SelectMappedBufferResult bufferCQ = cq.getIndexBuffer(currentOffset); ...) {
+            long tagsCode = bufferCQ.getLong();  // tagsCode 存的是"投递时间戳"
+
+            // 2. 判断是否到期
+            long deliverTimestamp = tagsCode;  // 特殊：延迟消息的 tagsCode = 投递时间
+            long countdown = deliverTimestamp - System.currentTimeMillis();
+
+            if (countdown <= 0) {
+                // 3. 到期：从 CommitLog 读出原始消息
+                MessageExt msgExt = lookMessageByOffset(physicOffset, physicSize);
+
+                // 4. 恢复真实 Topic 和 QueueId（从 Properties 中取回）
+                MessageExtBrokerInner msgInner = messageTimeup(msgExt);
+
+                // 5. 重新投递到 CommitLog（这次 Topic 是真实的 OrderTopic）
+                putMessageResult = this.brokerController.getMessageStore()
+                    .putMessage(msgInner);
+            } else {
+                // 未到期 → 等到它到期的精确时间再扫描
+                scheduleNextTimerTask(countdown);
+                break;  // 同 Queue 后面的消息必然更晚到期，可以 break
+            }
+        }
+    }
+}
+```
+
+#### 核心设计巧妙点
+
+| 设计 | 为什么这么做 |
+|------|-------------|
+| **tagsCode 复用为投递时间戳** | ConsumeQueue 的 20B 结构中最后 8B 是 tagsCode，延迟消息不需要 Tag 过滤，所以复用这 8B 存投递时间戳 → 无需额外存储 |
+| **同 Queue 天然有序** | 同一延迟级别的消息，先进先出 → 到期时间单调递增 → 只需检查队头 → O(1) |
+| **break 优化** | 队头未到期 → 后面所有消息都未到期 → 直接 break，不用继续扫描 |
+| **两次写 CommitLog** | 第一次写（存入 SCHEDULE）+ 到期后第二次写（恢复真实 Topic）→ 简单粗暴但有效，复用了已有的 CommitLog → ConsumeQueue 管道 |
+
+#### 延迟精度
+
+- **理论精度**：100ms（Timer 扫描间隔）
+- **实际精度**：100ms ~ 1s（受 CommitLog 写入 + ReputService 延迟影响）
+- **极端情况**：Broker 重启后从 ConsumeQueue 恢复进度，可能有秒级延迟
+
+---
+
+### 5.4 顺序消息（实现原理）
+
+#### 问题定义
+
+普通消息：Producer 轮询发到不同 Queue，Consumer 并行消费 → **无法保证顺序**。
+
+顺序消息需求示例：
+```
+订单流程: 创建订单 → 扣减库存 → 支付成功 → 发货通知
+必须保证: 消息 A 在消息 B 之前被消费
+```
+
+#### 两种顺序级别
+
+| 级别 | 保证范围 | 实现难度 | 适用场景 |
+|------|---------|---------|---------|
+| **分区有序**（常用） | 同一个 Queue 内有序 | 低 | 同一订单的消息有序 |
+| **全局有序** | 整个 Topic 全有序 | 高（性能极差） | 几乎不用 |
+
+**生产环境 99% 用分区有序**——只需要"同一业务 Key 的消息有序"，不需要跨 Key 全局有序。
+
+#### 分区有序的完整实现
+
+```mermaid
+graph TB
+    subgraph Producer端
+        P["Producer<br/>MessageQueueSelector"]
+        Q0["Queue 0"]
+        Q1["Queue 1"]
+        Q2["Queue 2"]
+        Q3["Queue 3"]
+    end
+
+    subgraph Consumer端
+        C["Consumer<br/>MessageListenerOrderly"]
+        L0["Queue 0 → 单线程消费"]
+        L1["Queue 1 → 单线程消费"]
+        L2["Queue 2 → 单线程消费"]
+        L3["Queue 3 → 单线程消费"]
+    end
+
+    P -->|"orderId=1001<br/>hash % 4 = 1"| Q1
+    P -->|"orderId=1002<br/>hash % 4 = 2"| Q2
+    P -->|"orderId=1001<br/>hash % 4 = 1"| Q1
+
+    Q0 --> L0
+    Q1 --> L1
+    Q2 --> L2
+    Q3 --> L3
+```
+
+**关键：同一 orderId 的消息始终落在同一个 Queue → 同一个 Queue 内 FIFO → 顺序保证。**
+
+#### Producer 端：MessageQueueSelector
+
+```java
+// Producer 发送顺序消息 — 用业务 Key 选择固定 Queue
+SendResult result = producer.send(msg, new MessageQueueSelector() {
+    @Override
+    public MessageQueue select(List<MessageQueue> mqs, Message msg, Object arg) {
+        // arg = orderId，用 hashCode 对 Queue 数取模
+        String orderId = (String) arg;
+        int index = Math.abs(orderId.hashCode()) % mqs.size();
+        return mqs.get(index);
+    }
+}, orderId);  // orderId 作为 arg 传入
+```
+
+**为什么必须同步发送？**
+- 异步发送无法保证网络层的到达顺序
+- 必须等上一条 ACK 回来再发下一条（或者至少用 FIFO 队列串行化发送）
+
+#### Broker 端：天然保证
+
+Broker 不需要额外逻辑——**CommitLog 本身就是顺序追加的**。同一个 Queue 的 ConsumeQueue 索引天然按写入顺序排列。只要 Producer 保证同一 Key 打到同一 Queue，Broker 侧无需任何特殊处理。
+
+#### Consumer 端：MessageListenerOrderly
+
+这是顺序消息的**核心难点**——如何保证消费端单线程有序消费？
+
+```java
+// Consumer 注册顺序消费监听器
+consumer.registerMessageListener(new MessageListenerOrderly() {
+    @Override
+    public ConsumeOrderlyStatus consumeMessage(
+            List<MessageExt> msgs, ConsumeOrderlyContext context) {
+        for (MessageExt msg : msgs) {
+            // 业务逻辑：保证同一 Queue 内串行执行
+            processOrder(msg);
+        }
+        return ConsumeOrderlyStatus.SUCCESS;
+    }
+});
+```
+
+**与 `MessageListenerConcurrently` 的区别**：
+
+| | MessageListenerConcurrently | MessageListenerOrderly |
+|--|----------------------------|----------------------|
+| 消费线程 | 多线程并发消费同一 Queue | **每个 Queue 独占一个线程** |
+| 锁机制 | 无 | **分布式锁 + 本地锁** |
+| 失败处理 | 发回重试 Queue | **本地重试（不换 Queue）** |
+| 性能 | 高 | 低（串行化代价） |
+
+#### Consumer 端的锁机制（保证有序的关键）
+
+```mermaid
+sequenceDiagram
+    participant C1 as Consumer-1
+    participant B as Broker
+    participant C2 as Consumer-2
+
+    Note over C1,C2: Rebalance: Q0 分给 C1, Q1 分给 C2
+
+    C1->>B: ① LOCK_BATCH_MQ(Q0)
+    B-->>C1: Lock Success (续期 60s)
+    Note over C1: 拿到 Q0 的分布式锁
+
+    C2->>B: LOCK_BATCH_MQ(Q0)
+    B-->>C2: Lock Failed（Q0 已被 C1 锁定）
+
+    loop 每 20s 续期一次
+        C1->>B: LOCK_BATCH_MQ(Q0) 续期
+        B-->>C1: Lock Success
+    end
+
+    Note over C1: 消费 Q0 时，本地还有 synchronized 锁<br/>确保同一 Queue 的消息串行处理
+```
+
+**两层锁保证顺序**：
+
+| 层级 | 作用 | 机制 |
+|------|------|------|
+| **分布式锁（Broker 端）** | 防止 Rebalance 时两个 Consumer 同时消费同一 Queue | Consumer 启动 + 每 20s 向 Broker 申请 Queue 锁，Broker 内存中维护 `Map<Queue, ClientId>` |
+| **本地锁（Consumer 端）** | 保证同一 Queue 的消息串行进入 Listener | `synchronized(objLock)` 每个 ProcessQueue 一把锁 |
+
+#### 消费失败时的处理差异
+
+**并发消费失败**：消息发回 Broker 的 `%RETRY%` Topic → 换 Queue → 不保证顺序
+
+**顺序消费失败**：
+
+```java
+// ConsumeMessageOrderlyService.java 核心逻辑
+if (status == ConsumeOrderlyStatus.SUSPEND_CURRENT_QUEUE_A_MOMENT) {
+    // 不发回 Broker！在本地暂停当前 Queue 消费 1s 后重试
+    // 保证同一 Queue 内的后续消息不会被跳过
+    this.submitConsumeRequestLater(processQueue, messageQueue, 1000);
+}
+```
+
+**为什么不能发回 Broker？** 如果消息 A 消费失败被发回 Broker，消息 B 可能先被消费 → 顺序被打破。所以顺序消费失败时只能本地重试（阻塞当前 Queue 的后续消费）。
+
+#### 全局有序（了解即可）
+
+```
+实现方式：Topic 只设 1 个 Queue
+代价：
+  - Producer 只能发到 1 个 Queue → 单 Broker 瓶颈
+  - Consumer 只能 1 个实例消费 → 无法水平扩展
+  - 吞吐量：几千 TPS（vs 分区有序的几十万 TPS）
+结论：几乎不用，除非业务量极小且强制全局有序
+```
+
+#### 顺序消息的代价与限制
+
+| 限制 | 原因 |
+|------|------|
+| 消费吞吐量下降 | 每个 Queue 串行消费，并发度 = Queue 数（而非线程数） |
+| 单点故障影响大 | Queue 所在 Broker 挂了 → 该 Queue 消息暂停消费（等切换） |
+| 消费失败阻塞后续 | 一条消息卡住 → 整个 Queue 阻塞（需要设置最大重试次数） |
+| 扩缩容要谨慎 | Queue 数变化 → hash 结果变化 → 短暂乱序 |
+
+**最佳实践**：
+- Queue 数 = 预期最大 Consumer 数的 2-4 倍（留扩容空间）
+- 设置 `maxReconsumeTimes`（如 5 次），超限进死信队列，避免永久阻塞
+- 只对需要有序的业务 Key 使用顺序消息，不要整个 Topic 都顺序
+
+---
+
+### 5.5 主从同步
 
 | 模式 | 实现 | 数据安全 | 性能 |
 |------|------|---------|------|
