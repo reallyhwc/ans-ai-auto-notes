@@ -96,6 +96,66 @@ function renderKbLink(href, currentFile, renderedInnerText) {
   return '<a href="' + escapeAttr(hrefStr) + '">' + renderedInnerText + '</a>';
 }
 
+// 从 manifest 数据中提取词云关键词及权重
+// 返回 [[word, weight], ...] 格式，供 wordcloud2.js 使用
+function extractWordCloudData(manifest, timeline) {
+  var freq = {};
+  // 中英文停用词
+  var stopWords = new Set(['的', '和', '与', '及', '在', '了', '是', '对', '从', '到', '为',
+    'a', 'an', 'the', 'and', 'or', 'of', 'to', 'in', 'for', 'on', 'with', 'at', 'by',
+    'is', 'are', 'was', 'were', 'be', 'been', 'has', 'have', 'had', 'do', 'does',
+    'this', 'that', 'it', 'its', 'as', 'but', 'not', 'no', 'if', 'how', 'what',
+    '—', '–', '', ' ']);
+
+  function addWord(word, weight) {
+    var w = word.trim();
+    if (w.length < 2 || stopWords.has(w.toLowerCase())) return;
+    var key = w;
+    freq[key] = (freq[key] || 0) + weight;
+  }
+
+  // 拆词：按空格、标点、连字符等分割，保留中文词组
+  function tokenize(text, weight) {
+    if (!text) return;
+    // 先按常见分隔符拆
+    var tokens = String(text).split(/[\s/\\|,，、;；:：()（）【】\[\]{}""''""]+/);
+    tokens.forEach(function(t) {
+      if (t) addWord(t, weight);
+    });
+  }
+
+  // 1. 分类/目录名（权重高）
+  function walkCategories(node) {
+    if (node.name) addWord(node.name, 5);
+    if (node.files) {
+      node.files.forEach(function(file) {
+        tokenize(file.title, 3);
+        tokenize(file.desc, 1);
+      });
+    }
+    if (node.children) node.children.forEach(walkCategories);
+  }
+  if (manifest && manifest.categories) {
+    manifest.categories.forEach(walkCategories);
+  }
+
+  // 2. 时间线 summary 关键词（权重低）
+  if (timeline && Array.isArray(timeline)) {
+    timeline.forEach(function(week) {
+      if (week.entries) {
+        week.entries.forEach(function(entry) {
+          tokenize(entry.summary, 1);
+        });
+      }
+    });
+  }
+
+  // 转换为 [[word, weight], ...] 并按权重排序取 Top N
+  var pairs = Object.keys(freq).map(function(k) { return [k, freq[k]]; });
+  pairs.sort(function(a, b) { return b[1] - a[1]; });
+  return pairs.slice(0, 80);  // 最多 80 个词
+}
+
 // Node 导出（浏览器 <script> 模式下 module 未定义，跳过）
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
@@ -105,5 +165,6 @@ if (typeof module !== 'undefined' && module.exports) {
     buildToc,
     resolveRelativeMd,
     renderKbLink,
+    extractWordCloudData,
   };
 }

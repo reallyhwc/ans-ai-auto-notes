@@ -478,22 +478,39 @@ function renderTimeline() {
 }
 
 // ============================================================
-// 搜索
+// 搜索 + 词云
 // ============================================================
+var wordCloudRendered = false;
+
 function renderSearch() {
   var html = '<h2>搜索</h2>';
   html += '<input type="text" class="search-input" id="searchInput" placeholder="输入关键词检索知识库...">';
-  html += '<div id="searchResults"></div>';
+  html += '<div id="wordCloudContainer" style="width:100%;height:350px;margin-top:20px;"></div>';
+  html += '<div id="searchResults" style="display:none;"></div>';
   main.innerHTML = html;
 
-  var debounceTimer;
   var input = document.getElementById('searchInput');
   var results = document.getElementById('searchResults');
+  var cloudContainer = document.getElementById('wordCloudContainer');
+
+  // 渲染词云
+  renderWordCloud(cloudContainer);
+
+  var debounceTimer;
   input.addEventListener('input', function() {
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(function() {
       var q = input.value.trim().toLowerCase();
-      if (!q) { results.innerHTML = ''; return; }
+      if (!q) {
+        results.style.display = 'none';
+        results.innerHTML = '';
+        cloudContainer.style.display = 'block';
+        return;
+      }
+      // 隐藏词云，显示搜索结果
+      cloudContainer.style.display = 'none';
+      results.style.display = 'block';
+
       var matches = searchKB(q);
       if (matches.length === 0) {
         results.innerHTML = '<div class="empty-state">未找到匹配结果</div>';
@@ -505,6 +522,54 @@ function renderSearch() {
         }).join('');
       }
     }, 200);
+  });
+}
+
+function renderWordCloud(container) {
+  if (typeof WordCloud === 'undefined') return;
+
+  var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  var colors = isDark
+    ? ['#5dade2', '#48c9b0', '#f39c12', '#e74c3c', '#9b59b6', '#1abc9c', '#e67e22', '#3498db']
+    : ['#2980b9', '#27ae60', '#e67e22', '#c0392b', '#8e44ad', '#16a085', '#d35400', '#2c3e50'];
+
+  var data = extractWordCloudData({ categories: FILE_INDEX.categories }, FILE_INDEX.timeline);
+  if (data.length === 0) return;
+
+  // 归一化权重到字号范围
+  var maxWeight = data[0][1];
+  var minWeight = data[data.length - 1][1];
+  var list = data.map(function(item) {
+    var normalized = minWeight === maxWeight ? 1 : (item[1] - minWeight) / (maxWeight - minWeight);
+    var fontSize = Math.round(14 + normalized * 42);  // 14px ~ 56px
+    return [item[0], fontSize];
+  });
+
+  // 使用 Canvas 渲染词云
+  WordCloud(container, {
+    list: list,
+    gridSize: 8,
+    weightFactor: 1,
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    color: function() {
+      return colors[Math.floor(Math.random() * colors.length)];
+    },
+    rotateRatio: 0.3,
+    rotationSteps: 3,
+    backgroundColor: 'transparent',
+    click: function(item) {
+      // 点击词云关键词 → 填入搜索框并触发搜索
+      var input = document.getElementById('searchInput');
+      if (input) {
+        input.value = item[0];
+        input.dispatchEvent(new Event('input'));
+      }
+    },
+    hover: function(item, dimension, event) {
+      if (item) {
+        event.target.style.cursor = 'pointer';
+      }
+    }
   });
 }
 
