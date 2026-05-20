@@ -371,6 +371,74 @@ sequenceDiagram
 
 **Half Message 存储**：内部转存到 `RMQ_SYS_TRANS_HALF_TOPIC`，Commit 后才把真实 ConsumeQueue 索引建好。
 
+#### 回查机制详解（TransactionalMessageCheckService）
+
+**核心问题**：如果 Producer 发完 Half Message 后宕机，既没有 Commit 也没有 Rollback，消息就永远"悬挂"在 Half Topic 中。Broker 必须主动回查。
+
+**Op Message（操作记录）**：
+
+```
+RMQ_SYS_TRANS_HALF_TOPIC  ← 存放 Half Message（待决消息）
+RMQ_SYS_TRANS_OP_HALF_TOPIC  ← 存放 Op Message（已决操作记录）
+
+Op Message 内容 = Half Message 在 Half Queue 中的 offset
+作用: 标记哪些 Half Message 已经被 Commit 或 Rollback 处理过
+```
+
+**回查流程**：
+
+```mermaid
+sequenceDiagram
+    participant CS as TransactionalMessageCheckService
+    participant HQ as Half Topic Queue
+    participant OQ as Op Topic Queue
+    participant P as Producer
+
+    loop 每 30s 扫描一次（transactionCheckInterval=30000ms）
+        CS->>HQ: 读取 Half Message（从上次检查 offset 开始）
+        CS->>OQ: 读取 Op Message（已处理记录）
+
+        Note over CS: 对比: Half 中有，但 Op 中没有 = 未决消息
+
+        alt 未决消息存在时间 > 6s（transactionTimeout）
+            CS->>P: 发送回查请求 CHECK_TRANSACTION_STATE
+            P-->>CS: 返回 COMMIT / ROLLBACK / UNKNOW
+            alt COMMIT
+                Note over CS: 构建真实 ConsumeQueue 索引 + 写 Op Message
+            else ROLLBACK
+                Note over CS: 仅写 Op Message（标记已处理）
+            else UNKNOW
+                Note over CS: 不处理，等下次扫描再回查
+            end
+        end
+    end
+```
+
+**关键配置参数**：
+
+| 参数 | 默认值 | 含义 |
+|------|--------|------|
+| `transactionCheckInterval` | 30s | 回查线程扫描间隔 |
+| `transactionTimeout` | 6s | Half Message 存活超过此时间才触发回查 |
+| `transactionCheckMax` | 15 次 | 单条消息最多回查 15 次 |
+
+**回查超过 15 次仍返回 UNKNOW**：该 Half Message 会被标记为已处理（写 Op Message）但不 Commit → 消息永久丢弃 + 打印 WARN 日志。业务侧需要通过对账机制发现这类异常。
+
+#### Commit 和 Rollback 的本质操作
+
+```
+Commit:
+  ① 从 Half Topic 读出原始消息
+  ② 恢复真实 Topic 和 QueueId（类似延迟消息的恢复逻辑）
+  ③ 重新写入 CommitLog（这次 Topic 是真实的）
+  ④ 写一条 Op Message 标记该 Half 已处理
+
+Rollback:
+  ① 仅写一条 Op Message 标记该 Half 已处理
+  ② 不恢复真实 Topic → Consumer 永远看不到这条消息
+  （Half Message 本身不删除，等文件过期自然清理）
+```
+
 ### 5.3 延迟消息（深度实现原理）
 
 #### 为什么只有固定级别？
@@ -666,6 +734,71 @@ if (status == ConsumeOrderlyStatus.SUSPEND_CURRENT_QUEUE_A_MOMENT) {
 
 **为什么不能发回 Broker？** 如果消息 A 消费失败被发回 Broker，消息 B 可能先被消费 → 顺序被打破。所以顺序消费失败时只能本地重试（阻塞当前 Queue 的后续消费）。
 
+#### 单条消息卡死导致整个 Queue 阻塞（重要场景）
+
+**默认行为**：顺序消费的 `maxReconsumeTimes = Integer.MAX_VALUE`（无限重试），`suspendCurrentQueueTimeMillis = 1000`（每次间隔 1s）。如果某条消息一直消费失败（如查上游单据报错），**该 Queue 永远卡住**，后续所有消息全部堆积。
+
+```
+Queue 0: [A] [B] [C] [D] [E] ...
+                ↑ B 消费失败（上游查询报错）
+B 重试第 1 次 → 失败 → suspend 1s
+B 重试第 2 次 → 失败 → suspend 1s
+B 重试第 N 次 → 失败 → ...
+→ C、D、E 全部在等 B → 整个 Queue 停滞
+```
+
+**解法 1：设置最大重试次数 + 业务层跳过**
+
+```java
+consumer.setMaxReconsumeTimes(5);
+
+@Override
+public ConsumeOrderlyStatus consumeMessage(List<MessageExt> msgs, 
+        ConsumeOrderlyContext context) {
+    for (MessageExt msg : msgs) {
+        if (msg.getReconsumeTimes() >= 5) {
+            // 超限 → 记日志 + 写异常表 + 跳过
+            log.error("顺序消费超限，跳过: msgId={}", msg.getMsgId());
+            saveToExceptionTable(msg);
+            return ConsumeOrderlyStatus.SUCCESS;  // 跳过，Queue 继续流动
+        }
+        try {
+            processOrder(msg);
+        } catch (Exception e) {
+            return ConsumeOrderlyStatus.SUSPEND_CURRENT_QUEUE_A_MOMENT;
+        }
+    }
+    return ConsumeOrderlyStatus.SUCCESS;
+}
+```
+
+**解法 2：区分暂时性故障 vs 确定性失败**
+
+| 类型 | 表现 | 处理 |
+|------|------|------|
+| **暂时性故障** | 超时、网络抖动、限流 | 重试（有次数上限） |
+| **确定性失败** | 单据不存在、参数非法、状态已终态 | 直接跳过 + 记录异常表 |
+
+确定性失败无论重试多少次都不会成功 → 应立即跳过，避免无意义阻塞。
+
+**解法 3：失败消息转异常 Topic**
+
+```java
+if (msg.getReconsumeTimes() >= maxRetry) {
+    producer.send(new Message("ORDER_EXCEPTION_TOPIC", msg.getBody()));
+    return ConsumeOrderlyStatus.SUCCESS;  // 主 Queue 继续
+}
+// 异常 Topic 由专门的 Consumer 处理（可并发消费，不需要有序）
+```
+
+**解法 4：监控 + 告警兜底**
+
+- consumerOffset 长时间不推进（>1min）→ 告警
+- 单条消息 `reconsumeTimes > 3` → 告警
+- 人工兜底：`resetOffsetByTimestamp` 跳过问题消息
+
+**本质 tradeoff**：有序性保证 ↔ 阻塞风险，跳过消息 = 局部打破有序，但保全了 Queue 的整体流动性。
+
 #### 全局有序（了解即可）
 
 ```
@@ -755,12 +888,115 @@ Key 数量均匀不代表消息量均匀：
 
 ---
 
-### 5.5 主从同步
+### 5.5 主从同步（HA 机制）
+
+#### 两种复制模式
 
 | 模式 | 实现 | 数据安全 | 性能 |
 |------|------|---------|------|
-| **同步复制** | Master 等 Slave 写完才返回 ACK | 高 | 低（多一次网络 RT） |
-| **异步复制**（默认） | Master 写完立即返回，Slave 异步追 | 中（切换可能丢） | 高 |
+| **同步复制**（SYNC_MASTER） | Master 等 Slave 写完才返回 ACK | 高（主从一致） | 低（多一次网络 RT） |
+| **异步复制**（ASYNC_MASTER，默认） | Master 写完立即返回，Slave 异步追 | 中（切换可能丢最近几百ms数据） | 高 |
+
+#### 底层通信架构（HAService）
+
+```
+Master 端                                 Slave 端
+┌─────────────────────┐                 ┌─────────────────────┐
+│ HAService           │                 │ HAService           │
+│  ├─ AcceptSocketService│◄── TCP ──►│  ├─ HAClient          │
+│  │  (监听 10912 端口)  │                │  │  (主动连 Master)    │
+│  └─ HAConnection[]    │                │  └─ 拉取 CommitLog    │
+│     ├─ ReadSocketService│              └─────────────────────┘
+│     └─ WriteSocketService│
+└─────────────────────┘
+```
+
+**关键端口**：Broker 的 `listenPort + 1`（默认 10911 + 1 = 10912），专门用于主从数据同步。
+
+#### 同步流程
+
+```mermaid
+sequenceDiagram
+    participant S as Slave (HAClient)
+    participant M as Master (HAConnection)
+
+    S->>M: ① TCP 连接到 Master:10912
+    S->>M: ② 上报自身 CommitLog 最大 offset（8 字节 Long）
+    Note over M: Master 收到 Slave 的 offset
+
+    alt Slave offset == 0（首次同步）
+        Note over M: 从 Master 当前 CommitLog 最大 offset 开始同步
+    else Slave offset > 0（断线重连）
+        Note over M: 从 Slave 上报的 offset 开始同步
+    end
+
+    loop 持续同步
+        M->>S: ③ 发送数据：[offset(8B) + bodySize(4B) + body(CommitLog原始字节)]
+        Note over S: ④ Slave 收到后直接追加写入本地 CommitLog
+        S->>M: ⑤ 上报新的最大 offset（ACK）
+    end
+```
+
+#### 同步复制时 Producer 如何等待
+
+```java
+// GroupCommitService — 同步复制等待机制
+// Producer 线程写完 Master CommitLog 后:
+public void handleHA(AppendMessageResult result, MessageExt msg) {
+    if (SYNC_MASTER == this.brokerConfig.getBrokerRole()) {
+        HAService service = this.brokerController.getMessageStore().getHaService();
+        // 等待 Slave ACK 到 Producer 写入的 offset
+        boolean flushOK = service.waitForSlaveAck(
+            result.getWroteOffset() + result.getWroteBytes(),
+            5000  // 超时 5s（haSlaveTimeout 配置）
+        );
+        if (!flushOK) {
+            // 超时：Slave 没在 5s 内确认 → 返回 SLAVE_NOT_AVAILABLE
+            // Producer 收到此状态后可选择重试
+        }
+    }
+}
+```
+
+**同步复制超时策略**：
+- 默认超时 `haSlaveFallbehindMax = 5s`
+- 超时后 Producer 收到 `SLAVE_NOT_AVAILABLE` 状态
+- 不会阻塞 Master 写入，只是通知 Producer "Slave 可能丢数据"
+
+#### Slave 追赶机制
+
+```
+Slave 落后场景:
+  Master CommitLog offset: 100GB
+  Slave  CommitLog offset: 95GB（落后 5GB）
+
+追赶过程:
+  Slave 上报 offset=95GB → Master 从 95GB 开始批量发送
+  每次传输: 32KB 一批（transferBatchSize 默认 32KB）
+  网络带宽 1Gbps 时: 追赶 5GB ≈ 40s
+```
+
+#### 主从切换
+
+**RocketMQ 4.x**：不支持自动主从切换，需人工介入（运维修改配置 + 重启）。
+
+**RocketMQ 4.5+ Dledger 模式**：基于 Raft 协议实现自动选举
+
+```
+DLedger 集群（3 节点）:
+  Node-1: Leader (Master)
+  Node-2: Follower (Slave)
+  Node-3: Follower (Slave)
+
+Leader 宕机 → Follower 触发选举 → 新 Leader 自动升级为 Master
+选举耗时: 通常 < 3s
+数据安全: Raft 多数派写入 → 已确认的消息不丢
+```
+
+| 方案 | 自动切换 | 数据一致性 | 性能开销 | 适用场景 |
+|------|---------|-----------|---------|---------|
+| 传统 Master-Slave | ❌ 人工 | 异步复制可能丢 | 低 | 对可用性要求不极端 |
+| Dledger (Raft) | ✅ 自动 | 多数派确认不丢 | 高（三副本 + Raft 日志） | 金融级可靠性 |
 
 ---
 
