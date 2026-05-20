@@ -554,8 +554,8 @@ function renderWordCloud(container) {
     color: function() {
       return colors[Math.floor(Math.random() * colors.length)];
     },
-    rotateRatio: 0.3,
-    rotationSteps: 3,
+    rotateRatio: 0,
+    rotationSteps: 0,
     backgroundColor: 'transparent',
     click: function(item) {
       // 点击词云关键词 → 填入搜索框并触发搜索
