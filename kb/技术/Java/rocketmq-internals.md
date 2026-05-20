@@ -666,6 +666,68 @@ if (status == ConsumeOrderlyStatus.SUSPEND_CURRENT_QUEUE_A_MOMENT) {
 - 设置 `maxReconsumeTimes`（如 5 次），超限进死信队列，避免永久阻塞
 - 只对需要有序的业务 Key 使用顺序消息，不要整个 Topic 都顺序
 
+#### 高基数 Key 场景分析（如 2000 万 Key / 1 亿消息）
+
+**结论：完全可以实现。** `hash(key) % queueCount` 只关心最终映射到哪个 Queue，不关心 Key 有多少种。
+
+##### 并发度瓶颈
+
+```
+2000 万 Key → hash % 16（默认 Queue 数）→ 每个 Queue 平均 125 万 Key
+1 亿条消息 → 每个 Queue 平均 625 万条
+消费端每个 Queue 串行 → 并发度 = Queue 数 = 16
+```
+
+| Queue 数 | 每 Queue 消息数 | 消费耗时(5ms/条) | 需 Consumer 数 |
+|---------|---------------|-----------------|--------------|
+| 16 | 625 万 | 8.7h | 16 |
+| 64 | 156 万 | 2.2h | 64 |
+| 256 | 39 万 | 32min | 256 |
+
+**实践中 64-256 个 Queue 是合理区间。** 过多会导致 ConsumeQueue 文件数爆炸 + 磁盘随机写增加。
+
+##### 热点倾斜问题
+
+Key 数量均匀不代表消息量均匀：
+
+```
+均匀: 2000万 Key 每个 5 条消息 → 每 Queue 均匀 → ✅
+倾斜: 1000 个头部 Key 产生 50% 消息 → 部分 Queue 堆积 → ⚠️
+```
+
+**解法**：
+- 监控每 Queue 堆积量（`brokerOffset - consumerOffset`）
+- 热点 Key 二次 hash：`hash(orderId + shardSuffix) % queueCount`（牺牲部分有序性换负载均衡）
+
+##### 扩缩容乱序
+
+```
+扩容前: hash("key_123") % 16 = 5   → Queue 5
+扩容后: hash("key_123") % 32 = 21  → Queue 21
+→ Queue 5 老消息未消费完 + Queue 21 新消息已开始 → 短暂乱序
+```
+
+**解法**：停写扩容（暂停 Producer → 消费完 → 扩容 → 恢复）或提前规划好 Queue 数。
+
+##### 存储压力
+
+```
+1 亿条 × 1KB/条 ≈ 100GB CommitLog（100 个文件）
+1 亿条 × 20B/条 ≈ 2GB ConsumeQueue
+结论：完全在 RocketMQ 设计承载范围内（单机 TB 级）
+```
+
+##### 工程 Checklist
+
+| 关注点 | 是否有问题 | 建议 |
+|--------|-----------|------|
+| Key 数量多 | ❌ 不是问题 | hash 只关心 Queue 数 |
+| 并发度 | ⚠️ Queue 数决定 | 设 64-256 |
+| 热点倾斜 | ⚠️ 取决于业务分布 | 监控 + 二次 hash |
+| 存储 | ❌ 不是问题 | 100GB 常规规模 |
+| 扩缩容 | ⚠️ 短暂乱序 | 提前规划 Queue 数 |
+| Consumer 数 | ⚠️ 不能超 Queue 数 | 多余的会闲置 |
+
 ---
 
 ### 5.5 主从同步
