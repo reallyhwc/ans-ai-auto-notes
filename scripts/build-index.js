@@ -107,10 +107,9 @@ function scanDir(dirPath, relPrefix) {
 // ============================================================
 function generateIndexMd(categories) {
   const lines = [];
-  const today = new Date().toISOString().slice(0, 10);
   lines.push('# 知识库索引');
   lines.push('');
-  lines.push('> 最后更新: ' + today + ' | 由 build-index.js 自动生成，勿手改');
+  lines.push('> 由 build-index.js 自动生成（基于 kb/ 目录扫描），勿手改');
   lines.push('');
 
   function writeNode(node, depth) {

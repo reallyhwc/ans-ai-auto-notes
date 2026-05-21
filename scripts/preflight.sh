@@ -48,12 +48,9 @@ if [ -f manifest.json ]; then
   fi
 fi
 
-# ── 4. INDEX.md 日期检查 ──
-INDEX_DATE=$(grep "最后更新" INDEX.md 2>/dev/null | grep -o "[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}")
-if [ "$INDEX_DATE" != "$TODAY" ] && [ -n "$INDEX_DATE" ]; then
-  echo ""
-  echo "⚠️  INDEX.md 日期 ($INDEX_DATE) 不是今天 ($TODAY)，可能需要运行 build-index.js"
-fi
+# ── 4. (已移除) INDEX.md 日期检查 ──
+# INDEX.md 不再包含动态日期（每次 SessionStart 都会改导致 git noise），
+# manifest.json 过期检查（上一项）已能覆盖"索引需重建"的场景。
 
 # ── 5. Memory 淘汰检查 (项目层文件 > 14 天未更新) ──
 echo ""

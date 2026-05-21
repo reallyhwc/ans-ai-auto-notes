@@ -18,10 +18,17 @@ echo ""
 echo "[2/7] Git 状态..."
 git status --short
 
-# [3/7] INDEX.md 日期
+# [3/7] INDEX.md 存在性 + 与磁盘一致性
 echo ""
-echo "[3/7] INDEX.md 日期..."
-grep "最后更新" INDEX.md
+echo "[3/7] INDEX.md 状态..."
+if [ ! -f INDEX.md ]; then
+  echo "  ❌ INDEX.md 不存在，请运行 node scripts/build-index.js"
+else
+  ENTRIES=$(grep -c "^\- \[" INDEX.md 2>/dev/null || echo 0)
+  MDS=$(find kb -name "*.md" -type f 2>/dev/null | wc -l | awk '{print $1}')
+  echo "  INDEX.md 条目: $ENTRIES, kb/ md 数: $MDS"
+  [ "$ENTRIES" != "$MDS" ] && echo "  ⚠️  数量不一致，建议跑 node scripts/build-index.js"
+fi
 
 # [4/7] overview.html 健康检查
 echo ""
