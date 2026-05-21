@@ -148,4 +148,206 @@ graph TD
 3. **跨语言** → gRPC + Protobuf（需自建治理或用 Istio）
 4. **极致性能** → Dubbo dubbo 协议 或 Kitex（Go）
 
+---
+
+## 2026-05-21 - Dubbo SPI 机制深度解析
+
+### JDK SPI 的两个致命问题
+
+1. **全量加载**：一次性实例化所有实现类，不管用不用
+2. **无法按名获取**：拿不到"我只要名叫 xxx 的那个实现"
+
+### Dubbo SPI 三种扩展方式
+
+```java
+// 1. 普通扩展：按名获取
+LoadBalance lb = ExtensionLoader.getExtensionLoader(LoadBalance.class)
+    .getExtension("random");
+
+// 2. 自适应扩展（@Adaptive）：运行时根据 URL 参数动态选择
+LoadBalance adaptive = ExtensionLoader.getExtensionLoader(LoadBalance.class)
+    .getAdaptiveExtension();
+
+// 3. 包装扩展（Wrapper）：AOP 装饰器链，自动层层包装
+```
+
+### SPI 配置文件（key=value 格式，支持按名获取）
+
+```
+# META-INF/dubbo/org.apache.dubbo.rpc.cluster.LoadBalance
+random=org.apache.dubbo.rpc.cluster.loadbalance.RandomLoadBalance
+roundrobin=org.apache.dubbo.rpc.cluster.loadbalance.RoundRobinLoadBalance
+leastactive=org.apache.dubbo.rpc.cluster.loadbalance.LeastActiveLoadBalance
+consistenthash=org.apache.dubbo.rpc.cluster.loadbalance.ConsistentHashLoadBalance
+```
+
+### @Adaptive 底层原理：运行时动态生成代理类
+
+```java
+@SPI("random")
+public interface LoadBalance {
+    @Adaptive("loadbalance")  // 从 URL 参数取值决定实现
+    <T> Invoker<T> select(List<Invoker<T>> invokers, URL url, Invocation invocation);
+}
+
+// Dubbo 运行时生成的代理类（伪代码）：
+public class LoadBalance$Adaptive implements LoadBalance {
+    public Invoker select(List invokers, URL url, Invocation invocation) {
+        String extName = url.getParameter("loadbalance", "random");
+        LoadBalance ext = ExtensionLoader.getExtensionLoader(LoadBalance.class)
+            .getExtension(extName);
+        return ext.select(invokers, url, invocation);
+    }
+}
+```
+
+核心思想：**延迟决策**——编码时不绑定具体实现，运行时根据 URL 参数动态路由。
+
+### Wrapper 机制（AOP 装饰器链）
+
+```java
+// 构造函数参数是扩展接口本身 → Dubbo 自动识别为 Wrapper
+public class ProtocolFilterWrapper implements Protocol {
+    private Protocol protocol;
+    public ProtocolFilterWrapper(Protocol protocol) { this.protocol = protocol; }
+    
+    public <T> Exporter<T> export(Invoker<T> invoker) {
+        invoker = buildFilterChain(invoker);  // 前置逻辑
+        return protocol.export(invoker);      // 委托真实实现
+    }
+}
+// 加载顺序：真实实现 → FilterWrapper 包装 → ListenerWrapper 再包装
+```
+
+---
+
+## 2026-05-21 - 负载均衡四大策略详解
+
+### RandomLoadBalance（加权随机，默认）
+
+```java
+// Provider A 权重 5，B 权重 3，C 权重 2，总 = 10
+// 随机数落在 [0,5)→A, [5,8)→B, [8,10)→C
+int offset = random.nextInt(totalWeight);
+for (Invoker invoker : invokers) {
+    offset -= getWeight(invoker);
+    if (offset < 0) return invoker;
+}
+```
+
+### RoundRobinLoadBalance（平滑加权轮询，Nginx 同款）
+
+```
+// A(5) B(3) C(2)，不是 AAAAABBBCC 这样粗暴
+// 而是 A B A C A B A B A C 平滑分布
+// 算法：每轮 current += weight，选最大，最大 -= totalWeight
+```
+
+### LeastActiveLoadBalance（最少活跃数）
+
+```java
+// 活跃数 = 已发出未返回的请求数
+// 调用前 active++，响应后 active--
+// 慢节点积压多 → active 高 → 被选概率低
+// 效果：自动"能者多劳"
+```
+
+### ConsistentHashLoadBalance（一致性哈希）
+
+```java
+// 相同参数永远打到同一个节点（如 userId=123 → 节点A）
+// 每个 Provider 160 个虚拟节点防倾斜
+TreeMap<Long, Invoker> ring = new TreeMap<>();
+// 请求 → hash(args) → 环上顺时针找最近节点
+```
+
+| 策略 | 适用场景 |
+|------|---------|
+| Random | 通用默认 |
+| RoundRobin | 灰度发布精确分流 |
+| LeastActive | 后端节点性能差异大 |
+| ConsistentHash | 有状态服务（本地缓存/Session） |
+
+---
+
+## 2026-05-21 - 代理类实现原理
+
+### 两种代理方式对比
+
+| 方式 | 原理 | 性能 |
+|------|------|------|
+| JDK 动态代理 | `Proxy.newProxyInstance()` + 反射 | 较慢 |
+| **Javassist**（默认） | 运行时生成字节码，直接调用 | 快 10-30% |
+
+### Javassist 生成的代理类（核心逻辑）
+
+```java
+public class OrderService$Proxy implements OrderService {
+    private InvokerInvocationHandler handler;
+    
+    public Order createOrder(OrderRequest request) {
+        Object[] args = new Object[]{request};
+        RpcInvocation invocation = new RpcInvocation(
+            "createOrder", new Class[]{OrderRequest.class}, args);
+        return (Order) handler.invoke(this, invocation);
+        // → Filter链 → Cluster → LoadBalance → 序列化 → Netty发送
+    }
+}
+```
+
+Javassist 无反射，编译后等价直接方法调用。
+
+---
+
+## 2026-05-21 - 网络通信 IO 设计
+
+### 线程模型：IO 线程 + 业务线程分离
+
+```
+Netty Boss Group(接受连接) → Worker Group(读写+编解码)
+                                    ↓ decode 完成
+                            Dubbo 业务线程池(执行 ServiceImpl)
+```
+
+核心设计：**IO 线程只做编解码，不执行业务逻辑**，防慢业务阻塞 IO。
+
+### 五种线程派发策略（Dispatcher）
+
+| 策略 | IO 线程 | 业务线程 | 适用 |
+|------|---------|---------|------|
+| **all**（默认） | 编解码 | 所有事件 | 通用 |
+| direct | 所有事件 | 不使用 | 心跳等简单操作 |
+| message | 连接/断开 | 请求/响应 | 大多数 |
+| execution | 响应/连接 | 仅请求 | Provider 推荐 |
+| connection | 请求/响应 | 连接/断开 | 连接管理重 |
+
+### 业务线程池类型
+
+| 类型 | 行为 | 适用 |
+|------|------|------|
+| **fixed**（默认） | 固定大小，满则拒绝 | 生产（可预测） |
+| cached | 无上限，空闲回收 | 开发测试 |
+| limited | 只增不减 | 防抖动 |
+| eager | 优先建线程而非放队列 | 低延迟 |
+
+### 线程池耗尽实战案例
+
+```java
+// 报错：Thread pool is EXHAUSTED!
+// 原因：200 线程都在等下游（DB 慢查询）
+// 解决：
+// 1. 加线程池（治标）: <dubbo:protocol threads="500" />
+// 2. 设超时（治本）: <dubbo:service timeout="3000" />
+// 3. 异步化（根治）: CompletableFuture<Order> future = service.createOrderAsync(req);
+```
+
+### 连接管理：单连接多路复用
+
+```java
+// 默认：Consumer 到每个 Provider 只建 1 条 TCP 长连接
+// 通过 requestId 多路复用（类似 HTTP/2 的流）
+// 心跳：60s 间隔，180s（3倍）超时判定，在 IO 线程处理
+// 高并发可加连接：<dubbo:reference connections="3" />
+```
+
 > 关联: ./distributed-transaction.md | ./rocketmq-internals.md
