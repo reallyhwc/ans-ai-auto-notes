@@ -161,7 +161,7 @@ CommitLog 文件结构（每条消息变长）:
 
 **为什么所有 Topic 混写？**
 
-→ **顺序写磁盘的吞吐量远高于随机写。** 即使 HDD，顺序写也能达到 600MB/s+，接近内存速度。如果按 Topic 分文件存，消息交替写入不同文件 → 磁头跳来跳去 → 随机写 → 性能崩塌。
+→ **顺序写磁盘的吞吐量远高于随机写。** HDD 顺序写实测约 150~250 MB/s（企业级 7200rpm 盘上限 ~250），而随机写仅 1~2 MB/s——两者相差百倍；SSD 顺序写可达 500 MB/s 以上。如果按 Topic 分文件存，消息交替写入不同文件 → 磁头跳来跳去（HDD）/ 多通道写放大（SSD）→ 随机写 → 性能崩塌。
 
 **单个 CommitLog 文件大小 = 1GB**，写满后创建新文件，文件名是该文件第一条消息的全局物理偏移量。
 
@@ -1095,7 +1095,7 @@ public void handleHA(AppendMessageResult result, MessageExt msg) {
         // 等待 Slave ACK 到 Producer 写入的 offset
         boolean flushOK = service.waitForSlaveAck(
             result.getWroteOffset() + result.getWroteBytes(),
-            5000  // 超时 5s（haSlaveTimeout 配置）
+            5000  // 超时 5s，由 syncFlushTimeout 配置（同步刷盘/同步复制共用）
         );
         if (!flushOK) {
             // 超时：Slave 没在 5s 内确认 → 返回 SLAVE_NOT_AVAILABLE
@@ -1106,9 +1106,11 @@ public void handleHA(AppendMessageResult result, MessageExt msg) {
 ```
 
 **同步复制超时策略**：
-- 默认超时 `haSlaveFallbehindMax = 5s`
+- 默认超时 `syncFlushTimeout = 5000ms`（同步刷盘/同步复制共用此参数）
 - 超时后 Producer 收到 `SLAVE_NOT_AVAILABLE` 状态
 - 不会阻塞 Master 写入，只是通知 Producer "Slave 可能丢数据"
+
+> ⚠️ 易混参数：`haSlaveFallbehindMax` 是另一回事——它是 **Slave 落后 Master 的字节阈值**（默认 256MB），用于 Broker 健康状态判断（落后超过此值则把自身标为 `SLAVE_NOT_AVAILABLE`），单位是字节不是秒，与同步等待无关。两个参数名长得像，是文档里最容易写错的地方之一。
 
 #### Slave 追赶机制
 
@@ -1151,11 +1153,11 @@ Leader 宕机 → Follower 触发选举 → 新 Leader 自动升级为 Master
 
 | 设计 | 解决什么问题 | 原理 |
 |------|-------------|------|
-| **CommitLog 顺序写** | 写吞吐量 | 顺序写磁盘 ≈ 内存速度（600MB/s+） |
+| **CommitLog 顺序写** | 写吞吐量 | HDD 顺序写 150~250 MB/s vs 随机写 1~2 MB/s（百倍差距）；SSD 顺序写 500 MB/s+ |
 | **mmap 内存映射** | 写延迟 | 写消息 = 写内存页，OS 异步刷盘 |
 | **ConsumeQueue 定长索引** | 读效率 | 20B 定长 → O(1) 定位 → 页缓存友好 |
 | **Page Cache** | 读消息免磁盘 IO | 最近写入的消息在内存中，Consumer 读 = 读内存 |
-| **零拷贝（mmap+write）** | 网络传输 | mmap 映射文件到用户态内存 → write 直接从 Page Cache 发送，减少一次内核态到用户态的数据拷贝（注：Kafka 用 sendfile，RocketMQ 用 mmap+write，因为 RocketMQ 有小块数据随机读需求） |
+| **mmap+write（"减少 1 次拷贝"，非真零拷贝）** | 网络传输 | mmap 把文件映射到用户态地址，省了 "page cache → 用户 buffer" 这次 CPU 拷贝；但 write 仍要把数据从用户态拷到 socket 内核 buffer。CPU 拷贝次数 2 → 1（对比 sendfile 的 0），但保留了"用户态可读写"的灵活性，适合 RocketMQ 这种需小块随机读 + 业务过滤的场景；Kafka 用 sendfile 是因为它的 broker 只做透传 |
 | **长轮询** | 实时性 vs CPU | 不是死循环拉，而是 hold 住等通知 |
 | **批量拉取** | 网络 RT 摊销 | 一次拉 32 条，减少网络往返 |
 

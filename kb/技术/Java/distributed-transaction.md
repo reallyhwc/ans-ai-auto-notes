@@ -416,13 +416,14 @@ graph TD
 
     Eventually --> Q2{涉及几个参与方?}
     Q2 -->|2个| MsgTable["本地消息表 /<br/>RocketMQ 事务消息"]
-    Q2 -->|3-5个| TCC["Seata TCC"]
-    Q2 -->|5个以上| Saga["Seata Saga"]
+    Q2 -->|3-5个| Q3{能否接受业务侵入?}
+    Q2 -->|5个以上| Saga["Seata Saga<br/>(长流程编排)"]
 
-    Eventually --> Q3{能否接受业务侵入?}
-    Q3 -->|不能| SeataAT2["Seata AT(自动undo_log)"]
-    Q3 -->|能| TCC2["TCC(性能最好)"]
+    Q3 -->|不能| SeataATe["Seata AT<br/>(自动 undo_log)"]
+    Q3 -->|能| TCC["Seata TCC<br/>(性能最好,需写 Try/Confirm/Cancel)"]
 ```
+
+> 决策维度说明：先按"参与方数量"分流（这是硬约束：2 个直接消息表，5+ 个必走 Saga 编排）；中间 3~5 个时再用"是否接受业务侵入"二次判断（不接受走 AT，接受走 TCC）。
 
 **极简版决策**：
 
