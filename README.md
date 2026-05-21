@@ -12,6 +12,26 @@
 
 **核心理念：不是你在记笔记，是 AI 在帮你记。**
 
+## 🚀 想搭建属于你自己的知识库？
+
+本仓库的 `main` 分支是作者的个人知识库（含 38+ 篇笔记）。如果你想**用同样的架构搭建自己的知识库**，请使用 [`quickStart` 分支](https://github.com/reallyhwc/ans-ai-auto-notes/tree/quickStart)：
+
+```bash
+# 1. Fork 本仓库，然后切到 quickStart 分支
+git clone git@github.com:<your-username>/ans-ai-auto-notes.git
+cd ans-ai-auto-notes
+git checkout quickStart
+
+# 2. 填写你的背景信息
+#    编辑 CLAUDE.md 中的"用户背景"
+#    编辑 memory/user-profile.md
+
+# 3. 开始聊天，知识库自动生长
+claude
+```
+
+`quickStart` 分支保留了完整的功能架构（可视化导览、词云、搜索、自动 commit、文件拆分、Hooks 体系等），剥离了所有个人笔记内容，是一个**开箱即用的模板/脚手架**。
+
 ## 特色
 
 - **自动提取**：AI 自动判断哪些内容值得记录，不等你提醒

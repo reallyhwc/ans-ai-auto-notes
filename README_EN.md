@@ -12,6 +12,26 @@ Every time you chat with Claude Code, the AI automatically classifies, summarize
 
 **Core Philosophy: You're not taking notes—AI is taking them for you.**
 
+## 🚀 Want to Build Your Own Knowledge Base?
+
+The `main` branch is the author's personal knowledge base (38+ notes). If you want to **build your own using the same architecture**, use the [`quickStart` branch](https://github.com/reallyhwc/ans-ai-auto-notes/tree/quickStart):
+
+```bash
+# 1. Fork this repo, then switch to quickStart branch
+git clone git@github.com:<your-username>/ans-ai-auto-notes.git
+cd ans-ai-auto-notes
+git checkout quickStart
+
+# 2. Fill in your background info
+#    Edit "User Background" section in CLAUDE.md
+#    Edit memory/user-profile.md
+
+# 3. Start chatting — knowledge base grows automatically
+claude
+```
+
+The `quickStart` branch retains the full feature architecture (visual overview, word cloud, search, auto-commit, file splitting, Hooks system, etc.) with all personal notes removed — a **ready-to-use template/scaffold**.
+
 ## Features
 
 - **Auto-Extraction**: AI automatically identifies what's worth recording, without waiting for your prompt
