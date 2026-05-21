@@ -1,17 +1,17 @@
 #!/bin/bash
-# Pre-push hook：push 前自动跑 test.sh，失败阻断推送
+# Pre-push hook：push 前自动跑 test.sh + mermaid 守恒检查，失败阻断推送
 #
 # 安装：bash scripts/install-hooks.sh （一次性）
 # 绕过：git push --no-verify （不推荐——破坏 gate 的意义）
 set -uo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
+# ── Gate 1: 测试 ──
 echo ""
 echo "[pre-push] 运行测试..."
 if bash test.sh > /tmp/pre-push-test.log 2>&1; then
   PASS_LINE=$(grep -E "^# tests [0-9]+|ℹ tests" /tmp/pre-push-test.log | tail -1)
   echo "[pre-push] ✓ 测试通过 ($PASS_LINE)"
-  exit 0
 else
   echo "[pre-push] ❌ 测试失败，阻断推送"
   echo ""
@@ -21,3 +21,59 @@ else
   echo "[pre-push] 修复后再 git push"
   exit 1
 fi
+
+# ── Gate 2: Mermaid 守恒（跨 push 范围统计 kb md 内 ```mermaid 块净增减）──
+# 触发场景：拆分/重组时图被无意丢弃，主文件 diff 显示"少了图"但 reviewer
+# 难判断是迁移还是丢失（参考 2026-05-21 拆分 agent-development-practice 的复盘）
+# 豁免：commit message 含 [mermaid-prune] 标记主动删图
+echo ""
+echo "[pre-push] Mermaid 守恒检查..."
+
+# stdin: <local-ref> <local-sha> <remote-ref> <remote-sha>
+# 当前实现：聚合所有待 push 的 ref，对每个 ref 计算 remote..local 范围的 mermaid 净变化
+NET_DELTA=0
+PRUNE_OK=0
+RANGE_DESC=""
+
+while read -r LOCAL_REF LOCAL_SHA REMOTE_REF REMOTE_SHA; do
+  # 删除分支推送 (local sha = 0)
+  [ "$LOCAL_SHA" = "0000000000000000000000000000000000000000" ] && continue
+
+  # 新分支首次推送 (remote sha = 0) → 与默认分支 base 对比
+  if [ "$REMOTE_SHA" = "0000000000000000000000000000000000000000" ]; then
+    BASE=$(git merge-base "$LOCAL_SHA" origin/main 2>/dev/null || git merge-base "$LOCAL_SHA" main 2>/dev/null || echo "")
+    [ -z "$BASE" ] && continue
+    RANGE="$BASE..$LOCAL_SHA"
+  else
+    RANGE="$REMOTE_SHA..$LOCAL_SHA"
+  fi
+  RANGE_DESC="$RANGE"
+
+  # 统计该范围内 kb/**/*.md 文件中 ```mermaid 块的 +/- 行差
+  DIFF=$(git diff "$RANGE" -- 'kb/**/*.md' 2>/dev/null)
+  ADDED=$(printf '%s\n' "$DIFF" | grep -c '^+```mermaid' || true)
+  REMOVED=$(printf '%s\n' "$DIFF" | grep -c '^-```mermaid' || true)
+  NET_DELTA=$((NET_DELTA + ADDED - REMOVED))
+
+  # 检测豁免标记：该范围内任一 commit message 含 [mermaid-prune]
+  if git log --format='%B' "$RANGE" 2>/dev/null | grep -q '\[mermaid-prune\]'; then
+    PRUNE_OK=1
+  fi
+done
+
+if [ "$NET_DELTA" -lt 0 ] && [ "$PRUNE_OK" -eq 0 ]; then
+  ABS_DELTA=$((-NET_DELTA))
+  echo "[pre-push] ⚠️  $RANGE_DESC 范围 mermaid 净减少 $ABS_DELTA 块"
+  echo "[pre-push]    如果是拆分/迁移到新文件 → 确认新文件已 git add"
+  echo "[pre-push]    如果是有意删除过时图 → 在某个 commit message 中加 [mermaid-prune] 豁免"
+  echo "[pre-push]    查看哪些块消失了:"
+  echo "[pre-push]      git diff $RANGE_DESC -- 'kb/**/*.md' | grep -E '^-\`\`\`mermaid|^---'"
+  echo "[pre-push] ❌ 阻断推送（如确认无误，重 commit 加 [mermaid-prune] 或 --no-verify）"
+  exit 1
+elif [ "$NET_DELTA" -lt 0 ] && [ "$PRUNE_OK" -eq 1 ]; then
+  echo "[pre-push] ℹ️  mermaid 净减少 $((-NET_DELTA)) 块（已通过 [mermaid-prune] 豁免）"
+else
+  echo "[pre-push] ✓ mermaid 守恒（净变化: $NET_DELTA 块）"
+fi
+
+exit 0
