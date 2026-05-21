@@ -169,7 +169,7 @@ tests/
 | 层级 | Hook | 脚本 | 检查内容 |
 |------|------|------|---------|
 | **约束层** | SessionStart | `scripts/preflight.sh` → `scripts/arch-lint.sh` | 10 项机械检查：frontmatter 完整性、元信息头规范、交叉链接（死链）、重复标题、磁盘 vs INDEX 一致性、大小写一致性（Linux 兼容）、行数限制（>1000 警告/>1500 错误）、memory frontmatter 格式、零 npm 依赖 enforce、脚本被引用一致性。外加 memory 过期（>14 天，frontmatter lastUpdated 优先，fallback 文件 mtime）、遗留未提交变更、manifest.json 过期、上次 session 摘要 |
-| **约束层** | Stop | `exit-check.sh` → `lint.sh` + `check-overview.js` + `session-log.sh` + `permission-audit.sh` + 未 push 检查 | markdown 格式（纯 bash awk 实现，零 npm 依赖）、git 状态、INDEX.md 与 kb/ 数量一致性、overview.html 健康（12 项含行数限制）、session 日志、权限审计、未 push 的 commit（>5 自动 push，**main/master 永不自动 push**）|
+| **约束层** | Stop | `exit-check.sh` → `lint.sh` + `check-overview.js` + `session-log.sh` + `permission-audit.sh` + 未 push 检查 | markdown 格式（纯 bash awk 实现，零 npm 依赖）、git 状态、INDEX.md 与 kb/ 数量一致性、overview.html 健康（12 项含行数限制）、session 日志、权限审计、未 push 的 commit（**>5 自动 push，所有分支统一规则**——单人知识库无需 main 保护，由 pre-push hook 的 test + mermaid 守恒兜底）|
 | **文档层** | — | `.claude/session-logs/` | 每日 session 日志存档（同日多次 Stop 累加 append） |
 | **文档层** | — | `memory/*.md` | 记忆文件优先用 frontmatter 内 `lastUpdated`（任意缩进），无此字段时 fallback 到文件 mtime，>14 天告警 |
 
@@ -180,7 +180,7 @@ tests/
 1. **文件格式检查**：运行 `./lint.sh` 做自动格式校验（heading、空行等），然后人工扫描本次变动的 md 文件，确认元信息头（`> 最后整理: YYYY-MM-DD | 来源: xxx`）符合规范。发现格式不一致的文件立即修正。
 2. **交叉链接检查**：确认新增/修改的文件有指向关联文件的双向链接（`[[./xxx]]` 或 `> 关联:` 格式）。
 3. **Memory 检查**：确认本次会话中用户的新偏好、新反馈、新项目上下文已写入 `memory/` 目录并更新 `MEMORY.md` 索引。
-4. **Git 检查**：确认所有变更已提交（AI 应在变更发生后立即 auto-commit，无需等退出），`git status` 显示 clean。同时检查是否有未 push 的 commit，如有则提醒用户 `git push`（main/master 分支需人工确认，不自动推）。
+4. **Git 检查**：确认所有变更已提交（AI 应在变更发生后立即 auto-commit，无需等退出），`git status` 显示 clean。同时检查是否有未 push 的 commit，如有则提醒用户 `git push`（>5 时 Stop hook 会自动 push，pre-push 的 test + mermaid 守恒兜底）。
 5. **INDEX 一致性**：若新增/删除了 md 文件，确认 `node scripts/build-index.js` 已跑过，INDEX.md 条目数 = kb/ 实际 md 数（INDEX.md 自身不再包含动态日期，避免 git noise）。
 
 上述检查全部通过后，向用户报告检查结果，确认可以安全退出。

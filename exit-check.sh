@@ -45,7 +45,9 @@ echo ""
 echo "[6/7] 权限审计..."
 bash scripts/permission-audit.sh
 
-# [7/7] 未 push 检查（>5 个自动 push，但 main/master 永不自动 push）
+# [7/7] 未 push 检查（>5 个自动 push，所有分支统一规则）
+# 设计取舍：单人知识库项目 + 永远在 main 工作，"main 保护"反而阻碍主流程
+# 安全网由 pre-push hook 兜底：bash test.sh 通过 + mermaid 守恒检查
 echo ""
 echo "[7/7] 未 push 检查..."
 
@@ -61,12 +63,6 @@ UNPUSHED_COUNT=$(git rev-list @{u}..HEAD --count 2>/dev/null || echo "0")
 # detached HEAD 跳过 push（无明确分支可推）
 if [ "$BRANCH" = "HEAD" ]; then
   echo "  ⚠️  当前为 detached HEAD，跳过 push 检查"
-elif [[ "$BRANCH" =~ ^(main|master)$ ]] && [ "$UNPUSHED_COUNT" -gt 0 ]; then
-  # 保护性分支永不自动 push（哪怕 >5 commits 也只提醒，由人工确认）
-  echo ""
-  echo "  🛡️  保护分支 $BRANCH 有 $UNPUSHED_COUNT 个未 push commit"
-  echo "  分支: $BRANCH → $REMOTE"
-  echo "  原则: main/master 不自动 push，请人工确认后手动: git push origin $BRANCH"
 elif [ "$UNPUSHED_COUNT" -gt 5 ]; then
   echo ""
   echo "  🚀 $UNPUSHED_COUNT 个 commit 未 push（>5），先跑测试..."
