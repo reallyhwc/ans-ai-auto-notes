@@ -4,13 +4,10 @@
 
 ## 实战 (4 篇)
 
+- [外部参考链接](kb/实战/external-references.md) — 优质外部技术文章、博客、演讲的链接汇总，附带核心要点
+- [GitHub 项目创建与同步](kb/实战/github-repo-setup.md) — SSH key 配置、仓库初始化、CI 基础
+- [知识管理工具对比](kb/实战/knowledge-management-tools.md) — Obsidian/Notion/本项目方案 对比分析
 - [overview.html 踩坑记录](kb/实战/overview-html-pitfalls.md) — overview.html 维护过程中踩过的坑 & 解决方案
-
-### 技巧 (3 篇)
-
-- [外部参考链接](kb/实战/技巧/external-references.md) — 优质外部技术文章、博客、演讲的链接汇总，附带核心要点
-- [GitHub 项目创建与同步](kb/实战/技巧/github-repo-setup.md) — SSH key 配置、仓库初始化、CI 基础
-- [知识管理工具对比](kb/实战/技巧/knowledge-management-tools.md) — Obsidian/Notion/本项目方案 对比分析
 
 ## 技术 (33 篇)
 

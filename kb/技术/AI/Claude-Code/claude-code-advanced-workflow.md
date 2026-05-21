@@ -14,7 +14,7 @@ description: "四阶段成熟度模型（裸聊→文件化→自动化→生态
 这篇文章讲的是：一个人如何用系统化思路，把 Claude Code 工作流从"能用"推到"高效"。
 
 > 关联: [Claude Code 架构](./claude-code-architecture.md) — 技术架构与内部机制 | [Harness Engineering](./harness-engineering.md) — 个人/团队级 Harness 体系 | [别学歪了：Harness 不是新概念](./harness-engineering.md#harness-不是新概念自检你的现有体系) — 同作者系列第三篇：机械约束/分离评估/工件化
-> 关联: [外部参考链接](../../../实战/技巧/external-references.md) — 本文原文链接
+> 关联: [外部参考链接](../../../实战/external-references.md) — 本文原文链接
 
 ---
 
@@ -404,4 +404,4 @@ flowchart TD
 > 关联: [Harness Engineering](./harness-engineering.md) — 三层模型与 Harness 六组件的对照
 > 关联: [Claude Code 架构](./claude-code-architecture.md) — Hook 系统技术细节
 > 关联: [AI Coding 团队治理](../AI-Coding/ai-coding-team-governance.md) — 团队级实践（美团案例）
-> 关联: [外部参考链接](../../../实战/技巧/external-references.md) — 本文原文链接
+> 关联: [外部参考链接](../../../实战/external-references.md) — 本文原文链接

@@ -5,6 +5,8 @@ description: "整体架构、REPL循环、工具链、Hooks、上下文管理、
 
 > 最后整理: 2026-05-06 | 来源: 对话 + 网络资料
 
+> 关联: [harness-engineering](./harness-engineering.md) — Claude Code 是 Harness Engineering 的代表性产品 | [claude-code-advanced-workflow](./claude-code-advanced-workflow.md) — 配置与工作流实战 | [llm-agent-mcp](../大模型/llm-agent-mcp.md) — Agent/MCP 协议原理
+
 ## 一图总览：Claude Code 架构全景图
 
 ```mermaid
