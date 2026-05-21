@@ -177,4 +177,9 @@ function main() {
   console.log('[build-index] 完成');
 }
 
-main();
+// 作为 CLI 执行时运行 main；作为模块 require 时仅导出函数（供单测）
+if (require.main === module) {
+  main();
+}
+
+module.exports = { parseFrontmatter, scanDir, countFiles, generateIndexMd };

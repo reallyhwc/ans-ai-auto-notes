@@ -47,68 +47,72 @@ function broadcastReload() {
   }
 }
 
-// 监听 kb/ 变化。md 增删 → 重建 manifest；其他变化 → 仅通知刷新
-try {
-  fs.watch(WATCH_DIR, { recursive: true }, (eventType, filename) => {
-    if (!filename || !filename.endsWith('.md')) return;
-    // 'rename' 事件覆盖新增/删除/重命名场景
-    const needsRebuild = eventType === 'rename';
-    scheduleReload(needsRebuild);
-  });
-} catch (err) {
-  console.warn('[watch] 启用失败，live reload 不可用:', err.message);
+/**
+ * resolveSafePath — 把请求路径解析为绝对路径，并验证未越出 ROOT
+ * 返回 { ok: true, path: <absolute> } 或 { ok: false } —— 仅暴露成败，不暴露细节
+ * （单测见 tests/server.test.js）
+ */
+function resolveSafePath(requestPath, rootDir) {
+  const filePath = path.join(rootDir, requestPath === '/' ? '/overview.html' : requestPath);
+  const resolved = path.resolve(filePath);
+  if (resolved !== rootDir && !resolved.startsWith(rootDir + path.sep)) {
+    return { ok: false };
+  }
+  return { ok: true, path: resolved };
 }
 
-const server = http.createServer((req, res) => {
-  const reqUrl = new URL(req.url, `http://${HOST}:${PORT}`);
-  const pathname = decodeURIComponent(reqUrl.pathname);
+/**
+ * createHandler — 创建 HTTP 请求处理函数（与 listen/watch 解耦，便于单测）
+ */
+function createHandler(rootDir) {
+  return function (req, res) {
+    const reqUrl = new URL(req.url, `http://${HOST}:${PORT}`);
+    const pathname = decodeURIComponent(reqUrl.pathname);
 
-  // SSE endpoint for live reload
-  if (pathname === '/__reload') {
-    res.writeHead(200, {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive',
-    });
-    res.write('\n');
-    clients.add(res);
-    req.on('close', () => clients.delete(res));
-    return;
-  }
-
-  // Static file serving
-  let filePath = path.join(ROOT, pathname === '/' ? '/overview.html' : pathname);
-
-  // Prevent directory traversal: resolved path 必须严格在 ROOT 内
-  const resolvedPath = path.resolve(filePath);
-  if (resolvedPath !== ROOT && !resolvedPath.startsWith(ROOT + path.sep)) {
-    res.writeHead(403);
-    res.end('Forbidden');
-    return;
-  }
-  filePath = resolvedPath;
-
-  fs.stat(filePath, (err, stats) => {
-    if (err || !stats.isFile()) {
-      if (!err && stats.isDirectory()) {
-        filePath = path.join(filePath, 'index.html');
-        fs.stat(filePath, (err2, stats2) => {
-          if (err2 || !stats2.isFile()) {
-            res.writeHead(404);
-            res.end('Not Found');
-            return;
-          }
-          serveFile(filePath, stats2, res);
-        });
-        return;
-      }
-      res.writeHead(404);
-      res.end('Not Found');
+    // SSE endpoint for live reload
+    if (pathname === '/__reload') {
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      });
+      res.write('\n');
+      clients.add(res);
+      req.on('close', () => clients.delete(res));
       return;
     }
-    serveFile(filePath, stats, res);
-  });
-});
+
+    // 解析 + 目录穿越保护
+    const safe = resolveSafePath(pathname, rootDir);
+    if (!safe.ok) {
+      res.writeHead(403);
+      res.end('Forbidden');
+      return;
+    }
+    let filePath = safe.path;
+
+    fs.stat(filePath, (err, stats) => {
+      if (err || !stats.isFile()) {
+        if (!err && stats.isDirectory()) {
+          filePath = path.join(filePath, 'index.html');
+          fs.stat(filePath, (err2, stats2) => {
+            if (err2 || !stats2.isFile()) {
+              res.writeHead(404);
+              res.end('Not Found');
+              return;
+            }
+            serveFile(filePath, stats2, res);
+          });
+          return;
+        }
+        res.writeHead(404);
+        res.end('Not Found');
+        return;
+      }
+      serveFile(filePath, stats, res);
+    });
+  };
+}
 
 function serveFile(filePath, stats, res) {
   const ext = path.extname(filePath).toLowerCase();
@@ -122,7 +126,25 @@ function serveFile(filePath, stats, res) {
   fs.createReadStream(filePath).pipe(res);
 }
 
-server.listen(PORT, HOST, () => {
-  console.log(`知识库服务器已启动 → http://${HOST}:${PORT}`);
-  console.log('实时监听 kb/ 目录变化，自动刷新浏览器');
-});
+// 作为 CLI 启动时才注册 fs.watch + listen；作为模块 require 时仅暴露函数（供单测）
+if (require.main === module) {
+  // 监听 kb/ 变化。md 增删 → 重建 manifest；其他变化 → 仅通知刷新
+  try {
+    fs.watch(WATCH_DIR, { recursive: true }, (eventType, filename) => {
+      if (!filename || !filename.endsWith('.md')) return;
+      // 'rename' 事件覆盖新增/删除/重命名场景
+      const needsRebuild = eventType === 'rename';
+      scheduleReload(needsRebuild);
+    });
+  } catch (err) {
+    console.warn('[watch] 启用失败，live reload 不可用:', err.message);
+  }
+
+  const server = http.createServer(createHandler(ROOT));
+  server.listen(PORT, HOST, () => {
+    console.log(`知识库服务器已启动 → http://${HOST}:${PORT}`);
+    console.log('实时监听 kb/ 目录变化，自动刷新浏览器');
+  });
+}
+
+module.exports = { resolveSafePath, createHandler };
