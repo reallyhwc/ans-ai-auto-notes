@@ -8,34 +8,39 @@ cd "$(dirname "$0")"
 echo ""
 echo "========== 退出检查 =========="
 
-# [1/6] 格式检查
+# [1/7] 格式检查
 echo ""
-echo "[1/6] 格式检查 (markdownlint)..."
+echo "[1/7] 格式检查 (markdownlint)..."
 bash lint.sh
 
-# [2/6] Git 状态
+# [2/7] Git 状态
 echo ""
-echo "[2/6] Git 状态..."
+echo "[2/7] Git 状态..."
 git status --short
 
-# [3/6] INDEX.md 日期
+# [3/7] INDEX.md 日期
 echo ""
-echo "[3/6] INDEX.md 日期..."
+echo "[3/7] INDEX.md 日期..."
 grep "最后更新" INDEX.md
 
-# [4/6] overview.html 健康检查
+# [4/7] overview.html 健康检查
 echo ""
-echo "[4/6] overview.html 健康检查..."
+echo "[4/7] overview.html 健康检查..."
 node scripts/check-overview.js
 
-# [5/6] 生成 session 日志
+# [5/7] 生成 session 日志
 echo ""
-echo "[5/6] 生成 session 日志..."
+echo "[5/7] 生成 session 日志..."
 bash scripts/session-log.sh
 
-# [6/6] 未 push 检查（>5 个自动 push）
+# [6/7] 权限审计
 echo ""
-echo "[6/6] 未 push 检查..."
+echo "[6/7] 权限审计..."
+bash scripts/permission-audit.sh
+
+# [7/7] 未 push 检查（>5 个自动 push，但 main/master 永不自动 push）
+echo ""
+echo "[7/7] 未 push 检查..."
 
 # 检查当前分支
 BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "HEAD")
@@ -49,6 +54,12 @@ UNPUSHED_COUNT=$(git rev-list @{u}..HEAD --count 2>/dev/null || echo "0")
 # detached HEAD 跳过 push（无明确分支可推）
 if [ "$BRANCH" = "HEAD" ]; then
   echo "  ⚠️  当前为 detached HEAD，跳过 push 检查"
+elif [[ "$BRANCH" =~ ^(main|master)$ ]] && [ "$UNPUSHED_COUNT" -gt 0 ]; then
+  # 保护性分支永不自动 push（哪怕 >5 commits 也只提醒，由人工确认）
+  echo ""
+  echo "  🛡️  保护分支 $BRANCH 有 $UNPUSHED_COUNT 个未 push commit"
+  echo "  分支: $BRANCH → $REMOTE"
+  echo "  原则: main/master 不自动 push，请人工确认后手动: git push origin $BRANCH"
 elif [ "$UNPUSHED_COUNT" -gt 5 ]; then
   echo ""
   echo "  🚀 $UNPUSHED_COUNT 个 commit 未 push（>5），先跑测试..."

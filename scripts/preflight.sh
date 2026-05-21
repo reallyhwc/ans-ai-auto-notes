@@ -59,18 +59,37 @@ fi
 echo ""
 echo "── Memory 淘汰检查 ──"
 # 项目目录路径转 Claude memory 目录名（/ → -）
+# 注意：projects/ 后接 - 开头的串（来源于路径开头的 /），中间必须保留 /
 PROJECT_DIR=$(pwd)
-MEMORY_DIR="$HOME/.claude/projects$(echo "$PROJECT_DIR" | tr '/' '-')/memory"
+MEMORY_DIR="$HOME/.claude/projects/$(echo "$PROJECT_DIR" | tr '/' '-')/memory"
 STALE_COUNT=0
-if [ -d "$MEMORY_DIR" ]; then
-  TWO_WEEKS_AGO=$(date -v-14d +%Y-%m-%d 2>/dev/null || date -d "14 days ago" +%Y-%m-%d 2>/dev/null || echo "")
-  if [ -n "$TWO_WEEKS_AGO" ]; then
+# 取数策略（按优先级）：
+#   1. frontmatter 内 lastUpdated 字段（任意缩进，兼容 metadata 块内嵌套）
+#   2. 文件 mtime（filesystem 是权威，老 memory 没字段时兜底）
+if [ ! -d "$MEMORY_DIR" ]; then
+  echo "  ⚠️  MEMORY_DIR 不存在: $MEMORY_DIR （跳过淘汰检查）"
+else
+  TWO_WEEKS_AGO_TS=$(date -v-14d +%s 2>/dev/null || date -d "14 days ago" +%s 2>/dev/null || echo "")
+  NOW_TS=$(date +%s)
+  if [ -n "$TWO_WEEKS_AGO_TS" ]; then
     for f in "$MEMORY_DIR"/*.md; do
+      [ -e "$f" ] || continue
       [ "$(basename "$f")" = "MEMORY.md" ] && continue
-      LAST_UP=$(grep "^lastUpdated:" "$f" 2>/dev/null | grep -o "[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}" | head -1)
-      if [ -n "$LAST_UP" ] && [[ "$LAST_UP" < "$TWO_WEEKS_AGO" ]]; then
-        DAYS_AGO=$(( ($(date -j -f "%Y-%m-%d" "$TODAY" +%s 2>/dev/null) - $(date -j -f "%Y-%m-%d" "$LAST_UP" +%s 2>/dev/null)) / 86400 ))
-        echo "  ⚠️  可能过期: $(basename "$f") — 上次更新 $LAST_UP (${DAYS_AGO}天前)"
+      # 1) 先看 frontmatter 内 lastUpdated（去锚定，允许任意缩进）
+      LAST_UP=$(grep "lastUpdated:" "$f" 2>/dev/null | grep -o "[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}" | head -1)
+      if [ -n "$LAST_UP" ]; then
+        LAST_TS=$(date -j -f "%Y-%m-%d" "$LAST_UP" +%s 2>/dev/null || date -d "$LAST_UP" +%s 2>/dev/null)
+        SOURCE="frontmatter"
+      else
+        # 2) fallback：文件 mtime
+        LAST_TS=$(stat -f "%m" "$f" 2>/dev/null || stat -c "%Y" "$f" 2>/dev/null)
+        LAST_UP=$(date -r "$LAST_TS" +%Y-%m-%d 2>/dev/null || date -d "@$LAST_TS" +%Y-%m-%d 2>/dev/null)
+        SOURCE="mtime"
+      fi
+      [ -z "$LAST_TS" ] && continue
+      if [ "$LAST_TS" -lt "$TWO_WEEKS_AGO_TS" ]; then
+        DAYS_AGO=$(( (NOW_TS - LAST_TS) / 86400 ))
+        echo "  ⚠️  可能过期: $(basename "$f") — $LAST_UP (${DAYS_AGO}天前, $SOURCE)"
         STALE_COUNT=$((STALE_COUNT + 1))
       fi
     done
