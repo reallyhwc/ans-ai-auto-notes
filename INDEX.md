@@ -12,7 +12,7 @@
 - [GitHub 项目创建与同步](kb/实战/技巧/github-repo-setup.md) — SSH key 配置、仓库初始化、CI 基础
 - [知识管理工具对比](kb/实战/技巧/knowledge-management-tools.md) — Obsidian/Notion/本项目方案 对比分析
 
-## 技术 (32 篇)
+## 技术 (33 篇)
 
 ### AI (26 篇)
 
@@ -57,11 +57,12 @@
 - [OpenAI Agents SDK 与多角色协作](kb/技术/AI/应用/openai-agents-sdk.md) — 多角色协作、Handoff机制、Agent编排、与Claude Code对比
 - [个人知识库接入 RAG 的规划](kb/技术/AI/应用/rag-for-personal-kb.md) — 何时需要 RAG、渐进式实现路径、架构全景
 
-### Java (4 篇)
+### Java (5 篇)
 
 - [分布式事务全景](kb/技术/Java/distributed-transaction.md) — Java 后端程序员视角下的分布式事务方案对比与选型实践
 - [热点账户高并发记账方案](kb/技术/Java/hot-account-solutions.md) — 单账户高并发写入场景下的 7 种解决方案对比、选型及异步一致性设计
 - [RocketMQ 底层实现原理](kb/技术/Java/rocketmq-internals.md) — 从 Producer 到 Broker 存储到 Consumer 的全链路底层机制
+- [Dubbo 与 RPC 框架横评](kb/技术/Java/rpc-dubbo-comparison.md) — Dubbo 核心架构、调用链路、3.x 新特性，以及 gRPC/OpenFeign/Thrift/Kitex 等主流 RPC 框架对比选型
 - [Spring AI](kb/技术/Java/spring-ai.md) — Spring 生态 LLM 集成，流式/非流式调用
 
 ### 计算机基础 (2 篇)
