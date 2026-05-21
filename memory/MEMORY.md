@@ -1,20 +1,15 @@
-- [User Profile](user-profile.md) — 28岁男性Java后端程序员，已婚未育，在读《我看见的世界》和《世界的逻辑》
-- [Project: Knowledge Base](project-knowledge-base.md) — AI对话驱动个人知识库，git+md双轨制，含拆分阈值
-- [Feedback: Note Style](feedback-note-style.md) — 笔记必须保留Demo示例，不能写成教科书定义
-- [Feedback: Exit Checklist](feedback-exit-checklist.md) — 用户说退出时必须先执行5项检查再结束
-- [Feedback: Auto Record Notes](feedback-auto-record-notes.md) — 每次QA后必须自动提取知识点追加到kb，不再等用户提醒
-- [Feedback: Overview.html Maintenance](feedback-overview-html-safety.md) — 架构已改为单一数据源：磁盘md文件(含frontmatter) -> build-index.js -> manifest.json -> overview.html fetch加载
-- [Project: Local Preview Architecture](project-local-preview-architecture.md) — serve.sh一键本地HTTP服务器，overview.html运行时fetch md，笔记记录从5-6步降至2-3步
-- [Feedback: New File Checklist](feedback-new-file-checklist.md) — 新增md文件只需写md文件（含frontmatter title+description），然后跑 build-index.js 即可
+- [User Profile](user-profile.md) — 用户背景模板（Fork 后请填入你自己的信息）
+- [Project: Knowledge Base](project-knowledge-base.md) — AI 对话驱动个人知识库模板，git+md 双轨制，含拆分阈值
+- [Feedback: Note Style](feedback-note-style.md) — 笔记必须保留 Demo 示例，不能写成教科书定义
+- [Feedback: Exit Checklist](feedback-exit-checklist.md) — 用户说退出时必须先执行 5 项检查再结束
+- [Feedback: Auto Record Notes](feedback-auto-record-notes.md) — 每次 QA 后必须自动提取知识点追加到 kb，不再等用户提醒
+- [Feedback: Overview.html Maintenance](feedback-overview-html-safety.md) — 单一数据源架构：md 文件(含 frontmatter) → build-index.js → manifest.json → overview.html fetch 加载
+- [Project: Local Preview Architecture](project-local-preview-architecture.md) — serve.sh 一键本地 HTTP 服务器，overview.html 运行时 fetch md
+- [Feedback: New File Checklist](feedback-new-file-checklist.md) — 新增 md 文件只需写 md 文件（含 frontmatter），然后跑 build-index.js 即可
 - [Feedback: Permissions Reminder](feedback_permissions_reminder.md) — 反复出现同类只读命令时，主动提醒用户更新 settings.local.json 白名单
-- [Feedback: Timeline Completeness](feedback_timeline_completeness.md) — timeline 要记录所有变更（包括 bug 修复、配置变更），不只记"大件事"
-- [Feedback: FILE_INDEX Traversal](feedback-file-index-traversal.md) — FILE_INDEX 结构升级时必须 grep 全扫所有遍历函数（renderCategories/buildFileIndex/searchKB/checkServer），不能"修完报错的就停"
-- [Feedback: Tree Depth CSS Limit](feedback-tree-depth-css-limit.md) — 菜单嵌套 JS 递归无限制，但 CSS 视觉极限 ~5 层（sidebar 200px / margin-left 16px 累加）
-- [Project: Cross-Environment Workflow](cross-environment-workflow.md) — 公司Mac(Aone Copilot+Claude Opus)和个人Mac(Claude Code CLI)双环境维护，git同步
-- [Feedback: Proactive Divergent Suggestions](feedback-proactive-divergent-suggestions.md) — 用户认可"小的发散性想法"作为知识库特色，AI应主动提议改进点而非被动执行指令
-- [Feedback: Auto-Commit After Changes](feedback-auto-commit.md) — AI必须在每批文件变更后立即git commit，不等提醒；退出时只提醒未push的commit
-- [Feedback: Zero NPM Deps](feedback-zero-npm-deps.md) — 项目坚持零 npm 依赖；优先 Node 内置 / vendoring / vanilla，引入 package.json 须用户确认（2026-05-18 两次确认）
-- [Feedback: Self-Review Before Next Task](feedback-self-review-before-next-task.md) — 多步任务完成后下个大动作前主动 self-review，不等用户提示（2026-05-18 review 出 4 个真实问题）
-- [Feedback: Physical Structure Over Metadata](feedback-physical-structure-over-metadata.md) — 分类决策默认选物理目录拆分，不要 frontmatter 字段/脚本逻辑做隐式分组
-- [Directory Structure Preference](目录结构偏好.md) — AI 子树 5 个并列子目录（基础/大模型/Claude-Code/AI-Coding/应用 五子目录），manifest+INDEX 由 build-index 自动生成不要手改
-- [Feedback: RAG Threshold Reminder](feedback-rag-threshold-reminder.md) — 知识库 >50 篇时提醒启动 BM25 索引，>80 篇时提醒启动 MCP Server（规划详见 kb/技术/AI/应用/rag-for-personal-kb.md）
+- [Feedback: FILE_INDEX Traversal](feedback-file-index-traversal.md) — FILE_INDEX 结构升级时必须 grep 全扫所有遍历函数
+- [Feedback: Tree Depth CSS Limit](feedback-tree-depth-css-limit.md) — 菜单嵌套 JS 递归无限制，但 CSS 视觉极限 ~5 层
+- [Feedback: Auto-Commit After Changes](feedback-auto-commit.md) — AI 必须在每批文件变更后立即 git commit，不等提醒
+- [Feedback: Zero NPM Deps](feedback-zero-npm-deps.md) — 项目坚持零 npm 依赖；优先 Node 内置 / vendoring / vanilla
+- [Feedback: Self-Review Before Next Task](feedback-self-review-before-next-task.md) — 多步任务完成后下个大动作前主动 self-review
+- [Feedback: Physical Structure Over Metadata](feedback-physical-structure-over-metadata.md) — 分类决策默认选物理目录拆分，不要隐式分组
