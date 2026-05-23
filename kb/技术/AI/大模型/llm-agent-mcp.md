@@ -455,6 +455,49 @@ sequenceDiagram
 
 **③ "把 @Tool 改成 @Bean FunctionCallback 不就跟方案 C 一样了吗？"**——技术上能做到同样的功能，但失去了 MCP 的核心价值：**标准化和跨平台复用**。`@Bean FunctionCallback` 是 Spring AI 专有 API，只有 Spring AI Agent 能用。`@Tool` 暴露为 MCP Server 后，任何支持 MCP 的客户端都能调用。
 
+### 1.8 编译时注册 vs 运行时发现：MCP 的快速扩展能力
+
+三种方案的差异归结为一个核心问题：**Agent 如何知道它有哪些工具可用？**
+
+```mermaid
+flowchart TB
+    subgraph A["方案 A/B：编译时注册"]
+        direction TB
+        A1["🔧 写工具方法<br/>（本地 Bean / HTTP 适配器）"] --> A2["📝 改 Agent 配置类<br/>（@Bean FunctionCallback）"]
+        A2 --> A3["🔨 重新编译 + 部署 Agent JAR"]
+        A3 --> A4["✅ 新工具可用"]
+    end
+
+    subgraph C["方案 C：运行时发现（MCP）"]
+        direction TB
+        C1["🔧 写 MCP Server<br/>（独立 JAR，不碰 Agent 代码）"] --> C2["📝 改 .mcp.json<br/>（添加一行 JSON）"]
+        C2 --> C3["🔄 Agent 下次 tools/list<br/>自动发现新工具（0 行代码修改）"]
+        C3 --> C4["✅ 新工具可用"]
+    end
+
+    A -.- D["❌ 加工具 = 改 Agent 代码 + 重新部署"]
+    C -.- E["✅ 加工具 = 写独立 Server + 改配置，Agent 代码 0 修改"]
+```
+
+**关键差异不在"能不能做到"，在"怎么做"：**
+
+| 维度 | 方案 A/B（编译时注册） | 方案 C（MCP 运行时发现） |
+|------|----------------------|------------------------|
+| 加一个新工具 | 改 Agent 源码 → 重新部署 | 写独立 MCP Server → 改 `.mcp.json` |
+| Agent 代码变更 | **必须修改** | **0 行修改** |
+| 工具提供方 | Agent 开发者自己 | **任何人都可以写**，只要实现 MCP 协议 |
+| 多团队协作 | 所有人往同一个 Agent 仓库提交 PR | 各团队独立维护自己的 MCP Server，Agent 只加一行 JSON |
+| 工具热加载 | ❌（需重启 Agent） | ✅ （下次 tools/list 自动发现，部分实现支持动态注册） |
+
+**具体场景对比：**
+
+> 场景：技术中台写了个 Agent，产品、运营、数据三个团队各需要接入自己的工具。
+
+- **方案 A/B**：三个团队各 clone Agent 仓库 → 各自加 `@Bean FunctionCallback` → 提 PR → 中台 review 合并 → 重新部署。每次加工具都是一次发版。代码仓库越来越臃肿，中台成为瓶颈。
+- **方案 C**：三个团队各写一个 MCP Server JAR（独立仓库，独立发版）→ 中台在 Agent 的 `.mcp.json` 里加三行 JSON。API 文档工具？产品团队自建，Agent 代码不动。数据查询工具？数据团队自建，Agent 代码不动。
+
+**这就是 MCP 的 "USB-C" 比喻的真正含义**：不是你家的设备有多好，而是插口是标准的——任何厂商生产的设备都能插。Agent 不需要预知所有工具的存在，它只需要理解 MCP 协议这一个"插口规格"。
+
 ---
 
 ## 2. MCP 协议
