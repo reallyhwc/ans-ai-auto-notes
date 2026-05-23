@@ -60,7 +60,7 @@ ans-ai-auto-notes/
 
 | 维度 | 阈值 | 说明 |
 |------|------|------|
-| **行数** | >1000 行关注，>1500 行必须拆 | 笔记含大量 demo/Mermaid/代码块，1000 行内为舒适区；由 `arch-lint.sh [7/8]` 与 `check-overview.js [12/12]` 自动检查（双 hook 覆盖 SessionStart 和 Stop） |
+| **行数** | >1000 行关注，>1500 行必须拆 | 笔记含大量 demo/Mermaid/代码块，1000 行内为舒适区；由 `arch-lint.sh [7/13]` 与 `check-overview.js [12/12]` 自动检查（双 hook 覆盖 SessionStart 和 Stop） |
 | **章节数** | > 7-8 个 `##` 级章节 | 章节过多说明主题开始发散 |
 | **主题凝聚度** | 覆盖 3+ 个可独立成文的方向 | 即使行数不达标，如果内容明显属于不同子领域也应拆分 |
 
@@ -69,6 +69,7 @@ ans-ai-auto-notes/
 **拆分后**：
 - 原文件保留最核心的内容 + 指向子文件的链接
 - 子文件各自成为一个独立主题
+- 原文件和子文件的章节编号均需重新整理，确保从 1 开始连续无跳号（参见「章节编号与标题 ID 规则」，由 `arch-lint.sh [13/13]` 兜底）
 - 更新 INDEX.md 和 overview.html
 
 ### 更新策略（混合模式）
@@ -76,6 +77,14 @@ ans-ai-auto-notes/
 1. **小知识点自动记录**：回答完问题后，自动提取知识点追加到对应主题文件，无需询问。
 2. **大改动主动提案**：涉及文件拆分、合并、重组、目录结构变更时，主动向用户提案，待确认后执行。
 3. **主动性在我这边**：不等用户下指令，我自行判断时机并提案。
+
+### 章节编号与标题 ID 规则（2026-05-23 审计新增）
+
+**规则背景**：一次审计发现两类静默 bug——(a) 内容拆分后 h2 编号跳号（1.7→3），浏览器目录断层；(b) buildToc 与 marked heading renderer 的 id 生成不一致，TOC 点击跳转失效。以下规则 + arch-lint.sh 检查 12/13 机械兜底。
+
+1. **章节编号连续性**：使用 `## N.` 样式的文件，h2 编号必须从 1（或 0）连续递增，不得跳号。内容拆分后若带走中间某个编号，剩余章节需重新编号。此项由 `arch-lint.sh [13/13]` 自动检查。
+2. **内联代码不影响 slugify**：`buildToc` 在 slugify 前必须 `stripInline`（去 backtick/粗体/斜体），与 marked 的 `token.text` 行为一致。此项由 `arch-lint.sh [12/13]` 契约检查 + `tests/lib.test.js` 测试兜底。
+3. **app.js 与 lib.js 标题 ID 同步**：`app.js` 的 marked heading renderer 必须用 `slugify(token.text)` 显式生成 id，不得依赖 marked 默认 id。修改 slugify 函数或 heading 渲染逻辑时，必须同时更新 lib.js 和 app.js 两边，并跑 `test.sh` 确认测试通过。
 
 ### 跨文件关联规则
 

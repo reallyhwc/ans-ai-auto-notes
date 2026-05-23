@@ -16,7 +16,7 @@ echo "========== KB 架构 Linter =========="
 
 # ── 检查 1: Frontmatter 完整性 ──
 echo ""
-echo "[1/11] Frontmatter 完整性 (title + description)..."
+echo "[1/13] Frontmatter 完整性 (title + description)..."
 
 while IFS= read -r -d '' file; do
   # 只检查 frontmatter 区域（前 20 行）
@@ -51,7 +51,7 @@ echo "  结果: $PASS 通过, $FAIL 失败"
 
 # ── 检查 2: 元信息头规范 ──
 echo ""
-echo "[2/11] 元信息头规范 (最后整理日期 + 来源)..."
+echo "[2/13] 元信息头规范 (最后整理日期 + 来源)..."
 
 while IFS= read -r -d '' file; do
   HAS_DATE=$(head -20 "$file" | grep -c "> 最后整理:" 2>/dev/null || echo 0)
@@ -65,7 +65,7 @@ echo "  结果: $WARN 个警告"
 
 # ── 检查 3: 交叉链接有效性 ──
 echo ""
-echo "[3/11] 交叉链接有效性..."
+echo "[3/13] 交叉链接有效性..."
 
 LINK_WARN=0
 while IFS= read -r -d '' file; do
@@ -94,7 +94,7 @@ echo "  结果: $LINK_WARN 个死链"
 
 # ── 检查 4: 重复标题 ──
 echo ""
-echo "[4/11] 重复标题检查..."
+echo "[4/13] 重复标题检查..."
 
 DUP_FOUND=0
 # 用进程替换收集所有 title，避免 pipeline 子 shell 计数丢失
@@ -115,7 +115,7 @@ fi
 
 # ── 检查 5: CLAUDE.md 目录结构与磁盘一致性 ──
 echo ""
-echo "[5/11] CLAUDE.md 知识库结构 vs 磁盘一致性..."
+echo "[5/13] CLAUDE.md 知识库结构 vs 磁盘一致性..."
 
 # 对比 kb/ 实际 md 数量和 INDEX.md 条目数量（不解析树形图，只做计数对比）
 KB_MD_COUNT=$(find kb -name "*.md" -type f 2>/dev/null | wc -l | awk '{print $1}')
@@ -131,7 +131,7 @@ fi
 # macOS 文件系统不区分大小写（HFS+/APFS 默认），但 Linux/GitHub 区分。
 # 此检查逐段比较链接路径中的每个目录/文件名与磁盘实际大小写是否一致。
 echo ""
-echo "[6/11] 链接路径大小写一致性（Linux 兼容）..."
+echo "[6/13] 链接路径大小写一致性（Linux 兼容）..."
 
 CASE_WARN=0
 while IFS= read -r -d '' file; do
@@ -187,7 +187,7 @@ echo "  结果: $CASE_WARN 个大小写不一致"
 # ── 检查 7: 文件行数超标 ──
 # 知识笔记含大量 demo/Mermaid/代码块，单文件控制在 1000 行以内，超 1500 报错
 echo ""
-echo "[7/11] 文件行数超标检查 (>1000 警告, >1500 错误)..."
+echo "[7/13] 文件行数超标检查 (>1000 警告, >1500 错误)..."
 
 LINE_WARN=0
 LINE_ERR=0
@@ -208,7 +208,7 @@ echo "  结果: $LINE_ERR 个超标错误, $LINE_WARN 个警告"
 # ── 检查 8: Memory 文件 frontmatter 格式 ──
 # 检查 memory/*.md 的 frontmatter --- 分隔符是否正确闭合
 echo ""
-echo "[8/11] Memory 文件 frontmatter 格式..."
+echo "[8/13] Memory 文件 frontmatter 格式..."
 
 MEM_WARN=0
 for file in memory/*.md; do
@@ -240,7 +240,7 @@ echo "  结果: $MEM_WARN 个格式问题"
 # 这是"代码层"的物理 enforce，文档约定不可靠（CLAUDE.md 写过但 lint.sh 曾用 npx 跑了几个月）
 # 误报豁免：行内追加 # ALLOW-DEP 注释即跳过
 echo ""
-echo "[9/11] 零 npm 依赖 enforce..."
+echo "[9/13] 零 npm 依赖 enforce..."
 
 DEPS_ISSUES=0
 
@@ -297,7 +297,7 @@ echo "  结果: $DEPS_ISSUES 个依赖问题"
 # 调用方白名单：exit-check.sh / preflight.sh / arch-lint.sh / install-hooks.sh /
 #               git-hooks/* / test.sh / serve.sh / .claude/settings*.json
 echo ""
-echo "[10/11] 脚本被引用一致性..."
+echo "[10/13] 脚本被引用一致性..."
 
 UNREF_COUNT=0
 REFERENCING=(
@@ -345,11 +345,11 @@ fi
 echo "  结果: $UNREF_COUNT 个孤儿脚本"
 
 # ── 检查 11: 文档 → 代码引用一致性 ──
-# 与 [10/11] 互补：[10/11] 是"代码 → 文档"（孤儿脚本），这一项是"文档 → 代码"
+# 与 [10/13] 互补：[10/13] 是"代码 → 文档"（孤儿脚本），这一项是"文档 → 代码"
 # CLAUDE.md / README.md 提到的脚本/文件路径必须真实存在
 # 否则属于"文档先进了一步"或"代码挪动后文档没跟上"——本次审计已发现 3 处类似漂移
 echo ""
-echo "[11/11] 文档 → 代码引用一致性..."
+echo "[11/13] 文档 → 代码引用一致性..."
 
 DOC_REF_FAIL=0
 for doc in CLAUDE.md README.md; do
@@ -372,8 +372,79 @@ if [ "$DOC_REF_FAIL" -eq 0 ]; then
 fi
 echo "  结果: $DOC_REF_FAIL 个文档引用问题"
 
+# ── 检查 12: 标题 ID 生成契约 ──
+# 该次审计产出：buildToc (lib.js) 和 heading renderer (app.js) 必须
+# 使用一致的 slugify + token.text 预处理策略生成标题 id，否则 TOC 点击跳转
+# 会静默失效（DOM id 与 TOC data-toc-id 不匹配）。
+echo ""
+echo "[12/13] 标题 ID 生成契约（lib.js buildToc ↔ app.js heading renderer）..."
+
+ID_CONTRACT_FAIL=0
+
+# 12a) lib.js 的 buildToc 必须在 slugify 前调用 stripInline
+if ! grep -q 'stripInline' scripts/lib.js 2>/dev/null; then
+  echo "  ❌ lib.js — buildToc 中缺少 stripInline 调用（内联代码会影响 slugify 输出）"
+  ID_CONTRACT_FAIL=$((ID_CONTRACT_FAIL + 1))
+  FAIL=$((FAIL + 1))
+fi
+
+# 12b) app.js 必须有显式 heading renderer 使用 slugify
+if ! grep -q "heading:" scripts/app.js 2>/dev/null; then
+  echo "  ❌ app.js — marked 配置中缺少显式 heading 渲染器（依赖默认 id 生成，无法保证一致性）"
+  ID_CONTRACT_FAIL=$((ID_CONTRACT_FAIL + 1))
+  FAIL=$((FAIL + 1))
+else
+  # 12c) heading renderer 内部必须调用 slugify
+  if ! awk '/heading:/{found=1} found && /slugify/{print; exit}' scripts/app.js 2>/dev/null | grep -q slugify; then
+    echo "  ❌ app.js — heading renderer 内部未调用 slugify()，id 可能不一致"
+    ID_CONTRACT_FAIL=$((ID_CONTRACT_FAIL + 1))
+    FAIL=$((FAIL + 1))
+  fi
+fi
+
+# 12d) lib.js 和 app.js 必须引用同一个 slugify 签名（都来自 lib.js 或相同实现）
+LIB_SLUGIFY=$(grep -o "function slugify([^)]*)" scripts/lib.js 2>/dev/null | head -1)
+if [ -z "$LIB_SLUGIFY" ]; then
+  echo "  ❌ lib.js — slugify 函数定义丢失"
+  ID_CONTRACT_FAIL=$((ID_CONTRACT_FAIL + 1))
+  FAIL=$((FAIL + 1))
+fi
+
+if [ "$ID_CONTRACT_FAIL" -eq 0 ]; then
+  echo "  ✓ 标题 ID 契约一致（stripInline + slugify in buildToc, heading renderer in app.js）"
+fi
+echo "  结果: $ID_CONTRACT_FAIL 个契约问题"
+
+# ── 检查 13: 章节编号连续性 ──
+# 对使用 "## N." 样式编号的 kb 文件，验证 h2 编号无跳号。
+# 如 mcp-protocol.md 从 2 开始（缺失 1），llm-agent-mcp.md 曾 1.7 后直接跳到 3。
+# 跳过不适用编号约定（日期/中文数字/§/Level N 等）的文件。
+echo ""
+echo "[13/13] 章节编号连续性（## N. 样式，无跳号）..."
+
+NUM_GAP_WARN=0
+while IFS= read -r -d '' file; do
+  # 提取所有 "## N." 形式的 h2 编号，输出为空格分隔的数字序列
+  NUMS=$(grep -E '^## [0-9]+\. ' "$file" 2>/dev/null | sed 's/^## //' | sed 's/\..*//' | sort -n | tr '\n' ' ')
+  if [ -z "$NUMS" ]; then
+    continue  # 不使用 ## N. 编号约定，跳过
+  fi
+
+  # 用 awk 检测跳号：第一项决定起始期望值（允许 0-based 或 1-based）
+  HAS_GAP=$(echo "$NUMS" | awk '{ expected=($1==0 ? 0 : 1); for (i=1; i<=NF; i++) { if ($i != expected) { print "gap"; exit } expected=$i+1 } }' 2>/dev/null)
+  if [ -n "$HAS_GAP" ]; then
+    echo "  ⚠️  $file — 章节编号不连续"
+    NUM_GAP_WARN=$((NUM_GAP_WARN + 1))
+  fi
+done < <(find kb -name "*.md" -print0 2>/dev/null)
+
+if [ "$NUM_GAP_WARN" -eq 0 ]; then
+  echo "  ✓ 所有 ## N. 编号连续无跳号"
+fi
+echo "  结果: $NUM_GAP_WARN 个编号不连续"
+
 # ── 汇总 ──
-ALL_WARN=$((WARN + LINK_WARN + CASE_WARN + LINE_WARN + MEM_WARN + DEPS_ISSUES + UNREF_COUNT + DOC_REF_FAIL))
+ALL_WARN=$((WARN + LINK_WARN + CASE_WARN + LINE_WARN + MEM_WARN + DEPS_ISSUES + UNREF_COUNT + DOC_REF_FAIL + ID_CONTRACT_FAIL + NUM_GAP_WARN))
 echo ""
 echo "========== Linter 汇总 =========="
 echo "  通过: $PASS 文件 | 错误: $FAIL | 警告: $ALL_WARN"
