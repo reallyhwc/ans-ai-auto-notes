@@ -251,6 +251,8 @@ Step 2: Agent 框架拦截
 
 ### 3.2 与 Dubbo 对比
 
+#### 基础对比
+
 | | Dubbo | MCP |
 |------|-------|-----|
 | 注册中心 | Zookeeper/Nacos | 无，JSON 文件静态配置 |
@@ -258,6 +260,71 @@ Step 2: Agent 框架拦截
 | 通信协议 | Dubbo 协议 (TCP) | JSON-RPC 2.0 (stdio/HTTP) |
 | 接口定义 | Java Interface | JSON Schema (inputSchema) |
 | 提供者 | Provider 注册到注册中心 | 子进程，由 Client 启动和管理 |
+
+#### 核心架构差异：发现与调用是否分离
+
+**Dubbo 的关键架构特征：注册中心和服务调用是分离的。**
+
+```
+Dubbo 架构（发现与调用分离）:
+  Consumer ──→ Nacos/ZK（服务发现: "orderService 在哪？"）
+  Consumer ──→ Provider（RPC 调用: 直连 TCP，不经过注册中心）
+
+MCP 架构（发现与调用一体）:
+  Client ──→ MCP Server（tools/list: "你能干什么？"）
+  Client ──→ 同一个 MCP Server（tools/call: "帮我干这个"）
+           ↑
+      发现和调用走同一个进程，同一条 stdio 管道
+```
+
+**这意味着：不能像 Dubbo 那样"通过 MCP 发现服务，但调用直连后端"。** MCP 协议没有注册中心角色，`tools/list` 和 `tools/call` 都由同一个 MCP Server 处理。
+
+**为什么 MCP 这样设计？**
+
+```mermaid
+flowchart LR
+    subgraph "Dubbo 模型"
+        CONS["Consumer"] -->|"1. 服务发现"| REG["Nacos 注册中心"]
+        CONS -->|"2. RPC 直连调用"| PROV["Provider"]
+        REG -.->|"注册"| PROV
+    end
+
+    subgraph "MCP 模型"
+        CLIENT["MCP Client"] -->|"1. tools/list"| SERVER["MCP Server"]
+        CLIENT -->|"2. tools/call"| SERVER
+    end
+
+    style REG fill:#ff9800,color:#fff
+    style SERVER fill:#4caf50,color:#fff
+```
+
+- Dubbo 场景：微服务之间互相调用，几十上百个节点，注册中心必须独立部署才能动态感知上下线
+- MCP 场景：AI Agent 调用工具，一个 Agent 连 1-5 个 MCP Server，配置文件管理够用。更关键的是，MCP 主力传输是 **stdio 管道**（父进程 ↔ 子进程），根本没有"网络地址"可以注册
+
+**如果硬要分离会怎样？** 变通方案：
+
+```
+Agent → MCP Server（仅做 tools/list，工具注册中心角色）
+Agent → 后端 REST API（实际调用，绕过 MCP 管道）
+```
+
+但这本质上就是「方案 B：WebClient HTTP」套了一个 MCP 壳做服务发现，失去了 MCP 标准化调用的价值。而且 Claude Code 等客户端不支持这种模式——它期望 `tools/call` 返回实际结果，不是返回一个 HTTP URL 再调一次。
+
+**如果 MCP 未来参考 Dubbo 架构（假设 MCP 2.0）：**
+
+```
+① 启动时:
+   Agent → MCP Registry（独立服务）→ "有 3 个 MCP Server 注册了"
+
+② 发现工具:
+   Agent → MCP Registry → tools/list → 返回所有注册 Server 的工具列表
+   返回: [{name:"queryOrders", server:"order-mcp", endpoint:"http://..."}]
+
+③ 调用工具:
+   Agent → order-mcp Server（直连 HTTP）→ 执行业务逻辑（不经过注册中心）
+```
+
+这会解决单点瓶颈（所有调用过 stdio 管道）、工具发现与执行耦合（无法独立扩缩）、多 Agent 共享工具配置等问题。但 MCP 目前没有这个规划——它的定位是"本机开发工具连接"，不是"企业级工具中台"。
 
 ### 3.3 写一个 Java MCP Server（伪代码）
 
@@ -446,7 +513,9 @@ public class McpServer {
 | 依赖 | 一个 starter | 零依赖 |
 | 适合 | 生产，多工具 | 学习原理，1-2 个工具 |
 
-### 3.7 和 Dubbo/Nacos 的对比
+### 3.7 和 Dubbo/Nacos 的对比（精简版）
+
+> 深度架构对比（发现与调用分离、为什么 MCP 不做注册中心、Dubbo 模型 vs MCP 模型）请见 [§3.2 与 Dubbo 对比](#32-与-dubbo-对比)。
 
 | | Dubbo + Nacos | MCP |
 |------|-------------|-----|
@@ -456,6 +525,7 @@ public class McpServer {
 | 接口定义 | Java Interface | JSON Schema（由 `@Tool` 注解推断） |
 | 提供者 | Provider 注册到 Nacos | 子进程，由 Client 管理生命周期 |
 | 调用方式 | RPC 代理，透明调用 | Agent 框架收到 LLM tool_call → 发 JSON-RPC |
+| **核心差异** | **发现与调用分离**（Consumer → 注册中心 → Provider 直连） | **发现与调用一体**（Client → 同一个 Server 处理 tools/list + tools/call） |
 
 ---
 
