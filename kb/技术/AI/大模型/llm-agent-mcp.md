@@ -5,7 +5,7 @@ description: "Agent循环、MCP协议、FC机制、Skill定位、五者关系"
 
 # Agent 与 MCP 生态
 
-> 最后整理: 2026-05-23 | 来源: 多轮对话（拆分重组 + FC vs MCP 深度对比 + Agent vs MCP 对比）
+> 最后整理: 2026-05-23 | 来源: 多轮对话（拆分重组 + FC vs MCP + Agent vs MCP + 三种执行通道全景对比）
 
 ## 一句话定位
 
@@ -251,9 +251,209 @@ Agent 的能力取决于它能调用什么工具：
 └──────────────────────────────────┘
 ```
 
----
+### 1.7 三种执行通道全景对比：FC 之下，三条路径通后端
 
-## 2. MCP 协议（已拆分为独立文件）
+**这是 Java 后端程序员最容易迷惑的地方——三种方式最终都"调到了后端服务"，但架构差异巨大。**
+
+先搞清一个核心事实：**FC 永远是 LLM 输出 tool_call JSON 这一步，三种方案共用同一个 FC。区别全在"FC 的 JSON 之后，执行通道怎么走"。**
+
+```mermaid
+flowchart TD
+    U["用户: '帮我查123的订单'"] --> LLM["LLM 大脑"]
+    LLM --> FC["FC 输出 JSON<br/>{name:'queryOrders', args:{userId:'123'}}"]
+    FC --> D{"执行通道？<br/>（三种方案的区别在这里！）"}
+    
+    D -->|"方案 A"| A["通道 A: 本地方法直调<br/>同 JVM<br/>orderService.queryByUser()"]
+    D -->|"方案 B"| B["通道 B: WebClient HTTP<br/>跨 JVM<br/>GET /api/orders?userId=123"]
+    D -->|"方案 C"| C["通道 C: MCP 协议<br/>跨进程<br/>JSON-RPC over stdio"]
+
+    A --> BACKEND_A["OrderService (同进程)"]
+    B --> BACKEND_B["后端微服务 (独立部署)"]
+    C --> MCP_S["MCP Server (子进程)"] --> BACKEND_C["OrderService (同进程或远程)"]
+
+    style FC fill:#ff9800,color:#fff
+    style A fill:#4caf50,color:#fff
+    style B fill:#2196f3,color:#fff
+    style C fill:#9c27b0,color:#fff
+```
+
+#### 方案 A：本地方法直调（同 JVM）
+
+工具定义和工具实现**在同一个代码仓库、同一个 JVM 进程里**。
+
+```java
+// Agent 项目内部，工具逻辑直接写在这里
+@Bean
+public List<FunctionCallback> tools() {
+    return List.of(
+        FunctionCallback.builder()
+            .function("queryOrders", (QueryOrdersReq req) ->
+                orderService.queryByUser(req.userId))  // ← 同 JVM 方法调用，纳秒级
+            .description("根据 userId 查询订单")
+            .inputType(QueryOrdersReq.class)
+            .build()
+    );
+}
+```
+
+```mermaid
+sequenceDiagram
+    participant U as 用户
+    participant LLM as DeepSeek (云端)
+    participant AG as Agent JVM
+    participant SVC as OrderService (同 JVM)
+    participant DB as 数据库
+
+    U->>LLM: "查 123 的订单"
+    LLM-->>AG: tool_call: queryOrders(userId=123)
+    AG->>SVC: orderService.queryByUser("123")<br/>← Java 方法调用，纳秒级
+    SVC->>DB: SELECT * FROM orders
+    DB-->>SVC: [Order#8842, Order#8843]
+    SVC-->>AG: List<Order>
+    AG->>LLM: 结果喂回
+    LLM-->>U: "你共有 2 个订单..."
+```
+
+**特点**：工具定义 + 实现都在 Agent 项目里。调用路径最短，但 Agent 和业务逻辑紧耦合。
+
+#### 方案 B：WebClient HTTP（Agent → REST API → 微服务）
+
+Agent 项目里**没有业务逻辑**，只有一个 HTTP 调用工具。业务逻辑在独立部署的后端微服务里。
+
+```java
+// Agent 侧：工具 = HTTP 代理
+@Bean
+public List<FunctionCallback> tools() {
+    return List.of(
+        FunctionCallback.builder()
+            .function("queryOrders", (QueryOrdersReq req) ->
+                webClient.get()
+                    .uri("http://order-service:8081/api/orders?userId={id}", req.userId)
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block())  // ← HTTP 网络调用，毫秒级
+            .description("根据 userId 查询订单")
+            .inputType(QueryOrdersReq.class)
+            .build()
+    );
+}
+
+// ===== 另一个项目：后端微服务（独立部署）=====
+@RestController
+class OrderController {
+    @Autowired private OrderService orderService;
+
+    @GetMapping("/api/orders")
+    public List<Order> queryOrders(@RequestParam String userId) {
+        return orderService.queryByUser(userId);  // ← 真正的业务逻辑在这里
+    }
+}
+```
+
+```mermaid
+sequenceDiagram
+    participant U as 用户
+    participant LLM as DeepSeek (云端)
+    participant AG as Agent JVM
+    participant GW as 后端微服务 JVM (独立部署)
+    participant DB as 数据库
+
+    U->>LLM: "查 123 的订单"
+    LLM-->>AG: tool_call: queryOrders(userId=123)
+    AG->>GW: HTTP GET /api/orders?userId=123<br/>← 网络调用，毫秒级
+    GW->>DB: SELECT * FROM orders
+    DB-->>GW: [Order#8842, Order#8843]
+    GW-->>AG: HTTP 200 + JSON
+    AG->>LLM: 结果喂回
+    LLM-->>U: "你共有 2 个订单..."
+```
+
+**特点**：Agent = 薄 HTTP 适配层。工具定义在 Agent 侧，实现在后端微服务侧。多一次网络跳转。后端微服务对 LLM 无感知——它就是普通 REST API。
+
+#### 方案 C：MCP 协议（Agent ↔ MCP Server ↔ 后端）
+
+Agent 和工具实现之间插入**标准化 MCP 层**。Agent 不直接知道后端的存在。
+
+```java
+// ===== Agent 侧：不写任何工具代码，只配连接 =====
+// .mcp.json:
+{"mcpServers": {"order-service": {"command": "java", "args": ["-jar", "order-mcp-server.jar"]}}}
+
+// ===== MCP Server（独立项目或同一项目另一个入口）=====
+@SpringBootApplication
+@EnableMcpServer  // ← 自动处理 stdin/stdout JSON-RPC
+public class McpServerApp { ... }
+
+@Component
+class OrderMcpTools {
+    @Autowired private OrderService orderService;
+
+    @Tool(description = "根据用户ID查询订单列表")
+    public List<Order> queryOrders(@ToolParam(description = "用户ID") String userId) {
+        return orderService.queryByUser(userId);
+    }
+}
+```
+
+```mermaid
+sequenceDiagram
+    participant U as 用户
+    participant LLM as DeepSeek (云端)
+    participant AG as Agent (Claude Code)
+    participant MCP as MCP Server (JVM 子进程)
+    participant SVC as OrderService
+    participant DB as 数据库
+
+    Note over AG,MCP: 启动: AG spawn MCP Server → tools/list → 发现 @Tool
+    
+    U->>LLM: "查 123 的订单"
+    LLM-->>AG: tool_call: queryOrders(userId=123)
+    AG->>MCP: stdin: {"jsonrpc":"2.0","method":"tools/call",<br/>"params":{"name":"queryOrders","arguments":{...}}}
+    MCP->>SVC: orderService.queryByUser("123")
+    SVC->>DB: SELECT
+    DB-->>SVC: [Order#8842, Order#8843]
+    SVC-->>MCP: List<Order>
+    MCP->>AG: stdout: {"jsonrpc":"2.0","result":{...}}
+    AG->>LLM: 结果喂回
+    LLM-->>U: "你共有 2 个订单..."
+```
+
+**特点**：工具定义 + 实现都在 MCP Server 侧。**运行时动态发现工具**（`tools/list`）。MCP Server 可被任何 MCP 兼容 Agent 复用。
+
+#### 三方案核心差异表
+
+| 维度 | A: 本地直调 | B: WebClient HTTP | C: MCP 协议 |
+|------|-----------|------------------|-----------|
+| **Agent 里有业务逻辑吗** | 有——Service 在 Agent 项目里 | 没有——Agent 只是 HTTP 代理 | 没有——Agent 只配 `.mcp.json` |
+| **进程数** | 1 个 JVM | ≥2 个 JVM | ≥2 个进程 |
+| **调用路径** | Agent → Service → DB | Agent → HTTP → 微服务 → DB | Agent → stdio → MCP Server → Service → DB |
+| **额外网络跳转** | 无 | 1 次 HTTP 调用 | 无（stdio 是管道） |
+| **工具发现** | 编译时 `@Bean` 注册 | 编译时 `@Bean` 注册 | **运行时 `tools/list` 动态发现** |
+| **工具定义在哪** | Agent 代码里 | Agent 代码里 | **MCP Server 代码里** |
+| **标准化** | 无——Spring AI 专有 API | 无——Spring AI 专有 API | **开放标准，任何 LLM 平台可用** |
+| **换 Agent 代价** | 高——重写 FunctionCallback | 高——重写 FunctionCallback | **零——MCP Server 不动，换连接配置** |
+| **后端需要改造吗** | 不需要（Agent 直调） | 不需要（已有 REST API 直接用） | 需要写 MCP Server 包装层 |
+
+#### 三个决策场景
+
+```
+场景 1: 你一个人从零写客服 Bot
+  → 方案 A（本地直调）。简单直接，一个 JAR 跑起来。
+
+场景 2: 公司已有 20 个微服务，老板说"加 AI 客服"
+  → 方案 B（WebClient HTTP）。后端 REST API 已有，Agent 只写 HTTP 适配。
+
+场景 3: 技术中台要给全公司 5 个部门提供 AI 工具（Claude Code / ChatGPT / 自建 Agent 都用）
+  → 方案 C（MCP）。写一套 MCP Server，到处接入。写一次，到处用。
+```
+
+#### 三个最容易混淆的点
+
+**① "三种方案不都在做 FC 吗？"**——对，FC 是 LLM 的固定动作，三种方案一样。区别全在 FC 的 JSON 之后的执行通道。
+
+**② "方案 B 和 C 不都是 Agent 调外部吗？"**——区别在标准化和发现机制。方案 B 的工具列表是编译时写死的（`@Bean`），方案 C 是运行时动态发现的（`tools/list`）。同一个 MCP Server，Claude Code / ChatGPT / Gemini 都能发现完全相同的工具列表。
+
+**③ "把 @Tool 改成 @Bean FunctionCallback 不就跟方案 C 一样了吗？"**——技术上能做到同样的功能，但失去了 MCP 的核心价值：**标准化和跨平台复用**。`@Bean FunctionCallback` 是 Spring AI 专有 API，只有 Spring AI Agent 能用。`@Tool` 暴露为 MCP Server 后，任何支持 MCP 的客户端都能调用。
 
 MCP（Model Context Protocol）是 AI 工具调用的标准化协议——写一次 Server，所有支持 MCP 的 LLM 都能用。
 
