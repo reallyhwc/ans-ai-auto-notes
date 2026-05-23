@@ -174,6 +174,11 @@ marked.use({
   gfm: true,
   breaks: true,
   renderer: {
+    // 显式控制 heading id，确保与 buildToc 的 slugify 输出一致（TOC 点击跳转依赖此 id）
+    heading: function(token) {
+      var id = slugify(token.text);
+      return '<h' + token.depth + ' id="' + id + '">' + this.parser.parseInline(token.tokens) + '</h' + token.depth + '>';
+    },
     code: function(token) {
       if (token.lang === 'mermaid') {
         return '<div class="mermaid">' + token.text + '</div>';

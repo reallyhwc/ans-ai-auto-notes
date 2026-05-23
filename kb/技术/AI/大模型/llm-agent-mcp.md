@@ -455,6 +455,10 @@ sequenceDiagram
 
 **③ "把 @Tool 改成 @Bean FunctionCallback 不就跟方案 C 一样了吗？"**——技术上能做到同样的功能，但失去了 MCP 的核心价值：**标准化和跨平台复用**。`@Bean FunctionCallback` 是 Spring AI 专有 API，只有 Spring AI Agent 能用。`@Tool` 暴露为 MCP Server 后，任何支持 MCP 的客户端都能调用。
 
+---
+
+## 2. MCP 协议
+
 MCP（Model Context Protocol）是 AI 工具调用的标准化协议——写一次 Server，所有支持 MCP 的 LLM 都能用。
 
 > **详细内容已拆分至：[MCP 协议：AI 界的 USB-C](./mcp-protocol.md)**
@@ -573,6 +577,10 @@ Claude Code 启动
 `@Tool` → 启动时反射扫描生成 JSON Schema → `tools/list` 返回给 LLM → LLM 决定调用 → 框架反射执行你标注的方法 → 结果序列化返回 → LLM 组织成自然语言。
 
 和 Spring MVC 的 `@GetMapping` → DispatcherServlet → 反射调用 Controller 是同一条思路，只是协议从 HTTP 换成了 JSON-RPC over stdio。
+
+---
+
+## 4. Claude Code 与 Superpowers
 
 ```
 L1: 基座模型 (Foundation Model)

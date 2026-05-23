@@ -62,6 +62,15 @@ test('buildToc: 跳过代码块内的 #', () => {
   assert.equal(toc[1].text, 'Also Real');
 });
 
+test('buildToc: 内联代码的 backtick 不影响 id（与 marked token.text 对齐）', () => {
+  const md = '## 3. `@Tool` 注解的内部机制';
+  const toc = buildToc(md);
+  assert.equal(toc.length, 1);
+  assert.equal(toc[0].text, '3. `@Tool` 注解的内部机制');
+  // id 应该用去掉 backtick 后的文本生成，匹配 marked 的 token.text
+  assert.equal(toc[0].id, slugify('3. @Tool 注解的内部机制'));
+});
+
 // ── resolveRelativeMd ──────────────────────────────────────
 const cur = 'kb/技术/AI/Claude-Code/harness-engineering.md';
 

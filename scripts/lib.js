@@ -46,8 +46,12 @@ function buildToc(markdown) {
     if (inCodeBlock) continue;
     var h2 = /^##\s(.+)/.exec(line);
     var h3 = /^###\s(.+)/.exec(line);
-    if (h2) toc.push({ level: 2, text: h2[1], id: slugify(h2[1]) });
-    else if (h3) toc.push({ level: 3, text: h3[1], id: slugify(h3[1]) });
+    // Strip inline code/bold/italic markers before slugify to match marked's token.text
+    function stripInline(str) {
+      return str.replace(/`([^`]+)`/g, '$1').replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1');
+    }
+    if (h2) toc.push({ level: 2, text: h2[1], id: slugify(stripInline(h2[1])) });
+    else if (h3) toc.push({ level: 3, text: h3[1], id: slugify(stripInline(h3[1])) });
   }
   return toc;
 }
