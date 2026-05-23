@@ -5,7 +5,7 @@ description: "四范式选型、Spring AI/LangChain/CrewAI 框架速查、学习
 
 # Agent 开发实战：选型、框架与思维转换
 
-> 最后整理: 2026-05-09（最近一次拆分: 2026-05-21）| 来源: 对话讨论
+> 最后整理: 2026-05-23 | 来源: 对话讨论（新增从零搭建 Agent + MCP Java 实战指南）
 
 > 关联: [agent-patterns](./agent-patterns.md) — 四范式深度展开（架构图 / Prompt 模板 / 典型案例）
 
@@ -327,8 +327,210 @@ Agent 开发者:     我提供能力 → LLM 决定顺序 → 我兜底业务规
 从"流程控制者"变成"能力提供者 + 兜底守门员"
 ```
 
-> 关联: [Agent 与 MCP](../大模型/llm-agent-mcp.md) — Agent 循环、MCP 协议、FC 机制的概念原理
+> 关联: [Agent 与 MCP](../大模型/llm-agent-mcp.md) — Agent 循环、MCP 协议、FC 机制、Agent vs MCP 的概念原理
+> 关联: [MCP 协议实现内幕](../大模型/mcp-protocol.md) — Spring AI MCP Server 完整代码与 @Tool 机制
 > 关联: [OpenAI Agents SDK](./openai-agents-sdk.md) — 多角色协作与 Handoff 机制
 > 关联: [LLM 智能客服实战](./llm-customer-service.md) — 从零搭建客服系统全流程
 > 关联: [LLM 应用设计](./llm-app-design.md) — 确定性 vs 概率性、上下文管理、幻觉防控
 > 关联: [Spring AI](../../Java/spring-ai.md) — Spring 生态的 LLM 集成
+
+---
+
+## 从零搭建 Agent + MCP（Java，Spring AI + DeepSeek）
+
+> 最后整理: 2026-05-23 | 来源: 对话讨论
+
+本章手把手从零搭建两个 demo：一个 Agent 应用（HTTP 对话服务）、一个 MCP Server（Claude Code 直连工具）。两者可以放在同一个 Spring Boot 项目里，共享 Service 层。
+
+### Demo A：Agent 应用（ReAct 范式，~80 行）
+
+**不需要 MCP，工具就是普通 Java 方法，直接注册给 Spring AI。**
+
+依赖（`pom.xml`）：
+
+```xml
+<dependency>
+    <groupId>org.springframework.ai</groupId>
+    <artifactId>spring-ai-starter-client-openai</artifactId>
+    <version>1.0.0</version>  <!-- DeepSeek 兼容 OpenAI 格式 -->
+</dependency>
+```
+
+配置文件（`application.yml`）：
+
+```yaml
+spring.ai.openai:
+  api-key: ${DEEPSEEK_API_KEY}
+  base-url: https://api.deepseek.com/v1
+  chat.options.model: deepseek-chat
+```
+
+核心代码：
+
+```java
+@SpringBootApplication
+public class AgentDemoApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(AgentDemoApplication.class, args);
+    }
+}
+
+@Configuration
+class ToolConfig {
+
+    // 模拟数据库
+    private static final Map<String, List<Map<String, String>>> DB = Map.of(
+        "123", List.of(
+            Map.of("orderId", "8842", "amount", "¥299", "status", "已发货"),
+            Map.of("orderId", "8843", "amount", "¥158", "status", "待付款")
+        )
+    );
+
+    @Bean
+    public List<FunctionCallback> tools() {
+        return List.of(
+            // 工具 1: 查订单
+            FunctionCallback.builder()
+                .function("queryOrders", (QueryOrdersReq req) -> {
+                    var orders = DB.getOrDefault(req.userId, List.of());
+                    return orders.isEmpty()
+                        ? "用户 " + req.userId + " 暂无订单"
+                        : orders.toString();
+                })
+                .description("根据 userId 查询订单列表")
+                .inputType(QueryOrdersReq.class)
+                .build(),
+
+            // 工具 2: 退款（模拟，实际场景扣库存/退款）
+            FunctionCallback.builder()
+                .function("refundOrder", (RefundReq req) ->
+                    "退款成功！订单 " + req.orderId + " 已退款 ¥" + req.amount
+                        + "，退款单号 RFND-" + System.currentTimeMillis())
+                .description("根据 orderId 发起退款，参数包含退款金额")
+                .inputType(RefundReq.class)
+                .build()
+        );
+    }
+
+    record QueryOrdersReq(String userId) {}
+    record RefundReq(String orderId, double amount) {}
+}
+
+@RestController
+class AgentController {
+
+    @Autowired
+    private ChatClient chatClient;
+
+    @Autowired
+    private List<FunctionCallback> tools;
+
+    @PostMapping("/chat")
+    public String chat(@RequestBody String userMessage) {
+        // Spring AI 自动 ReAct 循环：调 LLM → 收 tool_call → 执行 → 喂回 → ...
+        return chatClient.prompt()
+            .system("你是电商客服助手。用户问订单/退款时，必须先调用工具获取真实数据再回复。")
+            .user(userMessage)
+            .tools(tools)
+            .call()
+            .content();
+    }
+}
+```
+
+**启动后**：`curl -X POST http://localhost:8080/chat -d "帮我查用户123的订单"` → DeepSeek 自动推理 → 调 `queryOrders` → 返回结果。
+
+**时间估算**：Maven 配依赖 5 分钟 + 写代码 15 分钟 + 调试 10 分钟 = **约 30 分钟**。
+
+### Demo B：MCP Server（供 Claude Code 调用，~40 行）
+
+依赖（`pom.xml`）：
+
+```xml
+<dependency>
+    <groupId>org.springframework.ai</groupId>
+    <artifactId>spring-ai-starter-mcp-server-webmvc</artifactId>
+    <version>1.0.0</version>
+</dependency>
+```
+
+核心代码（和上面 Agent 应用放在同一个项目里）：
+
+```java
+@SpringBootApplication
+@EnableMcpServer  // ← 就这一个注解
+public class McpServerDemoApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(McpServerDemoApplication.class, args);
+    }
+}
+
+@Component
+class OrderMcpTools {
+
+    @Autowired
+    private OrderService orderService;  // ← 和 Agent 的 ToolConfig 共享同一套业务逻辑
+
+    @Tool(description = "根据用户ID查询订单列表，返回订单号、金额、状态")
+    public List<Order> queryOrders(
+        @ToolParam(description = "用户ID") String userId) {
+        return orderService.queryByUser(userId);
+    }
+
+    @Tool(description = "根据订单号发起退款，返回退款单号")
+    public String refundOrder(
+        @ToolParam(description = "订单号") String orderId,
+        @ToolParam(description = "退款金额(元)") double amount) {
+        return orderService.refund(orderId, amount);
+    }
+}
+```
+
+Claude Code 连接配置（项目根目录 `.mcp.json`）：
+
+```json
+{
+  "mcpServers": {
+    "order-service": {
+      "command": "java",
+      "args": ["-jar", "target/mcp-server-demo.jar"]
+    }
+  }
+}
+```
+
+**配好之后**：在 Claude Code 对话中直接说"帮我查 user_id=123 的订单"——Claude Code 自动发现你的 MCP Server，调用 `@Tool` 方法，结果直接返回。
+
+**时间估算**：加依赖 2 分钟 + 写代码 10 分钟 + `mvn package` + 配 `.mcp.json` 3 分钟 = **约 15-20 分钟**。
+
+### 两个 Demo 的关系
+
+```
+┌────────────────────────────────────────┐
+│  同一个 Spring Boot 项目               │
+│                                        │
+│  Demo A（Agent HTTP 服务）             │
+│  POST /chat → ChatClient → DeepSeek    │
+│             → FunctionCallback         │
+│             → 自然语言回复             │
+│                                        │
+│  Demo B（MCP Server）                  │
+│  stdin ← Claude Code                   │
+│       → @EnableMcpServer               │
+│       → @Tool 反射调用                 │
+│       → stdout 返回                    │
+│                                        │
+│  共享: OrderService（业务逻辑层）       │
+└────────────────────────────────────────┘
+```
+
+两者不冲突——Agent 服务通过 HTTP 服务外部用户，MCP Server 通过 stdio 服务 Claude Code。同一个 Service 层被两个入口共享。
+
+### 时间总览
+
+| Demo | 代码量 | 预估时间 | 说明 |
+|------|--------|---------|------|
+| MCP Server | ~40 行 | 15-20 分钟 | 最简单，立刻在 Claude Code 里看到效果 |
+| Agent 应用 | ~80 行 | 30-40 分钟 | 需处理 DeepSeek API + 调工具 |
+| 两个一起 | ~120 行 | 45-60 分钟 | 一个项目两个入口，共享 Service |
+| **推荐路线** | | | 先 MCP Server（快速正反馈）→ 再加 Agent HTTP 入口 |
