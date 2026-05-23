@@ -442,6 +442,134 @@ class AgentController {
 
 **时间估算**：Maven 配依赖 5 分钟 + 写代码 15 分钟 + 调试 10 分钟 = **约 30 分钟**。
 
+#### Spring AI 帮你做了哪些脏活？
+
+Demo A 的 Controller 只有一行 `chatClient.prompt()...call().content()`，看起来什么都没做。实际上 Spring AI 在这一行背后自动完成了三件重活：
+
+```mermaid
+sequenceDiagram
+    participant C as Controller
+    participant SA as Spring AI<br/>ChatClient
+    participant DS as DeepSeek API
+    participant FN as FunctionCallback<br/>(你的工具方法)
+
+    C->>SA: chatClient.call()
+    activate SA
+
+    Note over SA: ① 工具定义 → JSON Schema
+    SA->>SA: queryOrders(QueryOrdersReq)<br/>→ {"name":"queryOrders","parameters":<br/>{"userId":{"type":"string"}}}
+    SA->>DS: HTTP: messages + tools JSON
+
+    Note over DS: LLM 推理
+    DS-->>SA: finish_reason: "tool_calls"<br/>function: {name:"queryOrders",<br/>arguments:{"userId":"123"}}
+
+    Note over SA: ② tool_call 拦截 + 映射
+    SA->>SA: 按 name 匹配 FunctionCallback<br/>JSON → QueryOrdersReq 反序列化
+    SA->>FN: matched.call(argumentsJson)
+    FN-->>SA: "[{orderId:8842, amount:¥299,...}]"
+
+    Note over SA: ③ ReAct 循环：结果喂回 LLM
+    SA->>DS: HTTP: 原 messages + tool result
+    DS-->>SA: content: "用户123共有2个订单..."
+
+    deactivate SA
+    SA-->>C: .content() → 自然语言字符串
+```
+
+**三件脏活拆解**：
+
+| Spring AI 做了什么 | 你的代码里体现在哪 | 如果手写，需要写什么 |
+|---|---|---|
+| **① 工具定义 → JSON Schema** | `FunctionCallback.builder().inputType(QueryOrdersReq.class)` — 你只给了 Java 类型 | 反射读 record 字段 → 拼 JSON Schema → 塞进 `tools` 数组 |
+| **② tool_call → 函数调用** | 完全隐藏。你只写了 lambda 实现，没写任何"收到 FC 后怎么办"的代码 | 解析 HTTP 响应 → 检查 `finish_reason` → 提取 `function.name` → 按名字映射到具体方法 → JSON 反序列化参数 → 执行 |
+| **③ ReAct 循环（结果喂回）** | 完全隐藏。你只调了一次 `.call()` | 判断 LLM 返回的是文字还是 tool_call → 如果是 tool_call，执行后拼 tool message → 再次 HTTP 请求 → 可能还要循环（多轮 tool_call 场景） |
+
+#### 如果不用 Spring AI，手写是什么样？
+
+下面是用 **Java 11 HttpClient + Jackson** 手写同一个功能的完整代码（~200 行，对比 Spring AI 的一行 `.call()`）：
+
+```java
+// ============ 手写版：Agent FC 执行循环 ============
+
+// 1. 手动定义工具（没有 @Tool 注解，没有 inputType 自动推导）
+Map<String, Function<String, String>> tools = Map.of(
+    "queryOrders", (json) -> {
+        QueryOrdersReq req = parseJson(json, QueryOrdersReq.class);
+        var orders = DB.getOrDefault(req.userId, List.of());
+        return orders.isEmpty() ? "无订单" : orders.toString();
+    },
+    "refundOrder", (json) -> {
+        RefundReq req = parseJson(json, RefundReq.class);
+        return "退款成功！订单 " + req.orderId + " 已退款";
+    }
+);
+
+// 2. 手动把工具定义拼成 OpenAI 的 tools JSON（硬编码 JSON Schema）
+String toolsJson = """
+    [{
+      "type": "function",
+      "function": {
+        "name": "queryOrders",
+        "description": "根据 userId 查询订单列表",
+        "parameters": {
+          "type": "object",
+          "properties": {"userId": {"type": "string"}},
+          "required": ["userId"]
+        }
+      }
+    }]
+    """;
+
+// 3. 手动发 HTTP 请求 + 手动 ReAct 循环
+public String chat(String userMessage) throws Exception {
+    List<Map<String, Object>> messages = new ArrayList<>();
+    messages.add(Map.of("role", "system", "content", "你是电商客服助手..."));
+    messages.add(Map.of("role", "user", "content", userMessage));
+
+    // ReAct 循环——最多 10 轮防止死循环
+    for (int i = 0; i < 10; i++) {
+        String response = httpPost("https://api.deepseek.com/v1/chat/completions",
+            Map.of("model", "deepseek-chat", "messages", messages, "tools", toolsJson));
+
+        var choice = parseJson(response, Response.class).choices.get(0);
+
+        // 如果是 tool_calls（不是 stop），执行工具
+        if ("tool_calls".equals(choice.finish_reason)) {
+            var tc = choice.message.tool_calls.get(0);
+            String funcName = tc.function.name;      // "queryOrders"
+            String argsJson = tc.function.arguments;  // {"userId":"123"}
+
+            // 按名字找到工具 → 执行 → 拿结果
+            String toolResult = tools.get(funcName).apply(argsJson);
+
+            // 把 tool_call + tool_result 都拼进 messages
+            messages.add(Map.of("role", "assistant", "tool_calls",
+                List.of(Map.of("id", tc.id, "type", "function",
+                    "function", Map.of("name", funcName, "arguments", argsJson)))));
+            messages.add(Map.of("role", "tool", "tool_call_id", tc.id,
+                "content", toolResult));
+            // 继续循环——LLM 下一轮会基于 tool_result 生成最终回复
+        } else {
+            return choice.message.content;  // ← 这就是最后的人话回复
+        }
+    }
+    throw new RuntimeException("ReAct 循环超限");
+}
+```
+
+**对比一目了然**：
+
+```
+Spring AI:    chatClient.prompt().system(...).user(...).tools(tools).call().content()
+手写:         手动拼 tools JSON + 手动 HTTP 请求 + 手动解析 tool_calls
+              + 手动名字→函数映射 + 手动 JSON→参数反序列化
+              + 手动拼 tool message + 手动再次 HTTP + 手动 ReAct 循环控制
+
+代码量:       1 行 vs ~200 行
+```
+
+**Spring AI 的本质不是"帮你调 LLM"，而是"帮你管理 Agent 循环"**——它拦截 tool_call、执行映射、喂回结果、循环控制，这一整套逻辑你不需要写。
+
 ### Demo B：MCP Server（供 Claude Code 调用，~40 行）
 
 依赖（`pom.xml`）：
