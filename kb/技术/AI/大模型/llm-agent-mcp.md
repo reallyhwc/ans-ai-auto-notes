@@ -5,7 +5,7 @@ description: "Agent循环、MCP协议、FC机制、Skill定位、五者关系"
 
 # Agent 与 MCP 生态
 
-> 最后整理: 2026-05-18 | 来源: 多轮对话（拆分重组）
+> 最后整理: 2026-05-23 | 来源: 多轮对话（拆分重组 + FC vs MCP 深度对比）
 
 ## 一句话定位
 
@@ -97,10 +97,79 @@ LLM 最终输出:
   "北京今天晴天，气温 25°C，适合出门~"
 ```
 
-**Function Calling ≠ MCP：**
-- Function Calling = LLM 的能力（"如何决定调哪个工具"），是 LLM 输出的 JSON 格式
-- MCP = 工具提供协议（"如何暴露工具"），是工具被找到和调用的标准化方式
-- MCP 暴露的工具可以被 Function Calling 选中调用；但 Function Calling 也可以调非 MCP 的普通函数（你自己代码里 `@Bean` 注册的 Java 函数）
+### 1.5 Function Calling vs MCP：决策层 vs 执行层
+
+**Function Calling 和 MCP 是两个完全不同层次的东西，但因为都跟"工具调用"相关，经常被混在一起。**
+
+用一个查天气的例子看全程：
+
+```
+用户: "北京今天天气怎么样？"
+
+Step 1 — Function Calling（LLM 推理，GPU 上）
+  LLM 判断"用户需要天气数据，我应该调 getWeather 工具"
+  → 输出 JSON（不是文字回复）:
+  {
+    "tool_calls": [{
+      "function": {"name": "getWeather", "arguments": {"city": "北京"}}
+    }]
+  }
+  ← FC 的全部作用就到这里：输出一段结构化的"意图声明"。不执行任何东西。
+
+Step 2 — 框架执行（本机 CPU，FC 完全不参与）
+  框架收到 tool_call JSON → 找到 getWeather 的实现:
+  ├── 如果是本地 Bean:  orderService.queryByUser("123")    // Java 方法直调
+  ├── 如果是 HTTP API:  fetch("https://api.weather.com/")   // REST 调用
+  └── 如果是 MCP 工具:  拼 JSON-RPC → stdin → Java 子进程   // MCP 管道
+                        → {"jsonrpc":"2.0","method":"tools/call","params":{...}}
+                        → 子进程反射调用 @Tool 方法 → stdout 返回结果
+
+Step 3 — 结果喂回 LLM，组织成自然语言回复
+```
+
+**核心差异表**：
+
+| 维度 | Function Calling | MCP |
+|------|-----------------|-----|
+| **本质** | LLM 的输出能力（模型 fine-tune 出的行为） | 工具通信协议（JSON-RPC 2.0 over stdio/HTTP） |
+| **谁做的** | 模型推理（GPU 云端） | 框架/基础设施（本机进程） |
+| **产出** | 结构化 JSON（"意图声明"） | 真正的工具执行结果（查了数据库、调了 API） |
+| **标准化** | 各厂商格式不同——OpenAI 的 `tool_calls`、Anthropic 的 `tool_use`、Google 的 `functionCall` 字段名各不相同 | 跨厂商统一——写一次 MCP Server，所有支持 MCP 的 LLM 都能用 |
+| **工具发现** | 无——工具列表由框架注入 System Prompt（"你可以使用以下工具: ..."） | `tools/list` 动态发现——启动时扫描 `@Tool` 注解 → 自动生成 JSON Schema |
+| **生命周期** | 单次推理输出，无状态 | 管理工具全生命周期（spawn 子进程 → 发现 → 调用 → 进程保活/销毁） |
+| **依赖关系** | 可以调 MCP 工具，也可以调非 MCP 的本地函数/REST API | 暴露的工具可以被 FC 选中调用 |
+
+**用 Spring AI MCP 的完整链路感受两者分工**：
+
+```
+用户: "帮我查 user_id=123 的订单"
+
+① FC（LLM 推理）:
+   LLM 看到 System Prompt 里有 "queryOrders(userId)"
+   → 判断: 用户要查订单，该调 queryOrders
+   → 输出: {"tool_calls":[{"function":{"name":"queryOrders","arguments":{"userId":"123"}}}]}
+
+② MCP Client（Claude Code）:
+   收到 tool_call JSON → 拼 JSON-RPC:
+   {"jsonrpc":"2.0","method":"tools/call","id":42,
+    "params":{"name":"queryOrders","arguments":{"userId":"123"}}}
+
+③ MCP 管道（stdin/stdout）:
+   父进程 → 子进程 stdin → Java readLine() → 解析 → 反射调用
+
+④ MCP Server（你的 @Tool 方法）:
+   queryOrders("123") → orderService.queryByUser("123")
+   → SELECT * FROM orders WHERE user_id = '123'
+   → 返回 List<Order>
+
+⑤ MCP 管道（stdout）:
+   序列化结果 → stdout → 父进程收到 → 喂回 LLM
+
+⑥ LLM 组织自然语言:
+   "你共有 2 个订单: #8842 ¥299 已发货, #8843 ¥158 待付款"
+```
+
+**一句话：FC 是"决策"（我要调什么），MCP 是"执行"（怎么调通）。FC 告诉 Agent 该干什么，MCP 帮 Agent 真正干成。**
 
 Agent 的能力取决于它能调用什么工具：
 
