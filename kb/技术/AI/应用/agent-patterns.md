@@ -10,6 +10,7 @@ description: "意图路由 / ReAct / Plan-and-Execute / Multi-Agent 四种范式
 > 关联: [agent-development-practice](./agent-development-practice.md) — 范式选型、框架速查、学习路径、vs Java 对比（本文的导览页）
 > 关联: [llm-agent-mcp](../大模型/llm-agent-mcp.md) — Agent 循环、MCP 协议、FC 机制的概念原理
 > 关联: [openai-agents-sdk](./openai-agents-sdk.md) — Multi-Agent 范式的工业实现
+> 关联: [agent-ops-and-resilience](./agent-ops-and-resilience.md) — 运维/SRE 视角（可观测性、成本、熔断、开源方案）
 
 ---
 

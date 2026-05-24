@@ -45,9 +45,10 @@
 - [MCP 协议：AI 界的 USB-C](kb/技术/AI/大模型/mcp-protocol.md) — MCP协议实现内幕：JSON-RPC通信、stdio OS层细节、服务发现、Spring AI集成、@Tool注解机制
 - [多模态 LLM](kb/技术/AI/大模型/multimodal-llm.md) — LLM+视觉编码器，图片/音频输入理解
 
-#### 应用 (8 篇)
+#### 应用 (9 篇)
 
 - [Agent 开发实战：选型、框架与思维转换](kb/技术/AI/应用/agent-development-practice.md) — 四范式选型、Spring AI/LangChain/CrewAI 框架速查、学习路径四阶段、Agent vs 传统 Java 应用六维对比与工具设计要点
+- [Agent 应用运维与韧性：架构之外的生存指南](kb/技术/AI/应用/agent-ops-and-resilience.md) — 可观测性、成本、安全、评估、延迟、状态、数据隐私 8 维度对比传统 Java，流量激增多层限流与缓存，线上问题熔断与回放，工程实践与开源项目推荐
 - [Agent 四大设计范式（深度展开）](kb/技术/AI/应用/agent-patterns.md) — 意图路由 / ReAct / Plan-and-Execute / Multi-Agent 四种范式的架构图、Prompt 模板、典型案例与对比
 - [AI Agent 工具生态](kb/技术/AI/应用/ai-agent-tools.md) — Hermes Agent（养马）vs OpenClaw（养龙虾）对比、微信 AI 机器人接入
 - [AI 工作流平台：Dify、Coze 与 Claude Code 的组合](kb/技术/AI/应用/ai-workflow-platforms.md) — AI工作流平台(Dify/Coze)：低代码编排多模型协作、与Claude Code的关系和组合方式、MCP多模型调度方案

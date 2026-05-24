@@ -331,6 +331,7 @@ Agent 开发者:     我提供能力 → LLM 决定顺序 → 我兜底业务规
 > 关联: [MCP 协议实现内幕](../大模型/mcp-protocol.md) — Spring AI MCP Server 完整代码与 @Tool 机制
 > 关联: [OpenAI Agents SDK](./openai-agents-sdk.md) — 多角色协作与 Handoff 机制
 > 关联: [LLM 智能客服实战](./llm-customer-service.md) — 从零搭建客服系统全流程
+> 关联: [Agent 运维与韧性](./agent-ops-and-resilience.md) — 可观测性、成本、安全、熔断、开源方案（运维/SRE 视角）
 > 关联: [LLM 应用设计](./llm-app-design.md) — 确定性 vs 概率性、上下文管理、幻觉防控
 > 关联: [Spring AI](../../Java/spring-ai.md) — Spring 生态的 LLM 集成
 
