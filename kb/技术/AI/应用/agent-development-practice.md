@@ -662,3 +662,77 @@ Claude Code 连接配置（项目根目录 `.mcp.json`）：
 | Agent 应用 | ~80 行 | 30-40 分钟 | 需处理 DeepSeek API + 调工具 |
 | 两个一起 | ~120 行 | 45-60 分钟 | 一个项目两个入口，共享 Service |
 | **推荐路线** | | | 先 MCP Server（快速正反馈）→ 再加 Agent HTTP 入口 |
+
+---
+
+## 2026-05-24 - Function Call 本质 & MCP 调用 vs 硬编码调用 & MCP 为什么不是注册中心
+
+### Function Call 是 LLM 的一种输出格式
+
+LLM 的输出本质就是生成文本。Function Call 是一种**结构化文本输出**——LLM 不输出自然语言，而是输出 JSON 告诉外部程序"调用什么工具、参数是什么"。
+
+```
+正常回答：  "北京今天晴天，28°C"
+Function Call：{ "function": "get_weather", "arguments": { "city": "北京" } }
+```
+
+**LLM 不执行函数**，它只是"猜"出 JSON。真正的执行是 Agent 框架拿到 JSON 后调用。
+
+完整流程：用户提问 → Agent 把问题 + 工具定义发给 LLM → LLM 输出 Function Call JSON → Agent 执行工具 → 结果返回 LLM → LLM 生成最终回答。
+
+### 用 MCP 调用 vs 不用 MCP 调用
+
+**方式 A：硬编码工具（不用 MCP）**
+
+```java
+// 在 Agent 代码里手动定义每个工具
+List<Tool> tools = List.of(
+    Tool.builder().name("query_order")
+        .function(params -> orderService.queryById(params.get("orderId")))
+        .build()
+);
+```
+
+问题：每加一个工具就改 Agent 代码、重新部署。工具和 Agent 强耦合。
+
+**方式 B：MCP 动态发现**
+
+```java
+// 连接 MCP Server，自动获取工具列表
+McpClient client = McpClient.connect("stdio", "order-mcp-server");
+List<Tool> tools = client.listTools();  // 自动包含所有工具
+FunctionCallResult result = client.callTool("query_order", arguments);
+```
+
+核心对比：
+
+| 维度 | 硬编码 | MCP |
+|------|-------|-----|
+| 工具定义 | 写死在 Agent 中 | MCP Server 暴露，Agent 动态发现 |
+| 新增工具 | 改 Agent → 重新部署 | 只改 MCP Server → Agent 自动获取 |
+| 工具复用 | 仅当前 Agent | 任何 MCP Agent 可用 |
+| 协议 | 无标准 | JSON-RPC 2.0 |
+| 耦合度 | 强耦合 | 松耦合 |
+
+**一句话**：MCP 的价值不在于"能不能调用"，在于工具的标准化发现和热插拔。
+
+### MCP 为什么不是 Dubbo 式的注册中心？
+
+Dubbo 注册中心解决的是：**同一服务有 N 个实例，消费者需要知道地址做负载均衡。**
+
+MCP 的场景完全不同：
+
+| 维度 | Dubbo 注册中心 | MCP |
+|------|--------------|-----|
+| 发现什么 | 同一服务的 N 个实例地址 | 不同服务的工具能力列表 |
+| 通信方式 | TCP 长连接，需 IP:Port | stdio 管道，本地进程通信 |
+| 动态性 | 实例扩缩容，地址频繁变 | 工具列表稳定，配置文件写死 |
+| 负载均衡 | 核心需求 | 不需要，每种工具只有一个 Server |
+| 调用频率 | 每秒数千次 | 每次对话几次 |
+| 部署形态 | 分布式集群 | 本地进程（sidecar） |
+
+**本质区别**：Dubbo 是"同一种服务在哪里"（实例级发现），MCP 是"有哪些种工具可用"（能力级发现）。
+
+但 MCP 未来做企业级生态时，可能需要一种"工具市场/插件商店"——注册的是**工具能力**（name + description + schema）而非**实例地址**（IP:Port），更像 App Store 而非 Nacos。
+
+> 关联: [llm-agent-mcp](../../大模型/llm-agent-mcp.md) | [mcp-protocol](../../大模型/mcp-protocol.md)
