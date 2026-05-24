@@ -3,6 +3,7 @@
 - [Feedback: Note Style](feedback-note-style.md) — 笔记必须保留Demo示例，不能写成教科书定义
 - [Feedback: Exit Checklist](feedback-exit-checklist.md) — 用户说退出时必须先执行5项检查再结束
 - [Feedback: Auto Record Notes](feedback-auto-record-notes.md) — 每次QA后必须自动提取知识点追加到kb，不再等用户提醒
+- [Feedback: Auto Record Without Asking](feedback-auto-record-no-ask.md) — 知识内容直接写 kb 不问"要不要沉淀"，仅结构变更需提案
 - [Feedback: Overview.html Maintenance](feedback-overview-html-safety.md) — 架构已改为单一数据源：磁盘md文件(含frontmatter) -> build-index.js -> manifest.json -> overview.html fetch加载
 - [Project: Local Preview Architecture](project-local-preview-architecture.md) — serve.sh一键本地HTTP服务器，overview.html运行时fetch md，笔记记录从5-6步降至2-3步
 - [Feedback: New File Checklist](feedback-new-file-checklist.md) — 新增md文件只需写md文件（含frontmatter title+description），然后跑 build-index.js 即可
