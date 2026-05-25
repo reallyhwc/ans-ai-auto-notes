@@ -789,7 +789,7 @@ MCP 的场景完全不同：
 
 生产环境高并发（如 1000 用户并发客服），用 HTTP 模式 + 负载均衡，和普通微服务一样扩展。
 
-> 关联: [llm-agent-mcp](../../大模型/llm-agent-mcp.md) | [mcp-protocol](../../大模型/mcp-protocol.md)
+> 关联: [llm-agent-mcp](../大模型/llm-agent-mcp.md) | [mcp-protocol](../大模型/mcp-protocol.md)
 
 ---
 

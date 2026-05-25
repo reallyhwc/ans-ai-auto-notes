@@ -9,15 +9,16 @@
 - [知识管理工具对比](kb/实战/knowledge-management-tools.md) — Obsidian/Notion/本项目方案 对比分析
 - [overview.html 踩坑记录](kb/实战/overview-html-pitfalls.md) — overview.html 维护过程中踩过的坑 & 解决方案
 
-## 技术 (34 篇)
+## 技术 (35 篇)
 
-### AI (27 篇)
+### AI (28 篇)
 
-#### AI-Coding (3 篇)
+#### AI-Coding (4 篇)
 
 - [AI 编程的递进路径：从古法编程到多 Agent 协作](kb/技术/AI/AI-Coding/ai-coding-levels.md) — 从古法编程到多Agent协作6个Level、程序员未来展望
 - [AI Coding 团队治理：从个人提效到团队工程化](kb/技术/AI/AI-Coding/ai-coding-team-governance.md) — 美团31万行代码AI重构实践：人人对齐→人机对齐方法论、Pre-PR机制、零排期重构、高阶模型审查低阶模型
 - [AI 编程工具：CLI Agent 与 GUI IDE 全景对比](kb/技术/AI/AI-Coding/ai-coding-tools.md) — AI 编程工具全景对比：终端 Agent (Claude Code / Codex CLI / DeepSeek-TUI) 三方对比，以及 GUI IDE (Cursor / Windsurf) 的两种交互哲学
+- [AI 时代程序员进阶：从 Vibe Coding 到 Harness Engineering](kb/技术/AI/AI-Coding/vibe-to-harness-evolution.md) — 三阶段演进路径、工作方式对比、升级标志与实际例子
 
 #### Claude-Code (5 篇)
 
