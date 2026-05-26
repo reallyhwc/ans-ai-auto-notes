@@ -9,9 +9,9 @@
 - [知识管理工具对比](kb/实战/knowledge-management-tools.md) — Obsidian/Notion/本项目方案 对比分析
 - [overview.html 踩坑记录](kb/实战/overview-html-pitfalls.md) — overview.html 维护过程中踩过的坑 & 解决方案
 
-## 技术 (39 篇)
+## 技术 (40 篇)
 
-### AI (32 篇)
+### AI (33 篇)
 
 #### AI-Coding (4 篇)
 
@@ -45,7 +45,7 @@
 - [MCP 协议：AI 界的 USB-C](kb/技术/AI/大模型/mcp-protocol.md) — MCP协议实现内幕：JSON-RPC通信、stdio OS层细节、服务发现、Spring AI集成、@Tool注解机制
 - [多模态 LLM](kb/技术/AI/大模型/multimodal-llm.md) — LLM+视觉编码器，图片/音频输入理解
 
-#### 应用 (12 篇)
+#### 应用 (13 篇)
 
 - [Agent 开发实战：选型、框架与思维转换](kb/技术/AI/应用/agent-development-practice.md) — 四范式选型、Spring AI/LangChain/CrewAI 框架速查、学习路径四阶段、Agent vs 传统 Java 应用六维对比与工具设计要点
 - [Agent 应用运维与韧性：架构之外的生存指南](kb/技术/AI/应用/agent-ops-and-resilience.md) — 可观测性、成本、安全、评估、延迟、状态、数据隐私 8 维度对比传统 Java，流量激增多层限流与缓存，线上问题熔断与回放，工程实践与开源项目推荐
@@ -53,6 +53,7 @@
 - [主流 Agent 产品技术栈解剖：自研循环 vs 框架之争](kb/技术/AI/应用/agent-tech-stacks.md) — Claude Code/OpenClaw/Hermes Agent 技术栈拆解，为什么顶级 Agent 产品都不用 LangChain/Spring AI，Agent 循环对比（TAOR/Hub-and-Spoke/run_conversation）
 - [AI Agent 工具生态](kb/技术/AI/应用/ai-agent-tools.md) — Hermes Agent（养马）vs OpenClaw（养龙虾）对比、微信 AI 机器人接入
 - [AI 工作流平台：Dify、Coze 与 Claude Code 的组合](kb/技术/AI/应用/ai-workflow-platforms.md) — AI工作流平台(Dify/Coze)：低代码编排多模型协作、与Claude Code的关系和组合方式、MCP多模型调度方案
+- [跨语言 Agent + MCP 架构：Python Agent ↔ Java MCP 混合开发](kb/技术/AI/应用/cross-language-agent-mcp.md) — LangChain 双语言支持(Python/JS)、Python写Agent+Java写MCP的正反两种方案、MCP协议抹平语言差异的配置示例、推荐架构
 - [LangChain Agent 开发指南：是什么、怎么用、与 Spring AI 对比](kb/技术/AI/应用/langchain-agent-guide.md) — LangChain 核心六件套（Model I/O/Chain/Tool/Memory/Agent/Callbacks）、ReAct Agent 完整代码、与 Spring AI 架构对比、LangGraph 进化版、Java 开发者路线建议
 - [LLM 应用设计](kb/技术/AI/应用/llm-app-design.md) — 大模型应用 vs 传统 MySQL/ES 检索：确定性、Tool Calling、幻觉、上下文管理
 - [LLM 智能客服实战](kb/技术/AI/应用/llm-customer-service.md) — 从零到一搭建客服系统：知识整理→RAG→LLM接入→Tool Calling→防幻觉→部署运维
