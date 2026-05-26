@@ -327,6 +327,83 @@ Spec-Driven Development:
 - **SDD** = 有了目的地和地图（知道去哪，但路上还是可能摔）
 - **驾驭工程** = 给马套上缰绳 + 路两旁修护栏（既给了方向，又限制了偏离）
 
+---
+
+## 6. 实际例子：同一个需求三种做法
+
+需求：给系统加一个"导出 Excel"功能。
+
+### Vibe Coding 做法
+
+```
+"帮我写一个 Spring Boot 的 Excel 导出接口"
+→ AI 生成代码 → 粘贴进去 → 能跑就行
+→ 问题：大数据量 OOM？并发导出？权限校验？不知道，上线后再说
+```
+
+### Spec Coding 做法
+
+```
+1. 写规格：
+   - 支持最大 10 万行导出
+   - 超过 1 万行用异步任务 + 下载链接（不阻塞 HTTP 连接）
+   - 需要 EXPORT 权限
+   - 支持自定义列选择
+
+2. 写测试：
+   test_export_small_data_sync()
+   test_export_large_data_async()
+   test_export_without_permission_403()
+   test_export_custom_columns()
+
+3. 让 AI 实现 → 跑测试 → 不通过就修 → 全绿 → 完成
+   上线后不慌——有测试兜底
+```
+
+### Harness Engineering 做法
+
+```
+1. 设计通用的"功能开发 Skill"（一次设计，每次复用）：
+   - brainstorming → 确认方案
+   - writing-plans → 拆解任务
+   - TDD 开发 → 测试先行
+   - verification → 自动验证
+
+2. 设计 Memory：
+   - 记住"项目中导出功能统一用 EasyExcel"
+   - 记住"大数据量必须走异步（>1万行）"
+   - 记住"所有接口都要权限注解"
+   - 记住"文件存储统一用 MinIO，返回预签名 URL"
+
+3. 以后任何人说"加个导出功能"：
+   → Agent 自动按 Skill 流程走
+   → 自动从 Memory 中获取项目约束
+   → 产出质量一致，不依赖某个人的 prompt 能力
+   → 团队新人不需要老员工 pair，AI 按你设计的系统自动引导
+```
+
+---
+
+## 7. 升级路径
+
+```
+Level 1 → Level 2 (Vibe → Spec):
+  关键转变: 从"问 AI"到"约束 AI"
+  具体做法: 学会先写测试/规格，再让 AI 实现
+  标志: 你不再说"看起来差不多"，而是说"测试过了"
+
+Level 2 → Level 3 (Spec → Harness):
+  关键转变: 从"约束单次任务"到"设计持续系统"
+  具体做法: 把你的工作模式编码成 Skill/Memory/Workflow
+  标志: 你不再亲自做每件事，而是设计系统让 AI 自主完成
+        新人来了不需要你 pair，AI 按你设计的系统自动引导
+
+当前定位:
+  多数程序员在 Vibe → Spec 的过渡期
+  少数先行者在 Spec → Harness 的探索期
+  完全不碰 AI 编程的人正在被快速拉大差距
+```
+
 > 关联: [AI Coding 团队治理](./ai-coding-team-governance.md) — 美团 31 万行重构中的人机对齐 + Pre-PR 机制，是驾驭工程在团队规模上的实践
 > 关联: [Agent 运维与韧性](../应用/agent-ops-and-resilience.md) — 可观测性/成本/熔断/Prompt 金丝雀发布，是驾驭工程在 Agent 应用运维侧的细化
 > 关联: [Agent 开发实战](../应用/agent-development-practice.md) — 从编码视角看 Agent 开发范式
