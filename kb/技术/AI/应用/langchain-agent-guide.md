@@ -354,6 +354,100 @@ result = app.invoke({"messages": [HumanMessage("帮我退款")]})
 
 ---
 
+## 7. LangChain → LangGraph 学习路径
+
+### 推荐路线（总计约 2 周）
+
+```
+第 1 天: 跑通最小 LangChain
+  └→ pip install langchain langchain-openai
+  └→ 写一个 Chain: prompt | llm | output_parser
+  └→ 目标: 理解 LCEL (| 管道符) 的"声明式流水线"思维
+  └→ 产出: 一个能调 LLM 并解析输出的 Python 脚本
+
+第 2-3 天: 用 LangChain 写一个 ReAct Agent
+  └→ 定义 2-3 个 @tool
+  └→ create_react_agent + AgentExecutor
+  └→ verbose=True 观察每一步 Thought/Action/Observation
+  └→ 目标: 理解 Agent 循环的每一步在代码里对应什么
+  └→ 产出: 一个能多步推理的 Agent（比如查天气+发邮件）
+
+第 4-5 天: 深入 Agent 的可观测性
+  └→ 加 Callbacks，记录每次 LLM 调用和工具调用
+  └→ 集成 Langfuse（免费 tier），看 tracing 面板
+  └→ 目标: 理解"Agent 的每一步都可以追溯"
+  └→ 产出: Agent 的完整执行轨迹可视化
+
+第 6-8 天: 进入 LangGraph
+  └→ 核心概念: StateGraph, Node, Edge, Conditional Edge
+  └→ 把第 3 天的 ReAct Agent 用 LangGraph 重写
+  └→ 目标: 理解"Agent 流程不是线性循环，而是有向图"
+  └→ 产出: 一个带条件路由的 StateGraph Agent
+
+第 9-10 天: LangGraph 进阶
+  └→ Checkpoint 持久化（中断恢复）
+  └→ Human-in-the-loop（审批节点）
+  └→ 并行节点执行
+  └→ 目标: 理解生产级 Agent 的可靠性机制
+  └→ 产出: 一个带人工审批节点的 Agent
+```
+
+### 学习资源
+
+| 阶段 | 资源 | 时间 |
+|------|------|------|
+| **入门** | [LangChain 官方 Quickstart](https://python.langchain.com/docs/tutorials/) — 跟着敲一遍 | 2-3h |
+| **Agent** | [Build an Agent](https://python.langchain.com/docs/tutorials/agents/) — 官方 Agent 教程 | 2-3h |
+| **LangGraph** | [LangGraph Quick Start](https://langchain-ai.github.io/langgraph/tutorials/introduction/) — 图建模入门 | 3-4h |
+| **进阶** | [LangGraph Agent 示例库](https://github.com/langchain-ai/langgraph/tree/main/examples) | 持续 |
+
+### 动手第一步
+
+**不要从读文档开始。从跑代码开始。**
+
+```bash
+# 1. 创建虚拟环境
+python -m venv langchain-env && source langchain-env/bin/activate
+
+# 2. 安装
+pip install langchain langchain-openai langgraph
+
+# 3. 设置 API Key
+export DEEPSEEK_API_KEY="sk-xxx"
+
+# 4. 跑第一个 Chain（10 行代码）
+python -c "
+from langchain_openai import ChatOpenAI
+from langchain_core.prompts import ChatPromptTemplate
+
+llm = ChatOpenAI(model='deepseek-chat', base_url='https://api.deepseek.com/v1')
+prompt = ChatPromptTemplate.from_template('用一句话解释: {concept}')
+chain = prompt | llm
+print(chain.invoke({'concept': 'Java 的 GC'}).content)
+"
+
+# 如果这 10 行能跑通，你已经理解了 LangChain 最核心的抽象。
+# 接下来就是把 Chain 升级成 Agent（加 tool + 加循环）。
+```
+
+### 对照学习法
+
+用已有的 Spring AI 知识做锚点：
+
+| Spring AI 概念 | LangChain 对应 | 区别 |
+|---------------|---------------|------|
+| `ChatModel` 接口 | `BaseChatModel` | 几乎一样 |
+| `ChatClient` | `AgentExecutor` | LangChain 显式配置，Spring AI 自动 |
+| `FunctionCallback` | `@tool` 装饰器 | 几乎一样 |
+| `.call().content()` | `executor.invoke()` | LangChain 需显式组装 Agent |
+| `ChatMemoryAdvisor` | `ConversationBufferMemory` | LangChain 多种策略可选 |
+| Spring Boot AutoConfig | 无 | LangChain 全手动组装 |
+| `@Tool` (MCP) | langchain-mcp-adapters | 都支持 MCP |
+
+---
+
 > 关联: [agent-development-practice](./agent-development-practice.md) — Spring AI 路线的 Agent 开发（Java 原生）
+> 关联: [spring-ai-vs-langchain](./spring-ai-vs-langchain.md) — Spring AI vs LangChain 深度对比
 > 关联: [agent-patterns](./agent-patterns.md) — Agent 四大范式的架构展开
-> 关联: [agent-ops-and-resilience](./agent-ops-and-resilience.md) — Agent 应用运维与韧性（可观测性/成本/熔断）
+> 关联: [agent-tech-stacks](./agent-tech-stacks.md) — 主流 Agent 产品（Claude Code 等）技术栈解剖
+> 关联: [agent-ops-and-resilience](./agent-ops-and-resilience.md) — Agent 应用运维与韧性
