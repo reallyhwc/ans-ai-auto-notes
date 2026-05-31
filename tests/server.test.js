@@ -32,7 +32,7 @@ test('resolveSafePath: 根 / 重定向到 overview.html', () => {
 });
 
 test('resolveSafePath: 深层子目录路径放行', () => {
-  const r = resolveSafePath('/kb/技术/AI/llm.md', FAKE_ROOT);
+  const r = resolveSafePath('/kb/技术/AI/大模型/LLM（大语言模型）.md', FAKE_ROOT);
   assert.equal(r.ok, true);
   assert.ok(r.path.startsWith(FAKE_ROOT + path.sep));
 });

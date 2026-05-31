@@ -45,8 +45,8 @@ test('跨子目录 .md 链接 → 路径解析正确', () => {
 });
 
 test('深层 .md 链接 → 路径正确解析', () => {
-  const out = renderKbLink('../../../实战/技巧/external-references.md', CUR, 'Ref');
-  assert.match(out, /onclick="viewContent\('kb\/实战\/技巧\/external-references\.md'\)"/);
+  const out = renderKbLink('../../../实战/外部参考链接.md', CUR, 'Ref');
+  assert.match(out, /onclick="viewContent\('kb\/实战\/外部参考链接\.md'\)"/);
 });
 
 test('其他相对资源（.png/.svg） → 标准 <a>（不路由 SPA）', () => {

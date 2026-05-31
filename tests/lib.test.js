@@ -86,8 +86,8 @@ test('resolveRelativeMd: 跨子目录 ../X/Y.md', () => {
 });
 
 test('resolveRelativeMd: 多层向上 ../../../X/Y.md', () => {
-  const r = resolveRelativeMd(cur, '../../../实战/技巧/external-references.md');
-  assert.equal(r.path, 'kb/实战/技巧/external-references.md');
+  const r = resolveRelativeMd(cur, '../../../实战/外部参考链接.md');
+  assert.equal(r.path, 'kb/实战/外部参考链接.md');
 });
 
 test('resolveRelativeMd: 锚点保留', () => {
