@@ -68,26 +68,29 @@ echo ""
 echo "[3/13] 交叉链接有效性..."
 
 LINK_WARN=0
+DEAD_LINKS=$(mktemp)
+trap 'rm -f "$DEAD_LINKS"' EXIT
+
 while IFS= read -r -d '' file; do
   FILE_DIR=$(dirname "$file")
-  # 提取 markdown 链接 [text](./path.md) 格式
-  LINKS=$(grep -o '](\./[^)]*\.md)' "$file" 2>/dev/null | sed 's/](\.\///;s/)//')
-  # 提取 [[./path.md]] 格式
-  WIKI_LINKS=$(grep -o '\[\[\./[^]]*\.md\]\]' "$file" 2>/dev/null | sed 's/\[\[\.\///;s/\]\]//')
+  # Extract both ](./path.md) and [[./path.md]] links, one per line
+  {
+    grep -o '](\./[^)]*\.md)' "$file" 2>/dev/null | sed 's/](\.\///;s/)//'
+    grep -o '\[\[\./[^]]*\.md\]\]' "$file" 2>/dev/null | sed 's/\[\[\.\///;s/\]\]//'
+  } > "$DEAD_LINKS"
 
-  for link in $LINKS $WIKI_LINKS; do
-    # 处理相对路径
+  while IFS= read -r link; do
+    [ -z "$link" ] && continue
     TARGET="$FILE_DIR/$link"
     if [ ! -f "$TARGET" ]; then
-      # 再试去参数的版本
       TARGET_CLEAN=$(echo "$TARGET" | sed 's/#.*//')
       if [ ! -f "$TARGET_CLEAN" ]; then
         echo "  ⚠️  $file → 死链: ./$link"
         LINK_WARN=$((LINK_WARN + 1))
-        break  # 每个文件只报一次
+        break
       fi
     fi
-  done
+  done < "$DEAD_LINKS"
 done < <(find kb -name "*.md" -print0 2>/dev/null)
 
 echo "  结果: $LINK_WARN 个死链"

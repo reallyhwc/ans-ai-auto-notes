@@ -133,8 +133,10 @@ function main() {
 
       // Basename replacement for relative markdown links
       // Matches: ](any/path/old-filename.md) or ](any/path/old-filename.md#...)
+      // Sort by length descending to avoid substring conflicts (e.g. llm.md matching multimodal-llm.md)
       if (isKbFile || file.startsWith('timeline/')) {
-        for (const [oldName, newName] of Object.entries(basenameMap)) {
+        const sorted = Object.entries(basenameMap).sort((a, b) => b[0].length - a[0].length);
+        for (const [oldName, newName] of sorted) {
           const esc = escapeRegex(oldName);
           const regexStr = '\\]\\(' + '[^)]*?' + esc + '[)#]';
           const regex = new RegExp(regexStr, 'g');

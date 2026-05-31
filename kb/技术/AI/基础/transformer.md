@@ -7,7 +7,7 @@ description: "自注意力机制，现代大模型底座"
 
 > 最后整理: 2026-05-04 | 来源: 多轮对话
 
-> 关联: [我看见的世界 — 李飞飞](../../../读书笔记/我看见的世界.md) — 阅读上下文与历史脉络
+> 关联: [我看见的世界 — 李飞飞](../../../读书笔记/我看见的世界 — 李飞飞.md) — 阅读上下文与历史脉络
 
 ## 一句话定位
 
@@ -296,4 +296,4 @@ Transformer: O(n²) 计算量，但所有步同时算 → 1 步并行
 | 架构复杂度 | 卷积+池化+全连接 | 单递归单元 | Attention+FFN 重复堆 |
 | 代表模型 | ResNet, AlexNet | LSTM 机器翻译 | GPT-4, Claude, BERT |
 
-> 延伸: [llm](../大模型/llm.md) — Transformer Decoder 如何堆成 LLM | [llm-prompt-rag](../大模型/llm-prompt-rag.md) — 如何使用大模型 | [llm-agent-mcp](../大模型/llm-agent-mcp.md) — Agent 与工具生态
+> 延伸: [llm](../大模型/LLM（大语言模型）.md) — Transformer Decoder 如何堆成 LLM | [llm-prompt-rag](../大模型/Prompt 与 RAG.md) — 如何使用大模型 | [llm-agent-mcp](../大模型/Agent 与 MCP.md) — Agent 与工具生态

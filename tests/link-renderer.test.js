@@ -9,7 +9,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { renderKbLink } = require('../scripts/lib.js');
 
-const CUR = 'kb/技术/AI/Claude-Code/harness-engineering.md';
+const CUR = 'kb/技术/AI/Claude-Code/Harness Engineering：AI Agent 时代的工程范式.md';
 
 test('外链 https → <a target="_blank" rel="noopener">', () => {
   const out = renderKbLink('https://example.com', CUR, 'Example');
