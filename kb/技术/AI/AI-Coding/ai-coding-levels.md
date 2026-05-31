@@ -7,6 +7,9 @@ description: "从古法编程到多Agent协作6个Level、程序员未来展望"
 
 > 最后整理: 2026-05-06 | 来源: 对话讨论
 
+> 关联: [AI 时代开发者角色进化](./developer-role-in-ai-era.md) — 2026 年市场全景，经验如何迁移到 Agent 时代
+> 关联: [Vibe → SDD → 驾驭工程](./vibe-coding-to-harness.md) — 三阶段演进与 Harness 工程实践
+
 从"人写代码"到"人管 AI"，程序员利用 AI 的方式经历了 6 个递进层级。不是替代关系，而是能力分层——高 Level 的使用者往往同时使用低 Level 的能力。
 
 ## Level 概览

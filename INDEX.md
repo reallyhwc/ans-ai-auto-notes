@@ -9,15 +9,16 @@
 - [知识管理工具对比](kb/实战/knowledge-management-tools.md) — Obsidian/Notion/本项目方案 对比分析
 - [overview.html 踩坑记录](kb/实战/overview-html-pitfalls.md) — overview.html 维护过程中踩过的坑 & 解决方案
 
-## 技术 (40 篇)
+## 技术 (41 篇)
 
-### AI (33 篇)
+### AI (34 篇)
 
-#### AI-Coding (4 篇)
+#### AI-Coding (5 篇)
 
 - [AI 编程的递进路径：从古法编程到多 Agent 协作](kb/技术/AI/AI-Coding/ai-coding-levels.md) — 从古法编程到多Agent协作6个Level、程序员未来展望
 - [AI Coding 团队治理：从个人提效到团队工程化](kb/技术/AI/AI-Coding/ai-coding-team-governance.md) — 美团31万行代码AI重构实践：人人对齐→人机对齐方法论、Pre-PR机制、零排期重构、高阶模型审查低阶模型
 - [AI 编程工具：CLI Agent 与 GUI IDE 全景对比](kb/技术/AI/AI-Coding/ai-coding-tools.md) — AI 编程工具全景对比：终端 Agent (Claude Code / Codex CLI / DeepSeek-TUI) 三方对比，以及 GUI IDE (Cursor / Windsurf) 的两种交互哲学
+- [AI 时代的开发者角色进化：2026 年市场全景与职业重塑](kb/技术/AI/AI-Coding/developer-role-in-ai-era.md) — 2026年AI开发范式四档市场全景（辅助编码→任务Agent→Spec驱动→全流程平台），Java开发者经验如何从'写代码'迁移到'质量把关+系统设计+Agent判断框架构建'，以及'还有多少Agent需要开发'的诚实回答
 - [从 Vibe Coding 到 Spec-Driven 到驾驭工程](kb/技术/AI/AI-Coding/vibe-coding-to-harness.md) — AI 编程三阶段演进：Vibe Coding（放马跑，爽但危险）→ Spec-Driven Development（契约约束）→ 驾驭工程/Harness Engineering（系统级自动约束），附本项目 Harness 实践拆解
 
 #### Claude-Code (5 篇)
