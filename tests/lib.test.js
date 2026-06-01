@@ -12,6 +12,7 @@ const {
   slugify,
   buildToc,
   resolveRelativeMd,
+  stripInline,
 } = require('../scripts/lib.js');
 
 // ── escapeHtml ─────────────────────────────────────────────
@@ -99,4 +100,25 @@ test('resolveRelativeMd: 锚点保留', () => {
 test('resolveRelativeMd: 无前缀的相对路径', () => {
   const r = resolveRelativeMd('kb/a/b.md', 'c.md');
   assert.equal(r.path, 'kb/a/c.md');
+});
+
+// ── stripInline ────────────────────────────────────────────
+test('stripInline: 去掉 backtick 包围的内联代码', () => {
+  assert.equal(stripInline('1. `@Tool` 注解'), '1. @Tool 注解');
+});
+
+test('stripInline: 去掉粗体 ** 标记', () => {
+  assert.equal(stripInline('**important** text'), 'important text');
+});
+
+test('stripInline: 去掉斜体 * 标记', () => {
+  assert.equal(stripInline('*emphasis* here'), 'emphasis here');
+});
+
+test('stripInline: 混合 backtick + bold + italic', () => {
+  assert.equal(stripInline('`code` and **bold** and *italic*'), 'code and bold and italic');
+});
+
+test('stripInline: 无 markdown 标记原样返回', () => {
+  assert.equal(stripInline('plain text'), 'plain text');
 });

@@ -35,6 +35,14 @@ function slugify(text) {
   return String(text).toLowerCase().replace(/[^\w一-鿿]+/g, '-').replace(/^-|-$/g, '');
 }
 
+// 去掉 markdown 内联标记（backtick / 粗体 / 斜体），与 marked 的 token.text 对齐
+function stripInline(str) {
+  return String(str)
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1');
+}
+
 // 从 markdown 抽取 ## 和 ### 作为 TOC（跳过代码块内的 #）
 function buildToc(markdown) {
   var lines = String(markdown).split('\n');
@@ -46,10 +54,6 @@ function buildToc(markdown) {
     if (inCodeBlock) continue;
     var h2 = /^##\s(.+)/.exec(line);
     var h3 = /^###\s(.+)/.exec(line);
-    // Strip inline code/bold/italic markers before slugify to match marked's token.text
-    function stripInline(str) {
-      return str.replace(/`([^`]+)`/g, '$1').replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1');
-    }
     if (h2) toc.push({ level: 2, text: h2[1], id: slugify(stripInline(h2[1])) });
     else if (h3) toc.push({ level: 3, text: h3[1], id: slugify(stripInline(h3[1])) });
   }
@@ -166,6 +170,7 @@ if (typeof module !== 'undefined' && module.exports) {
     escapeHtml,
     escapeAttr,
     slugify,
+    stripInline,
     buildToc,
     resolveRelativeMd,
     renderKbLink,
