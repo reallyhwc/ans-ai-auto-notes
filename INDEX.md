@@ -1,6 +1,10 @@
 # 知识库索引
 
-> 最后更新: 2026-05-21 | 由 build-index.js 自动生成，勿手改
+> 由 build-index.js 自动生成（基于 kb/ 目录扫描），勿手改
+
+## 实战 (1 篇)
+
+- [Git 工作流速查（Harness 示范笔记）](kb/实战/demo-harness-walkthrough.md) — 示范一篇符合 Harness KB 规范的笔记长什么样：Mermaid 流程图、表格对比、anchor 链接、双向关联
 
 ## 技术 (1 篇)
 
