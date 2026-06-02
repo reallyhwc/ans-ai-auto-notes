@@ -97,7 +97,47 @@ if [ "$STALE_COUNT" -eq 0 ] 2>/dev/null; then
 fi
 echo "  （每月花 10 分钟 review 稳定层 MEMORY.md，删过时条目）"
 
-# ── 6. 架构 Linter ──
+# ── 6. 项目级 subagent 注册检查 ──
+# 验证 .claude/agents/*.md frontmatter 合法（name/description 必填）。
+# 文件 OK 不代表 Claude Code 已识别（需 session restart 才扫描），但文件
+# 不 OK 一定不识别——所以这里提示 + 上次 session 启动前若改过 agent 文件，
+# 要重启 Claude Code 才生效。
+echo ""
+echo "[*] 项目级 subagent 注册检查..."
+AGENT_DIR=".claude/agents"
+if [ ! -d "$AGENT_DIR" ]; then
+  echo "  （无 $AGENT_DIR 目录，跳过）"
+else
+  AGENT_COUNT=0
+  AGENT_BAD=0
+  for f in "$AGENT_DIR"/*.md; do
+    [ -f "$f" ] || continue
+    AGENT_COUNT=$((AGENT_COUNT + 1))
+    BASENAME=$(basename "$f" .md)
+    # 提取 frontmatter 必填字段
+    NAME=$(awk '/^---$/{c++;next} c==1 && /^name:/{sub(/^name: */,""); print; exit}' "$f")
+    DESC=$(awk '/^---$/{c++;next} c==1 && /^description:/{sub(/^description: */,""); print; exit}' "$f")
+    TOOLS=$(awk '/^---$/{c++;next} c==1 && /^tools:/{sub(/^tools: */,""); print; exit}' "$f")
+    if [ -z "$NAME" ] || [ -z "$DESC" ]; then
+      echo "  ❌ $BASENAME — frontmatter 缺 name 或 description（不会被 Claude Code 注册）"
+      AGENT_BAD=$((AGENT_BAD + 1))
+    elif [ "$NAME" != "$BASENAME" ]; then
+      echo "  ⚠️  $BASENAME — frontmatter name=\"$NAME\" 与文件名不一致"
+      AGENT_BAD=$((AGENT_BAD + 1))
+    else
+      # 取 description 前 40 字预览
+      DESC_PREVIEW=$(echo "$DESC" | sed 's/^"//;s/"$//' | cut -c1-40)
+      echo "  ✓ ${NAME} — ${DESC_PREVIEW}… [tools: ${TOOLS}]"
+    fi
+  done
+  if [ "$AGENT_COUNT" -eq 0 ]; then
+    echo "  （无 agent 定义文件）"
+  else
+    echo "  共 $AGENT_COUNT 个 agent 已定义。Claude Code 重启 session 后用 /agents 验证已注册。"
+  fi
+fi
+
+# ── 7. 架构 Linter ──
 echo ""
 bash scripts/arch-lint.sh
 
