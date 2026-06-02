@@ -19,9 +19,12 @@ Icon
 *.swo
 *~
 
-# Claude Code（默认全排除，仅 skills/ 子目录入库以便跨设备/团队复用）
+# Claude Code（默认全排除，例外子目录见下）
 .claude/*
+# 例外：skills/ 入库用于跨设备/团队复用 Claude Code skill 定义（G3）
 !.claude/skills/
+# 例外：memory-snapshot 跟踪入 git 用于跨设备同步（A6）
+!.claude/memory-snapshot/
 
 # Aone Copilot (plans / tasks 等本地状态文件，不入库)
 .aone_copilot/
