@@ -139,6 +139,10 @@ ans-ai-auto-notes/
 
 上述检查全部通过后，向用户报告检查结果，确认可以安全退出。
 
+### Plan 系统
+
+长期任务（跨多个 session 的实施项目）的 plan 位于 [`docs/superpowers/plans/`](docs/superpowers/plans/)。新 plan 通过 superpowers `writing-plans` skill 生成。Plan 文件 frontmatter 中 `status:` 字段或 `> 状态: xxx` 段标记进度（已完成 / completed / done / closed 视为关闭，其他视为开放）。Stop hook 的 `[8/8]` 自动列出未完成 plan。
+
 ## 重要提醒
 
 - 知识库内容和维护规则是分开的：规则在 CLAUDE.md 中维护，知识内容在 kb/ 中沉淀。
