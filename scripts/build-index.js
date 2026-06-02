@@ -23,6 +23,37 @@ const MANIFEST_PATH = path.join(ROOT, 'manifest.json');
 const INDEX_MD_PATH = path.join(ROOT, 'INDEX.md');
 
 // ============================================================
+// 全文搜索：分词 + 倒排表
+// ============================================================
+
+// 中英文混合分词：英文按 \w+，中文按单字（unigram）
+function tokenize(text) {
+  const tokens = new Set();
+  // 去除代码块 ``` ... ``` 内的内容（含 mermaid）
+  const stripped = String(text).replace(/```[\s\S]*?```/g, ' ');
+  // 英文 token（\w+ 转小写）
+  const enMatches = stripped.match(/[a-zA-Z0-9_]+/g) || [];
+  enMatches.forEach(t => { if (t.length >= 2) tokens.add(t.toLowerCase()); });
+  // 中文单字
+  const zhMatches = stripped.match(/[一-鿿]/g) || [];
+  zhMatches.forEach(c => tokens.add(c));
+  return Array.from(tokens);
+}
+
+// 构建倒排表：{token: [fileIdx, ...]}
+function buildSearchIndex(files) {
+  const idx = {};
+  files.forEach(f => {
+    const tokens = tokenize(f.text);
+    tokens.forEach(t => {
+      if (!idx[t]) idx[t] = [];
+      if (idx[t][idx[t].length - 1] !== f.idx) idx[t].push(f.idx);
+    });
+  });
+  return idx;
+}
+
+// ============================================================
 // frontmatter 解析（极简，不引入第三方依赖）
 // ============================================================
 function parseFrontmatter(content) {
@@ -163,8 +194,31 @@ function main() {
   let totalFiles = 0;
   categories.forEach(c => { totalFiles += countFiles(c); });
 
+  // 构建全文搜索索引（扁平化所有 file，给每个分配 idx）
+  const flatFiles = [];
+  function collectFiles(node) {
+    node.files.forEach(f => {
+      const fullPath = path.join(ROOT, f.path);
+      let content = '';
+      try { content = fs.readFileSync(fullPath, 'utf-8'); } catch (e) { /* skip */ }
+      flatFiles.push({
+        idx: flatFiles.length,
+        path: f.path,
+        text: (f.title || '') + ' ' + (f.desc || '') + ' ' + content,
+      });
+    });
+    node.children.forEach(collectFiles);
+  }
+  categories.forEach(collectFiles);
+  const searchIndex = buildSearchIndex(flatFiles);
+  const searchFiles = flatFiles.map(f => ({ idx: f.idx, path: f.path }));
+
   // 输出 manifest.json
-  const manifest = { categories: categories };
+  const manifest = {
+    categories: categories,
+    searchIndex: searchIndex,
+    searchFiles: searchFiles,
+  };
   fs.writeFileSync(MANIFEST_PATH, JSON.stringify(manifest, null, 2) + '\n', 'utf-8');
   console.log('[build-index] 已生成 manifest.json (' + totalFiles + ' 个文件, ' + categories.length + ' 个顶层分类)');
 
@@ -181,4 +235,4 @@ if (require.main === module) {
   main();
 }
 
-module.exports = { parseFrontmatter, scanDir, countFiles, generateIndexMd };
+module.exports = { parseFrontmatter, scanDir, countFiles, generateIndexMd, tokenize, buildSearchIndex };
