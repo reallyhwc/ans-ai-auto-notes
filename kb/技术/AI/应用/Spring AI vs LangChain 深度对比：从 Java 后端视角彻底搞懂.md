@@ -7,9 +7,9 @@ description: "JPA vs JdbcTemplate 类比、同一场景 Spring AI(20行) vs Lang
 
 > 最后整理: 2026-05-26 | 来源: 对话讨论
 
-> 关联: [agent-development-practice](./Agent 开发实战：选型、框架与思维转换.md) — Spring AI Agent 开发实战
-> 关联: [langchain-agent-guide](./LangChain Agent 开发指南：是什么、怎么用、与 Spring AI 对比.md) — LangChain Agent 开发指南
-> 关联: [agent-patterns](./Agent 四大设计范式（深度展开）.md) — Agent 四大范式深度展开
+> 关联: [agent-development-practice](<./Agent 开发实战：选型、框架与思维转换.md>) — Spring AI Agent 开发实战
+> 关联: [langchain-agent-guide](<./LangChain Agent 开发指南：是什么、怎么用、与 Spring AI 对比.md>) — LangChain Agent 开发指南
+> 关联: [agent-patterns](<./Agent 四大设计范式（深度展开）.md>) — Agent 四大范式深度展开
 
 ---
 
@@ -221,6 +221,6 @@ LangChain 的核心哲学:
 
 ---
 
-> 关联: [agent-development-practice](./Agent 开发实战：选型、框架与思维转换.md) — Spring AI 路线（Java 原生）
-> 关联: [langchain-agent-guide](./LangChain Agent 开发指南：是什么、怎么用、与 Spring AI 对比.md) — LangChain Agent 完整开发指南
-> 关联: [agent-patterns](./Agent 四大设计范式（深度展开）.md) — Agent 四大范式深度展开
+> 关联: [agent-development-practice](<./Agent 开发实战：选型、框架与思维转换.md>) — Spring AI 路线（Java 原生）
+> 关联: [langchain-agent-guide](<./LangChain Agent 开发指南：是什么、怎么用、与 Spring AI 对比.md>) — LangChain Agent 完整开发指南
+> 关联: [agent-patterns](<./Agent 四大设计范式（深度展开）.md>) — Agent 四大范式深度展开

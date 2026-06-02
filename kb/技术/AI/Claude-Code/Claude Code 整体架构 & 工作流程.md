@@ -5,7 +5,7 @@ description: "整体架构、REPL循环、工具链、Hooks、上下文管理、
 
 > 最后整理: 2026-05-06 | 来源: 对话 + 网络资料
 
-> 关联: [harness-engineering](./Harness Engineering：AI Agent 时代的工程范式.md) — Claude Code 是 Harness Engineering 的代表性产品 | [claude-code-advanced-workflow](./Claude Code 进阶工作流：从能用到高效.md) — 配置与工作流实战 | [llm-agent-mcp](../大模型/Agent 与 MCP.md) — Agent/MCP 协议原理
+> 关联: [harness-engineering](<./Harness Engineering：AI Agent 时代的工程范式.md>) — Claude Code 是 Harness Engineering 的代表性产品 | [claude-code-advanced-workflow](<./Claude Code 进阶工作流：从能用到高效.md>) — 配置与工作流实战 | [llm-agent-mcp](<../大模型/Agent 与 MCP.md>) — Agent/MCP 协议原理
 
 ## 一图总览：Claude Code 架构全景图
 
@@ -255,7 +255,7 @@ graph LR
 
 Hooks 是自动触发的脚本，类似"条件反射"。由 Claude Code 的 harness 执行，不是 AI 执行的——不消耗 context，不依赖 AI 的"理解"，每次都会跑。
 
-> **实践指南**: [Claude Code 进阶工作流](./Claude Code 进阶工作流：从能用到高效.md) — 如何用 SessionStart/Stop hooks 构建自动化的环境体检、架构守卫、session 存档系统
+> **实践指南**: [Claude Code 进阶工作流](<./Claude Code 进阶工作流：从能用到高效.md>) — 如何用 SessionStart/Stop hooks 构建自动化的环境体检、架构守卫、session 存档系统
 
 ```
 事件触发型 Hooks：
@@ -546,7 +546,7 @@ Claude Code 就是一个**带手脚的大脑**：
 
 整个过程是循环的，直到你说"不聊了"。
 
-> 关联: [llm-agent-mcp](../大模型/Agent 与 MCP.md) — Agent 与 MCP 协议原理 | [ai-agent-tools](../应用/AI Agent 工具生态.md) — Agent 工具生态对比
+> 关联: [llm-agent-mcp](<../大模型/Agent 与 MCP.md>) — Agent 与 MCP 协议原理 | [ai-agent-tools](<../应用/AI Agent 工具生态.md>) — Agent 工具生态对比
 
 ## 九、关联资源
 
@@ -555,7 +555,7 @@ Claude Code 就是一个**带手脚的大脑**：
 - 本地配置: `~/.claude/settings.json`
 - 项目指令: `CLAUDE.md`（当前项目根目录）
 - 记忆系统: `~/.claude/projects/.../memory/`
-- 进阶实践: [Claude Code 进阶工作流](./Claude Code 进阶工作流：从能用到高效.md) — 四阶段成熟度、三层模型、hooks/memory/plan/manifest 实战
+- 进阶实践: [Claude Code 进阶工作流](<./Claude Code 进阶工作流：从能用到高效.md>) — 四阶段成熟度、三层模型、hooks/memory/plan/manifest 实战
 
 Sources:
 - [Claude Code Docs - Quickstart](https://code.claude.com/docs/en/quickstart)

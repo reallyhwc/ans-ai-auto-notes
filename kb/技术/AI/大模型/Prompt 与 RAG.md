@@ -11,7 +11,7 @@ description: "Prompt工程、RAG、向量数据库/Milvus、Embedding、LangChai
 
 Prompt 是怎么跟 LLM 说话，RAG 是给 LLM 外挂知识库。两者结合，让 LLM 从"只会背书的书呆子"变成"能查参考资料的助手"。
 
-> 关联: [llm](./LLM（大语言模型）.md) — LLM 核心原理 | [llm-agent-mcp](./Agent 与 MCP.md) — Agent 与 MCP 生态
+> 关联: [llm](./LLM（大语言模型）.md) — LLM 核心原理 | [llm-agent-mcp](<./Agent 与 MCP.md>) — Agent 与 MCP 生态
 
 ---
 
@@ -388,4 +388,4 @@ qa.run("退款 API 是哪个？")  # 就几行
 | **Spring AI** | Java | Spring 生态，Java 程序员最熟悉 |
 
 > 关联: [llm](./LLM（大语言模型）.md) — LLM 核心原理
-> 关联: [llm-agent-mcp](./Agent 与 MCP.md) — Agent 与 MCP 生态
+> 关联: [llm-agent-mcp](<./Agent 与 MCP.md>) — Agent 与 MCP 生态

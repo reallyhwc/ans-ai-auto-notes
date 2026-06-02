@@ -7,7 +7,7 @@ description: "四范式选型、Spring AI/LangChain/CrewAI 框架速查、学习
 
 > 最后整理: 2026-05-23 | 来源: 对话讨论（新增从零搭建 Agent + MCP Java 实战指南）
 
-> 关联: [agent-patterns](./Agent 四大设计范式（深度展开）.md) — 四范式深度展开（架构图 / Prompt 模板 / 典型案例）
+> 关联: [agent-patterns](<./Agent 四大设计范式（深度展开）.md>) — 四范式深度展开（架构图 / Prompt 模板 / 典型案例）
 
 ## Agent 开发的四大设计范式
 
@@ -34,7 +34,7 @@ graph LR
 
 ---
 
-> **四范式深度展开（架构图 / Prompt 模板 / 典型案例）请见 → [agent-patterns](./Agent 四大设计范式（深度展开）.md)**
+> **四范式深度展开（架构图 / Prompt 模板 / 典型案例）请见 → [agent-patterns](<./Agent 四大设计范式（深度展开）.md>)**
 >
 > 本文聚焦"怎么选 + 用什么 + 怎么学 + 思维怎么转"，是 agent-patterns 的导览页。
 > 下面的"四种范式怎么选 / 主流框架速查 / 学习路径 / vs Java 对比"是选型与落地的关键内容。
@@ -283,7 +283,7 @@ Pre-PR:   编码 → AI 自查多轮 → 修复AI能发现的问题 → AI生成
 
 **核心原则**：AI 负责"生成"和"扫描"（体力活），人负责"判断"和"确认"（需要业务认知），每步都有 Human-in-the-loop。
 
-> 关联: [AI Coding 团队治理](../AI-Coding/AI Coding 团队治理：从个人提效到团队工程化.md) — Pre-PR 机制详解 + 完整 5 步测试 SOP 表格
+> 关联: [AI Coding 团队治理](<../AI-Coding/AI Coding 团队治理：从个人提效到团队工程化.md>) — Pre-PR 机制详解 + 完整 5 步测试 SOP 表格
 
 #### 4. 可观测性要求更高
 
@@ -327,13 +327,13 @@ Agent 开发者:     我提供能力 → LLM 决定顺序 → 我兜底业务规
 从"流程控制者"变成"能力提供者 + 兜底守门员"
 ```
 
-> 关联: [Agent 与 MCP](../大模型/Agent 与 MCP.md) — Agent 循环、MCP 协议、FC 机制、Agent vs MCP 的概念原理
-> 关联: [MCP 协议实现内幕](../大模型/MCP 协议：AI 界的 USB-C.md) — Spring AI MCP Server 完整代码与 @Tool 机制
-> 关联: [OpenAI Agents SDK](./OpenAI Agents SDK 与多角色协作.md) — 多角色协作与 Handoff 机制
-> 关联: [LLM 智能客服实战](./LLM 智能客服实战.md) — 从零搭建客服系统全流程
-> 关联: [Agent 运维与韧性](./Agent 应用运维与韧性：架构之外的生存指南.md) — 可观测性、成本、安全、熔断、开源方案（运维/SRE 视角）
-> 关联: [LLM 应用设计](./LLM 应用设计.md) — 确定性 vs 概率性、上下文管理、幻觉防控
-> 关联: [Spring AI](../../Java/Spring AI.md) — Spring 生态的 LLM 集成
+> 关联: [Agent 与 MCP](<../大模型/Agent 与 MCP.md>) — Agent 循环、MCP 协议、FC 机制、Agent vs MCP 的概念原理
+> 关联: [MCP 协议实现内幕](<../大模型/MCP 协议：AI 界的 USB-C.md>) — Spring AI MCP Server 完整代码与 @Tool 机制
+> 关联: [OpenAI Agents SDK](<./OpenAI Agents SDK 与多角色协作.md>) — 多角色协作与 Handoff 机制
+> 关联: [LLM 智能客服实战](<./LLM 智能客服实战.md>) — 从零搭建客服系统全流程
+> 关联: [Agent 运维与韧性](<./Agent 应用运维与韧性：架构之外的生存指南.md>) — 可观测性、成本、安全、熔断、开源方案（运维/SRE 视角）
+> 关联: [LLM 应用设计](<./LLM 应用设计.md>) — 确定性 vs 概率性、上下文管理、幻觉防控
+> 关联: [Spring AI](<../../Java/Spring AI.md>) — Spring 生态的 LLM 集成
 
 ---
 
@@ -790,7 +790,7 @@ MCP 的场景完全不同：
 
 生产环境高并发（如 1000 用户并发客服），用 HTTP 模式 + 负载均衡，和普通微服务一样扩展。
 
-> 关联: [llm-agent-mcp](../大模型/Agent 与 MCP.md) | [mcp-protocol](../大模型/MCP 协议：AI 界的 USB-C.md)
+> 关联: [llm-agent-mcp](<../大模型/Agent 与 MCP.md>) | [mcp-protocol](<../大模型/MCP 协议：AI 界的 USB-C.md>)
 
 ---
 

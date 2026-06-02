@@ -7,14 +7,14 @@ description: "核心原理：架构、因果推理、逐字生成、KV Cache"
 
 > 最后整理: 2026-05-06 | 来源: 多轮对话
 
-> 关联: [我看见的世界 — 李飞飞](../../../读书笔记/我看见的世界 — 李飞飞.md) — 阅读上下文与历史脉络
-> 关联: [generative-ai](./生成式 AI.md) — 图片/视频/音频的生成原理（扩散模型 vs LLM 自回归对比）
+> 关联: [我看见的世界 — 李飞飞](<../../../读书笔记/我看见的世界 — 李飞飞.md>) — 阅读上下文与历史脉络
+> 关联: [generative-ai](<./生成式 AI.md>) — 图片/视频/音频的生成原理（扩散模型 vs LLM 自回归对比）
 
 ## 一句话定位
 
 LLM（Large Language Model）本质上是一个**巨大的 Decoder-only Transformer**——给它一段文本，它预测下一个最可能的词。一个词一个词地接下去，就形成了连贯的输出。
 
-> **本文件聚焦 LLM 核心原理。** Prompt/RAG/向量数据库 → [llm-prompt-rag](./Prompt 与 RAG.md) | Agent/MCP/微调/工具生态 → [llm-agent-mcp](./Agent 与 MCP.md)
+> **本文件聚焦 LLM 核心原理。** Prompt/RAG/向量数据库 → [llm-prompt-rag](<./Prompt 与 RAG.md>) | Agent/MCP/微调/工具生态 → [llm-agent-mcp](<./Agent 与 MCP.md>)
 
 ---
 
@@ -508,9 +508,9 @@ DS 定价低但仍然赚钱 → MoE 架构优势带来的护城河
 > 关联: [transformer](../基础/Transformer.md) — 自注意力机制的计算细节
 > 延伸: MoE 架构详解 → [本节 7.4](#74-moemixture-of-experts混合专家)
 > 延伸: 模型量化推理优化 → [本节 8](#8-模型量化推理加速与显存压缩)
-> 延伸: Prompt/RAG/向量数据库 → [llm-prompt-rag](./Prompt 与 RAG.md)
-> 延伸: Agent/MCP/Claude Code → [llm-agent-mcp](./Agent 与 MCP.md)
-> 延伸: 图片/视频/音频生成原理 → [generative-ai](./生成式 AI.md)
+> 延伸: Prompt/RAG/向量数据库 → [llm-prompt-rag](<./Prompt 与 RAG.md>)
+> 延伸: Agent/MCP/Claude Code → [llm-agent-mcp](<./Agent 与 MCP.md>)
+> 延伸: 图片/视频/音频生成原理 → [generative-ai](<./生成式 AI.md>)
 
 ---
 

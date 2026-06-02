@@ -7,16 +7,16 @@ description: "可观测性、成本、安全、评估、延迟、状态、数据
 
 > 最后整理: 2026-05-24 | 来源: 对话讨论
 
-> 关联: [agent-development-practice](./Agent 开发实战：选型、框架与思维转换.md) — Agent 开发范式、框架选型、vs Java 对比（开发视角）
-> 关联: [agent-patterns](./Agent 四大设计范式（深度展开）.md) — 四大范式深度展开（架构图 / Prompt 模板 / 典型案例）
-> 关联: [llm-app-design](./LLM 应用设计.md) — 确定性 vs 概率性、幻觉防控
-> 关联: [openai-agents-sdk](./OpenAI Agents SDK 与多角色协作.md) — Multi-Agent 协作与 Handoff 机制
+> 关联: [agent-development-practice](<./Agent 开发实战：选型、框架与思维转换.md>) — Agent 开发范式、框架选型、vs Java 对比（开发视角）
+> 关联: [agent-patterns](<./Agent 四大设计范式（深度展开）.md>) — 四大范式深度展开（架构图 / Prompt 模板 / 典型案例）
+> 关联: [llm-app-design](<./LLM 应用设计.md>) — 确定性 vs 概率性、幻觉防控
+> 关联: [openai-agents-sdk](<./OpenAI Agents SDK 与多角色协作.md>) — Multi-Agent 协作与 Handoff 机制
 
 ---
 
 ## 1. 相比传统 Java 应用，额外需要关心的 8 个维度
 
-[agent-development-practice](./Agent 开发实战：选型、框架与思维转换.md) 已经从开发视角对比了 6 个维度（核心逻辑、输入输出、流程控制、测试、调试、核心技能）。下面从**运维/SRE 视角**补上开发时不容易看到的坑——这些都是实际跑起来之后才会暴露的问题。
+[agent-development-practice](<./Agent 开发实战：选型、框架与思维转换.md>) 已经从开发视角对比了 6 个维度（核心逻辑、输入输出、流程控制、测试、调试、核心技能）。下面从**运维/SRE 视角**补上开发时不容易看到的坑——这些都是实际跑起来之后才会暴露的问题。
 
 ### 1.1 可观测性：从"看日志"到"看一条完整推理链"
 
@@ -644,6 +644,6 @@ flowchart TD
 
 **Agent 应用的运维复杂度来自"LLM 是非确定性的黑盒"这个根本差异——它影响可观测性、成本、安全、测试、调试、扩容每一个环节。应对的核心思路：把 LLM 当作一个"可能出错的外部服务"来对待，在所有关键路径上加护栏，而不是假设它永远按你的预期行动。**
 
-> 关联: [agent-development-practice](./Agent 开发实战：选型、框架与思维转换.md) — 回到开发视角的范式选型与框架速查
-> 关联: [agent-patterns](./Agent 四大设计范式（深度展开）.md) — 四大范式的深度架构展开
-> 关联: [llm-app-design](./LLM 应用设计.md) — 确定性 vs 概率性应用的设计原则
+> 关联: [agent-development-practice](<./Agent 开发实战：选型、框架与思维转换.md>) — 回到开发视角的范式选型与框架速查
+> 关联: [agent-patterns](<./Agent 四大设计范式（深度展开）.md>) — 四大范式的深度架构展开
+> 关联: [llm-app-design](<./LLM 应用设计.md>) — 确定性 vs 概率性应用的设计原则

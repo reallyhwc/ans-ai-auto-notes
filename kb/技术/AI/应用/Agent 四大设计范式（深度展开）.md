@@ -7,10 +7,10 @@ description: "意图路由 / ReAct / Plan-and-Execute / Multi-Agent 四种范式
 
 > 最后整理: 2026-05-21 | 来源: 从 agent-development-practice.md 拆分（原文 599 行 / 12 章节超阈值）
 
-> 关联: [agent-development-practice](./Agent 开发实战：选型、框架与思维转换.md) — 范式选型、框架速查、学习路径、vs Java 对比（本文的导览页）
-> 关联: [llm-agent-mcp](../大模型/Agent 与 MCP.md) — Agent 循环、MCP 协议、FC 机制的概念原理
-> 关联: [openai-agents-sdk](./OpenAI Agents SDK 与多角色协作.md) — Multi-Agent 范式的工业实现
-> 关联: [agent-ops-and-resilience](./Agent 应用运维与韧性：架构之外的生存指南.md) — 运维/SRE 视角（可观测性、成本、熔断、开源方案）
+> 关联: [agent-development-practice](<./Agent 开发实战：选型、框架与思维转换.md>) — 范式选型、框架速查、学习路径、vs Java 对比（本文的导览页）
+> 关联: [llm-agent-mcp](<../大模型/Agent 与 MCP.md>) — Agent 循环、MCP 协议、FC 机制的概念原理
+> 关联: [openai-agents-sdk](<./OpenAI Agents SDK 与多角色协作.md>) — Multi-Agent 范式的工业实现
+> 关联: [agent-ops-and-resilience](<./Agent 应用运维与韧性：架构之外的生存指南.md>) — 运维/SRE 视角（可观测性、成本、熔断、开源方案）
 
 ---
 
@@ -244,7 +244,7 @@ Executor 逐步执行:
 
 ## 范式 4：Multi-Agent（多 Agent 协作）
 
-多个 Agent 各司其职，通过消息传递协作完成复杂任务。已有的 [OpenAI Agents SDK 笔记](./OpenAI Agents SDK 与多角色协作.md) 详细讲了 Handoff 机制，这里总结两种常见编排模式。
+多个 Agent 各司其职，通过消息传递协作完成复杂任务。已有的 [OpenAI Agents SDK 笔记](<./OpenAI Agents SDK 与多角色协作.md>) 详细讲了 Handoff 机制，这里总结两种常见编排模式。
 
 ### 编排模式 A：接力式（Pipeline）
 
@@ -288,4 +288,4 @@ graph TD
 
 ---
 
-> 回到导览页：[agent-development-practice](./Agent 开发实战：选型、框架与思维转换.md) — 范式选型、主流框架速查、学习路径、Agent 开发 vs 传统 Java 应用六维对比
+> 回到导览页：[agent-development-practice](<./Agent 开发实战：选型、框架与思维转换.md>) — 范式选型、主流框架速查、学习路径、Agent 开发 vs 传统 Java 应用六维对比

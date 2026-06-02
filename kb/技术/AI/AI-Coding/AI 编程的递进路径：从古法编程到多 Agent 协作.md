@@ -7,8 +7,8 @@ description: "从古法编程到多Agent协作6个Level、程序员未来展望"
 
 > 最后整理: 2026-05-06 | 来源: 对话讨论
 
-> 关联: [AI 时代开发者角色进化](./AI 时代的开发者角色进化：2026 年市场全景与职业重塑.md) — 2026 年市场全景，经验如何迁移到 Agent 时代
-> 关联: [Vibe → SDD → 驾驭工程](./从 Vibe Coding 到 Spec-Driven 到驾驭工程.md) — 三阶段演进与 Harness 工程实践
+> 关联: [AI 时代开发者角色进化](<./AI 时代的开发者角色进化：2026 年市场全景与职业重塑.md>) — 2026 年市场全景，经验如何迁移到 Agent 时代
+> 关联: [Vibe → SDD → 驾驭工程](<./从 Vibe Coding 到 Spec-Driven 到驾驭工程.md>) — 三阶段演进与 Harness 工程实践
 
 从"人写代码"到"人管 AI"，程序员利用 AI 的方式经历了 6 个递进层级。不是替代关系，而是能力分层——高 Level 的使用者往往同时使用低 Level 的能力。
 
@@ -303,7 +303,7 @@ Handoff 底层依赖 LLM 的 **Function Calling**：
 
 **这意味着**：资深工程师的价值不再是"我知道代码里有什么"，而是"我知道什么模式可能出问题，然后让 AI 去找"。这正好呼应了 Level 5 的核心——人的角色从执行者变为判断者。
 
-> 关联: [AI Coding 团队治理](./AI Coding 团队治理：从个人提效到团队工程化.md) — 美团 31 万行代码重构完整实践
+> 关联: [AI Coding 团队治理](<./AI Coding 团队治理：从个人提效到团队工程化.md>) — 美团 31 万行代码重构完整实践
 
 ### 一个类比：从汇编到 AI
 
@@ -439,4 +439,4 @@ AI Agent 自主完成 Plan → Act → Observe → Fix 闭环，人从"驱动者
   - 同一个项目中可能早上 Vibe 探索，下午 Spec 硬化
 ```
 
-> 关联: [Harness Engineering](../Claude-Code/Harness Engineering：AI Agent 时代的工程范式.md) — Agentic Coding 的工程基础（六原则、机械约束、分离评估）
+> 关联: [Harness Engineering](<../Claude-Code/Harness Engineering：AI Agent 时代的工程范式.md>) — Agentic Coding 的工程基础（六原则、机械约束、分离评估）

@@ -529,4 +529,4 @@ public class McpServer {
 
 ---
 
-> 关联: [Agent 与 MCP](./Agent 与 MCP.md) · [Agent 开发实战](../应用/Agent 开发实战：选型、框架与思维转换.md)
+> 关联: [Agent 与 MCP](<./Agent 与 MCP.md>) · [Agent 开发实战](<../应用/Agent 开发实战：选型、框架与思维转换.md>)

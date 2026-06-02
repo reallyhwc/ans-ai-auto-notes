@@ -8,8 +8,8 @@ description: "Skills 的三层渐进式披露机制、token 经济学、frontmat
 > 最后整理: 2026-06-02 | 来源: 黄佳《Claude Code 工程化实战》课程 + [Claude Code Skills 官方文档](https://code.claude.com/docs/en/skills)
 
 > 关联: [子智能体（subagents）机制与实战](./子智能体（subagents）机制与实战.md) — skill 和 subagent 的边界
-> 关联: [Hooks 事件全景与拦截机制](./Hooks 事件全景与拦截机制.md) — skill frontmatter 内的 hooks 字段
-> 关联: [Superpowers TDD Skill 工作流拆解](./Superpowers TDD Skill 工作流拆解.md) — 一个具体 skill 的实战拆解
+> 关联: [Hooks 事件全景与拦截机制](<./Hooks 事件全景与拦截机制.md>) — skill frontmatter 内的 hooks 字段
+> 关联: [Superpowers TDD Skill 工作流拆解](<./Superpowers TDD Skill 工作流拆解.md>) — 一个具体 skill 的实战拆解
 
 ---
 
@@ -478,7 +478,7 @@ hooks:
 ---
 ```
 
-效果：只在该 skill 激活期间，Edit 工具被这个 hook 拦截校验。详见 [Hooks 事件全景与拦截机制](./Hooks 事件全景与拦截机制.md)。
+效果：只在该 skill 激活期间，Edit 工具被这个 hook 拦截校验。详见 [Hooks 事件全景与拦截机制](<./Hooks 事件全景与拦截机制.md>)。
 
 权限维度有三个手柄：
 - 全局禁 skill：`/permissions` 加 `Skill` 到 deny

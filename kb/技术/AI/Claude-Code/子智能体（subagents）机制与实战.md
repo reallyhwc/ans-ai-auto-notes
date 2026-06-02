@@ -7,10 +7,10 @@ description: "subagent 的定位、与 skill/Agent SDK 的区分、四级 scope 
 
 > 最后整理: 2026-06-02 | 来源: 黄佳《Claude Code 工程化实战》课程 + [Claude Code Subagents 官方文档](https://code.claude.com/docs/en/sub-agents)
 
-> 关联: [Skills 渐进式披露架构](./Skills 渐进式披露架构.md) — subagent 与 skill 的边界对比
-> 关联: [Hooks 事件全景与拦截机制](./Hooks 事件全景与拦截机制.md) — SubagentStart/Stop 事件
-> 关联: [Plugins 插件体系](./Plugins 插件体系.md) — plugin 内 agents/ 目录与限制
-> 关联: [Claude Code 整体架构 & 工作流程](./Claude Code 整体架构 & 工作流程.md) — 主 agent 在整体架构中的位置
+> 关联: [Skills 渐进式披露架构](<./Skills 渐进式披露架构.md>) — subagent 与 skill 的边界对比
+> 关联: [Hooks 事件全景与拦截机制](<./Hooks 事件全景与拦截机制.md>) — SubagentStart/Stop 事件
+> 关联: [Plugins 插件体系](<./Plugins 插件体系.md>) — plugin 内 agents/ 目录与限制
+> 关联: [Claude Code 整体架构 & 工作流程](<./Claude Code 整体架构 & 工作流程.md>) — 主 agent 在整体架构中的位置
 
 ---
 
@@ -549,4 +549,4 @@ hooks:
 ---
 ```
 
-详见 [Hooks 事件全景与拦截机制](./Hooks 事件全景与拦截机制.md)。
+详见 [Hooks 事件全景与拦截机制](<./Hooks 事件全景与拦截机制.md>)。

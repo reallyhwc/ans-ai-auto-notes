@@ -116,7 +116,7 @@ flowchart LR
   完全切到 Dify → 会失去 Claude Code 的本地操作能力
 ```
 
-> 关联: [Harness Engineering](../Claude-Code/Harness Engineering：AI Agent 时代的工程范式.md) — 双 LLM 交叉校验的四种实现方式
-> 关联: [Agent 开发实战](./Agent 开发实战：选型、框架与思维转换.md) — 四大设计范式
-> 关联: [Claude Code 架构](../Claude-Code/Claude Code 整体架构 & 工作流程.md) — Claude Code 工具链与 REPL 循环
-> 关联: [Agent 与 MCP](../大模型/Agent 与 MCP.md) — MCP 协议、自定义 MCP Server
+> 关联: [Harness Engineering](<../Claude-Code/Harness Engineering：AI Agent 时代的工程范式.md>) — 双 LLM 交叉校验的四种实现方式
+> 关联: [Agent 开发实战](<./Agent 开发实战：选型、框架与思维转换.md>) — 四大设计范式
+> 关联: [Claude Code 架构](<../Claude-Code/Claude Code 整体架构 & 工作流程.md>) — Claude Code 工具链与 REPL 循环
+> 关联: [Agent 与 MCP](<../大模型/Agent 与 MCP.md>) — MCP 协议、自定义 MCP Server

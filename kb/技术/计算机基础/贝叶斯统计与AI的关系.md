@@ -99,4 +99,4 @@ flowchart TD
     GEN --> APP3["Stable Diffusion<br/>DALL·E"]
 ```
 
-> 关联: [LLM（大语言模型）](../AI/大模型/LLM（大语言模型）.md) · [生成式 AI](../AI/大模型/生成式 AI.md) · [Transformer](../AI/基础/Transformer.md)
+> 关联: [LLM（大语言模型）](../AI/大模型/LLM（大语言模型）.md) · [生成式 AI](<../AI/大模型/生成式 AI.md>) · [Transformer](../AI/基础/Transformer.md)

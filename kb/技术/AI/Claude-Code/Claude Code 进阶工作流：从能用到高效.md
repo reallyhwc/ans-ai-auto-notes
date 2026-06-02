@@ -13,7 +13,7 @@ description: "四阶段成熟度模型（裸聊→文件化→自动化→生态
 
 这篇文章讲的是：一个人如何用系统化思路，把 Claude Code 工作流从"能用"推到"高效"。
 
-> 关联: [Claude Code 架构](./Claude Code 整体架构 & 工作流程.md) — 技术架构与内部机制 | [Harness Engineering](./Harness Engineering：AI Agent 时代的工程范式.md) — 个人/团队级 Harness 体系 | [别学歪了：Harness 不是新概念](./Harness Engineering：AI Agent 时代的工程范式.md#harness-不是新概念-自检你的现有体系) — 同作者系列第三篇：机械约束/分离评估/工件化
+> 关联: [Claude Code 架构](<./Claude Code 整体架构 & 工作流程.md>) — 技术架构与内部机制 | [Harness Engineering](<./Harness Engineering：AI Agent 时代的工程范式.md>) — 个人/团队级 Harness 体系 | [别学歪了：Harness 不是新概念](<./Harness Engineering：AI Agent 时代的工程范式.md#harness-不是新概念-自检你的现有体系>) — 同作者系列第三篇：机械约束/分离评估/工件化
 > 关联: [外部参考链接](../../../实战/外部参考链接.md) — 本文原文链接
 
 ---
@@ -401,7 +401,7 @@ flowchart TD
 - Stop → 自动生成 session 日志 + 输出可执行的 commit 命令
 - 架构 linter 首次运行即发现并修复了 **3 个死链**（跨目录引用路径错误）
 
-> 关联: [Harness Engineering](./Harness Engineering：AI Agent 时代的工程范式.md) — 三层模型与 Harness 六组件的对照
-> 关联: [Claude Code 架构](./Claude Code 整体架构 & 工作流程.md) — Hook 系统技术细节
-> 关联: [AI Coding 团队治理](../AI-Coding/AI Coding 团队治理：从个人提效到团队工程化.md) — 团队级实践（美团案例）
+> 关联: [Harness Engineering](<./Harness Engineering：AI Agent 时代的工程范式.md>) — 三层模型与 Harness 六组件的对照
+> 关联: [Claude Code 架构](<./Claude Code 整体架构 & 工作流程.md>) — Hook 系统技术细节
+> 关联: [AI Coding 团队治理](<../AI-Coding/AI Coding 团队治理：从个人提效到团队工程化.md>) — 团队级实践（美团案例）
 > 关联: [外部参考链接](../../../实战/外部参考链接.md) — 本文原文链接

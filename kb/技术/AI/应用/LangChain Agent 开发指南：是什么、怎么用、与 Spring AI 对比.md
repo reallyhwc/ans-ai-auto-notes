@@ -7,9 +7,9 @@ description: "LangChain 核心六件套（Model I/O/Chain/Tool/Memory/Agent/Call
 
 > 最后整理: 2026-05-26 | 来源: 对话讨论
 
-> 关联: [agent-development-practice](./Agent 开发实战：选型、框架与思维转换.md) — Spring AI Agent 开发（Java 路线）
-> 关联: [agent-patterns](./Agent 四大设计范式（深度展开）.md) — Agent 四大范式深度展开
-> 关联: [openai-agents-sdk](./OpenAI Agents SDK 与多角色协作.md) — Multi-Agent 协作与 Handoff 机制
+> 关联: [agent-development-practice](<./Agent 开发实战：选型、框架与思维转换.md>) — Spring AI Agent 开发（Java 路线）
+> 关联: [agent-patterns](<./Agent 四大设计范式（深度展开）.md>) — Agent 四大范式深度展开
+> 关联: [openai-agents-sdk](<./OpenAI Agents SDK 与多角色协作.md>) — Multi-Agent 协作与 Handoff 机制
 
 ---
 
@@ -21,7 +21,7 @@ LangChain:  "我给你标准化的零件（Chain/Tool/Memory/Prompt），
             你自己决定怎么组装，我帮你管流水线"
 ```
 
-Spring AI 的 [Demo A](./Agent 开发实战：选型、框架与思维转换.md) 只需要 1 行代码跑 ReAct 循环。LangChain 做同样的事需要 ~30 行——但每一行你都看得到在干什么，每一环都可以替换。
+Spring AI 的 [Demo A](<./Agent 开发实战：选型、框架与思维转换.md>) 只需要 1 行代码跑 ReAct 循环。LangChain 做同样的事需要 ~30 行——但每一行你都看得到在干什么，每一环都可以替换。
 
 ---
 
@@ -446,8 +446,8 @@ print(chain.invoke({'concept': 'Java 的 GC'}).content)
 
 ---
 
-> 关联: [agent-development-practice](./Agent 开发实战：选型、框架与思维转换.md) — Spring AI 路线的 Agent 开发（Java 原生）
-> 关联: [spring-ai-vs-langchain](./Spring AI vs LangChain 深度对比：从 Java 后端视角彻底搞懂.md) — Spring AI vs LangChain 深度对比
-> 关联: [agent-patterns](./Agent 四大设计范式（深度展开）.md) — Agent 四大范式的架构展开
-> 关联: [agent-tech-stacks](./主流 Agent 产品技术栈解剖：自研循环 vs 框架之争.md) — 主流 Agent 产品（Claude Code 等）技术栈解剖
-> 关联: [agent-ops-and-resilience](./Agent 应用运维与韧性：架构之外的生存指南.md) — Agent 应用运维与韧性
+> 关联: [agent-development-practice](<./Agent 开发实战：选型、框架与思维转换.md>) — Spring AI 路线的 Agent 开发（Java 原生）
+> 关联: [spring-ai-vs-langchain](<./Spring AI vs LangChain 深度对比：从 Java 后端视角彻底搞懂.md>) — Spring AI vs LangChain 深度对比
+> 关联: [agent-patterns](<./Agent 四大设计范式（深度展开）.md>) — Agent 四大范式的架构展开
+> 关联: [agent-tech-stacks](<./主流 Agent 产品技术栈解剖：自研循环 vs 框架之争.md>) — 主流 Agent 产品（Claude Code 等）技术栈解剖
+> 关联: [agent-ops-and-resilience](<./Agent 应用运维与韧性：架构之外的生存指南.md>) — Agent 应用运维与韧性

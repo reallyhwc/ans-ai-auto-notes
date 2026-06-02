@@ -11,7 +11,7 @@ description: "Agent循环、MCP协议、FC机制、Skill定位、五者关系"
 
 Agent 是"能调用工具、多步循环完成任务"的 LLM 应用形态。MCP 是连接 Agent 和外部工具的开放协议。微调是让通用模型学会你的领域。
 
-> 关联: [llm](./LLM（大语言模型）.md) — LLM 核心原理 | [llm-prompt-rag](./Prompt 与 RAG.md) — Prompt 与 RAG 体系 | [ai-agent-tools](../应用/AI Agent 工具生态.md) — Agent 工具生态对比 | [claude-code-architecture](../Claude-Code/Claude Code 整体架构 & 工作流程.md) — Claude Code 整体架构与工作流程
+> 关联: [llm](./LLM（大语言模型）.md) — LLM 核心原理 | [llm-prompt-rag](<./Prompt 与 RAG.md>) — Prompt 与 RAG 体系 | [ai-agent-tools](<../应用/AI Agent 工具生态.md>) — Agent 工具生态对比 | [claude-code-architecture](<../Claude-Code/Claude Code 整体架构 & 工作流程.md>) — Claude Code 整体架构与工作流程
 
 ---
 
@@ -504,7 +504,7 @@ flowchart TB
 
 MCP（Model Context Protocol）是 AI 工具调用的标准化协议——写一次 Server，所有支持 MCP 的 LLM 都能用。
 
-> **详细内容已拆分至：[MCP 协议：AI 界的 USB-C](./MCP 协议：AI 界的 USB-C.md)**
+> **详细内容已拆分至：[MCP 协议：AI 界的 USB-C](<./MCP 协议：AI 界的 USB-C.md>)**
 >
 > 包含：MCP 痛点与架构、JSON-RPC 2.0 通信层、stdio OS 层细节（fork+pipe 完整交互序列）、服务发现机制（配置文件 vs 注册中心）、Spring AI 集成方案（`@Tool` + `@EnableMcpServer`）、纯手写方案、`@Tool` 注解内部机制（启动扫描→Schema 生成→完整请求链路）、与 Dubbo/Nacos 对比
 
@@ -744,7 +744,7 @@ Claude Code 内部循环:
 
 微调是在预训练基座模型上用你的领域数据再训练一轮，让通用模型变成领域专家。
 
-> **详细内容已拆分至：[微调与 LoRA](./微调与 LoRA：让通用模型学你的领域.md)**
+> **详细内容已拆分至：[微调与 LoRA](<./微调与 LoRA：让通用模型学你的领域.md>)**
 >
 > 包含：全量微调 vs LoRA 对比、客服场景具体案例、成本对比
 
@@ -840,6 +840,6 @@ MCP:    暴露了 "执行 bash"、"读写文件"、"git" 等工具给 Agent
 ```
 
 > 关联: [llm](./LLM（大语言模型）.md) — LLM 核心原理
-> 关联: [llm-prompt-rag](./Prompt 与 RAG.md) — Prompt 与 RAG 体系
-> 关联: [mcp-protocol](./MCP 协议：AI 界的 USB-C.md) — MCP 协议实现内幕
-> 关联: [llm-finetuning](./微调与 LoRA：让通用模型学你的领域.md) — 微调与 LoRA
+> 关联: [llm-prompt-rag](<./Prompt 与 RAG.md>) — Prompt 与 RAG 体系
+> 关联: [mcp-protocol](<./MCP 协议：AI 界的 USB-C.md>) — MCP 协议实现内幕
+> 关联: [llm-finetuning](<./微调与 LoRA：让通用模型学你的领域.md>) — 微调与 LoRA

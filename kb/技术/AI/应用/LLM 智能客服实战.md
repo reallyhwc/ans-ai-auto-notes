@@ -133,8 +133,8 @@ results = collection.query(
 # 返回: ["支持7天无理由退货", ...]
 ```
 
-> 关联: [llm-prompt-rag](../大模型/Prompt 与 RAG.md) — RAG 原理详解
-> 关联: [local-llm-deployment](../大模型/本地部署 LLM.md) — Embedding 模型本地部署
+> 关联: [llm-prompt-rag](<../大模型/Prompt 与 RAG.md>) — RAG 原理详解
+> 关联: [local-llm-deployment](<../大模型/本地部署 LLM.md>) — Embedding 模型本地部署
 
 ---
 
@@ -274,7 +274,7 @@ LLM 连续调用:
   Step 3: 综合两个结果 → "您的退货申请 R001 已受理，退款 RF001 将在 3 个工作日内到账。"
 ```
 
-> 关联: [llm-app-design](./LLM 应用设计.md) — Function Calling 完整 5 步流程
+> 关联: [llm-app-design](<./LLM 应用设计.md>) — Function Calling 完整 5 步流程
 
 ---
 
@@ -479,6 +479,6 @@ flowchart TB
 
 ---
 
-> 关联: [llm-app-design](./LLM 应用设计.md) — LLM 应用设计 9 大维度
-> 关联: [llm-prompt-rag](../大模型/Prompt 与 RAG.md) — RAG 原理详解
-> 关联: [local-llm-deployment](../大模型/本地部署 LLM.md) — Ollama 本地部署
+> 关联: [llm-app-design](<./LLM 应用设计.md>) — LLM 应用设计 9 大维度
+> 关联: [llm-prompt-rag](<../大模型/Prompt 与 RAG.md>) — RAG 原理详解
+> 关联: [local-llm-deployment](<../大模型/本地部署 LLM.md>) — Ollama 本地部署

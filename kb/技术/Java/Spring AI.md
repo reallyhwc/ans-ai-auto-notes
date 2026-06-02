@@ -34,4 +34,4 @@ Flux<String> replyFlux = chatClient.prompt("介绍一下 Java 21 虚拟线程")
 
 本质：两种模式用的是**同一个 HTTP POST 请求**，只是响应体的传输方式不同（一次性 JSON vs 分块 SSE）。
 
-> 关联: [Agent 与 MCP](../AI/大模型/Agent 与 MCP.md) · [Agent 开发实战](../AI/应用/Agent 开发实战：选型、框架与思维转换.md)
+> 关联: [Agent 与 MCP](<../AI/大模型/Agent 与 MCP.md>) · [Agent 开发实战](<../AI/应用/Agent 开发实战：选型、框架与思维转换.md>)

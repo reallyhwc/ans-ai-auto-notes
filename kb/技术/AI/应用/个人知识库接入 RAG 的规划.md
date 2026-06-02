@@ -7,9 +7,9 @@ description: "何时需要 RAG、渐进式实现路径、架构全景"
 
 > 最后整理: 2026-05-19 | 来源: 对话分析 + 项目现状评估
 
-> 关联: [llm-agent-mcp](../大模型/Agent 与 MCP.md) — Agent/MCP 基础
-> 关联: [llm-prompt-rag](../大模型/Prompt 与 RAG.md) — Prompt 与 RAG 体系
-> 关联: [mcp-protocol](../大模型/MCP 协议：AI 界的 USB-C.md) — MCP 协议实现
+> 关联: [llm-agent-mcp](<../大模型/Agent 与 MCP.md>) — Agent/MCP 基础
+> 关联: [llm-prompt-rag](<../大模型/Prompt 与 RAG.md>) — Prompt 与 RAG 体系
+> 关联: [mcp-protocol](<../大模型/MCP 协议：AI 界的 USB-C.md>) — MCP 协议实现
 
 ---
 

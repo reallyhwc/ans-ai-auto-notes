@@ -208,7 +208,7 @@ LLM ↔ 你的系统边界
 2. 让 LLM 看到这些工具的描述
 3. 执行 LLM 选择的工具调用，把结果喂回去
 
-> 关联: [ai-agent-tools](./AI Agent 工具生态.md) — Agent 工具设计详解
+> 关联: [ai-agent-tools](<./AI Agent 工具生态.md>) — Agent 工具设计详解
 
 ---
 
@@ -315,7 +315,7 @@ LLM 会一本正经地胡说八道：
 
 **LLM 在客服场景中的定位：前台话务员，不是决策者。** 它负责理解意图、组织语言、调取数据，但核心业务逻辑（金额计算、权限判断、数据写入）仍然走传统代码路径。
 
-> 关联: [llm-prompt-rag](../大模型/Prompt 与 RAG.md) — RAG 原理详解
+> 关联: [llm-prompt-rag](<../大模型/Prompt 与 RAG.md>) — RAG 原理详解
 
 ---
 
@@ -420,5 +420,5 @@ LLM 会一本正经地胡说八道：
 └─────────────────────────────────────────────────────────┘
 ```
 
-> 关联: [openai-agents-sdk](./OpenAI Agents SDK 与多角色协作.md) — Agent SDK 实践
-> 关联: [claude-code-architecture](../Claude-Code/Claude Code 整体架构 & 工作流程.md) — Claude Code 架构参考
+> 关联: [openai-agents-sdk](<./OpenAI Agents SDK 与多角色协作.md>) — Agent SDK 实践
+> 关联: [claude-code-architecture](<../Claude-Code/Claude Code 整体架构 & 工作流程.md>) — Claude Code 架构参考
