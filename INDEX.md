@@ -9,9 +9,9 @@
 - [外部参考链接](kb/实战/外部参考链接.md) — 优质外部技术文章、博客、演讲的链接汇总，附带核心要点
 - [知识管理工具对比](kb/实战/知识管理工具对比.md) — Obsidian/Notion/本项目方案 对比分析
 
-## 技术 (41 篇)
+## 技术 (49 篇)
 
-### AI (34 篇)
+### AI (42 篇)
 
 #### AI-Coding (5 篇)
 
@@ -21,13 +21,21 @@
 - [AI 编程的递进路径：从古法编程到多 Agent 协作](kb/技术/AI/AI-Coding/AI 编程的递进路径：从古法编程到多 Agent 协作.md) — 从古法编程到多Agent协作6个Level、程序员未来展望
 - [从 Vibe Coding 到 Spec-Driven 到驾驭工程](kb/技术/AI/AI-Coding/从 Vibe Coding 到 Spec-Driven 到驾驭工程.md) — AI 编程三阶段演进：Vibe Coding（放马跑，爽但危险）→ Spec-Driven Development（契约约束）→ 驾驭工程/Harness Engineering（系统级自动约束），附本项目 Harness 实践拆解
 
-#### Claude-Code (5 篇)
+#### Claude-Code (13 篇)
 
 - [Claude Code 整体架构 & 工作流程](kb/技术/AI/Claude-Code/Claude Code 整体架构 & 工作流程.md) — 整体架构、REPL循环、工具链、Hooks、上下文管理、完整数据流
 - [Claude Code 进阶工作流：从能用到高效](kb/技术/AI/Claude-Code/Claude Code 进阶工作流：从能用到高效.md) — 四阶段成熟度模型（裸聊→文件化→自动化→生态化）、约束>文档>对话三层模型、hooks/memory/plan/manifest/dev-log实战配置
 - [Claude Code 远程操控：Remote Control 与 cc-connect](kb/技术/AI/Claude-Code/Claude Code 远程操控：Remote Control 与 cc-connect.md) — Claude Code远程操控：官方Remote Control vs cc-connect消息桥接、手机编程工作流、微信/飞书接入
 - [Harness Engineering：AI Agent 时代的工程范式](kb/技术/AI/Claude-Code/Harness Engineering：AI Agent 时代的工程范式.md) — Harness Engineering(驾驭工程)：Agent=Model+Harness、六项核心能力、四阶段成长路径、双LLM交叉校验四种实现方式
+- [Headless 模式与 Agent SDK](kb/技术/AI/Claude-Code/Headless 模式与 Agent SDK.md) — Claude Code 非交互模式：-p 参数全清单、--bare 启动模式、output-format 结构化输出、stream-json 事件类型、CI 集成模式、Agent SDK 关系
+- [Hooks 事件全景与拦截机制](kb/技术/AI/Claude-Code/Hooks 事件全景与拦截机制.md) — Claude Code 全部 30+ hook 事件按类别清单、阻断三档机制、配置层级合并、PreToolUse 完整示例、subagent/skill 内的 hook
+- [MCP 集成实战（含 Spring AI）](kb/技术/AI/Claude-Code/MCP 集成实战（含 Spring AI）.md) — MCP 协议在 Claude Code 中的接入：四种 transport 对比、三级 scope 优先级、配置命令、Spring AI MCP server 实战接入、OAuth、Tool Search 优化、调试与坑
+- [Plugins 插件体系](kb/技术/AI/Claude-Code/Plugins 插件体系.md) — Claude Code plugin 系统：与 standalone 配置的边界、目录结构、manifest schema、能打包的资源、安装方式、marketplace 机制、版本管理、迁移路径
+- [Skills 渐进式披露架构](kb/技术/AI/Claude-Code/Skills 渐进式披露架构.md) — Skills 的三层渐进式披露机制、token 经济学、frontmatter 全字段、生命周期、动态 context 注入、与 commands/subagent 的边界
 - [Superpowers TDD Skill 工作流拆解](kb/技术/AI/Claude-Code/Superpowers TDD Skill 工作流拆解.md) — TDD 是什么、Superpowers 在其中的角色、LLM 工具调用链详细拆解
+- [子智能体（subagents）机制与实战](kb/技术/AI/Claude-Code/子智能体（subagents）机制与实战.md) — subagent 的定位、与 skill/Agent SDK 的区分、四级 scope 优先级、frontmatter 全字段、三种调用方式、独立 context 机制、协作链路、fork/worktree/persistent memory 进阶
+- [识别自动化机会的方法论](kb/技术/AI/Claude-Code/识别自动化机会的方法论.md) — 训练'看出哪些重复任务能 Commands/Skills/Hooks 自动化'的元能力：三次法则、复述检测、触发器分类、工具决策树、本项目候选清单
+- [黄佳-Claude Code 工程化实战 课程笔记](kb/技术/AI/Claude-Code/黄佳-Claude Code 工程化实战 课程笔记.md) — 极客时间黄佳《Claude Code 工程化实战》课程的学习导读：按章节记录学习节点、关键问题、对应专题文件链接、个人疑问与扩展阅读
 
 #### 基础 (3 篇)
 
