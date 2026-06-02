@@ -2,18 +2,23 @@
 
 ## 项目定位
 
-通过 AI 对话自动构建个人知识库。每次对话中，我除了回答问题，还要智能地对内容进行分类、归纳、总结，逐步沉淀为结构化的 markdown 知识库。
+通过 AI 对话自动构建个人知识库。每次对话中，AI 除了回答问题，还要智能地对内容进行分类、归纳、总结，逐步沉淀为结构化的 markdown 知识库。
+
+本项目基于 Harness Engineering 设计，用机械化约束（hooks + linter）+ 文档化沉淀（plan + ADR + memory）让 AI 协作可靠且可维护。
 
 ## 用户背景
 
-<!-- 
-  ⚠️ Fork 后请替换为你自己的背景信息，AI 会据此调整回答风格。
-  详细版本见 memory/user-profile.md
+<!--
+模板用户：把下面这段改成你自己的背景信息，AI 会根据这个调整回答风格。
+建议包含：年龄段（影响话题深度）/ 职业（影响示例选择）/ 当前关注（影响话题倾向）。
+
+例：
+- 30 岁，软件工程师
+- 关注 AI 应用、系统设计
+- 在读《Designing Data-Intensive Applications》
 -->
 
-- （你的职业，如：Java 后端程序员 / 前端工程师 / 产品经理）
-- （你的技术栈或兴趣方向，如：分布式系统、AI 大模型）
-- （近期关注的内容，如：在读某本书、在学某个技术）
+- (在此填写你的背景)
 
 ## 知识库结构
 
@@ -58,29 +63,16 @@ ans-ai-auto-notes/
 2. **文件内按时间倒序**：最新内容追加在文件顶部，以 `## YYYY-MM-DD - 标题` 作为二级标题。
 3. **目录深度规则**：默认两层（如 `技术/Java/jvm-gc.md`）；当一个领域内容显著膨胀且能划分清晰子领域时（如 AI 已分化出"基础/大模型/Claude-Code/AI-Coding/应用"），允许使用三层。第三层需要满足：每个子目录有 ≥3 篇文件 且 子领域之间边界清晰。
 4. **新主题新建文件**：遇到全新主题时创建新文件。
-
-### 文件拆分规则（重要）
-
-当一个文件同时满足以下**任意两条**时，主动提案拆分：
-
-| 维度 | 阈值 | 说明 |
-|------|------|------|
-| **行数** | >1000 行关注，>1500 行必须拆 | 笔记含大量 demo/Mermaid/代码块，1000 行内为舒适区；由 `arch-lint.sh [7/8]` 与 `check-overview.js [12/12]` 自动检查（双 hook 覆盖 SessionStart 和 Stop） |
-| **章节数** | > 7-8 个 `##` 级章节 | 章节过多说明主题开始发散 |
-| **主题凝聚度** | 覆盖 3+ 个可独立成文的方向 | 即使行数不达标，如果内容明显属于不同子领域也应拆分 |
-
-**判断方法**：读完文件后问自己——"如果一个新人只想了解 X，他需要通读整个文件吗？"如果答案是"是"但 X 只是文件中的一小部分，就应该拆分。
-
-**拆分后**：
-- 原文件保留最核心的内容 + 指向子文件的链接
-- 子文件各自成为一个独立主题
-- 更新 INDEX.md 和 overview.html
+5. **中文文件名（强制性）**：所有 `kb/` 下的 md 文件名必须与 frontmatter `title` 一致（即 Web 页面显示什么，磁盘文件名就是什么）。规则：(a) 冒号 `:` 替换为全角 `：`；(b) 移除 `/` `\` `*` `?` `"` `<` `>` `|` 等非法字符；(c) 多空格合并为一个；(d) 过长时（>60 字）截断。新文件创建时直接使用中文名；旧文件重命名用 `node scripts/rename-mapping.js --apply` 批量处理。
 
 ### 更新策略（混合模式）
 
 1. **小知识点自动记录**：回答完问题后，自动提取知识点追加到对应主题文件，无需询问。
 2. **大改动主动提案**：涉及文件拆分、合并、重组、目录结构变更时，主动向用户提案，待确认后执行。
 3. **主动性在我这边**：不等用户下指令，我自行判断时机并提案。
+4. **知识内容自动沉淀，不询问**：对话中产生的技术讲解、概念梳理、方案对比等知识内容，直接写入 kb/ 对应文件，不要问"要不要沉淀到知识库？"。仅当涉及文件拆分、合并、重组、目录结构变更时才主动提案。
+
+> 文件拆分、章节编号、"严禁口头沉淀"等内容质量规则统一收敛到 [kb-content-style skill](.claude/skills/kb-content-style/SKILL.md)，写入 kb/ 时由 Claude Code 自动加载。
 
 ### 跨文件关联规则
 
@@ -90,23 +82,26 @@ ans-ai-auto-notes/
 2. 两处内容各有侧重，**不是复制**。
 3. 两处互相留链接：`相关: ../技术/ai/rnn.md` ↔ `相关: ../../读书笔记/我看见的世界.md`
 
+### 决策先例（ADR）
+
+遇到分类歧义或重大架构决策时，先看 [`docs/decisions.md`](docs/decisions.md)。如果是新的争议点，决策后追加 ADR（编号单调递增）。这帮助 AI 在分类摇摆时有先例可循，避免目录漂移。
+
 ### Timeline 规则
 
 1. 按周生成：`timeline/YYYY-WXX.md`
 2. 每周文件内记录当周所有对话的摘要，附链接指向 kb 中对应主题文件的具体段落。
 3. INDEX.md 实时更新，作为总目录。
 
-### 笔记风格规则（重要）
+### 笔记风格 & 拆分 & 章节规则
 
-1. **保留对话中的 Demo 和示例**：笔记不是抽象提炼，而是要保留我在对话中给出的具体例子、图解、类比说明。用户更喜欢带 demo 的 QA 风格，而非干瘪的总结。
-2. **表达形式自由，优先使用 Mermaid 渲染图**：Markdown 支持多种可视化表达，根据内容选择最合适的：
-   - **Mermaid 流程图/时序图/架构图**（` ```mermaid `）—— 优先使用，overview.html 会渲染为可视化图形（参考 `claude-code-architecture.md` 的 8 处 mermaid 用法）
-   - 代码块中的 ASCII 示意图、对比表格 —— 仅在 mermaid 不适用的场景使用
-   - 直接生成 PNG/SVG 图片插入文档
-   - 一切能让概念更直观的形式都可以
-3. **重组而非堆砌**：同一主题的多次对话要持续归纳合并，形成自上而下逐步深入的结构化文档，而不是按日期分段的 Q&A 日志。每次新内容追加时，要考虑它和已有内容的逻辑关系，必要时重组章节。不应该出现多个同日期的独立小节堆在一起。
-4. **反面例子**：不要写成"卷积操作是通过滤波器在输入矩阵上进行滑动窗口运算提取特征"这种纯定义。
-5. **判断标准**：如果笔记读起来像教科书定义，就太抽象了。如果读起来像有人拿着草稿纸在给你演示，就是对的。
+详见 [.claude/skills/kb-content-style/SKILL.md](.claude/skills/kb-content-style/SKILL.md) —— Claude Code 在写入 kb/ 时自动加载。核心要点：
+
+- 保留 demo、Mermaid 优先、反抽象化
+- 同主题聚合，文件内时间倒序
+- 中文文件名 = frontmatter title
+- 行数 >1000 关注 / >1500 必拆
+- 章节编号必须从 1 连续无跳号
+- 严禁"口头沉淀"（说"已沉淀"前必须 Read 验证文件存在）
 
 ### 本地预览规则（单一数据源架构）
 
@@ -119,53 +114,21 @@ ans-ai-auto-notes/
 
 ### 测试纪律（软 TDD）
 
-**错误趋向区域必须 TDD**——先写一个能复现问题的失败测试 → 跑红 → 实现 → 跑绿 → 重构。这些区域是历史 bug 高发地：
+详见 [.claude/skills/kb-tdd-discipline/SKILL.md](.claude/skills/kb-tdd-discipline/SKILL.md) —— Claude Code 在修改 scripts/ 或 tests/ 时自动加载。核心要点：
 
-- **markdown 渲染链路**：marked 配置、自定义 renderer（`renderKbLink` 等）
-- **路径解析**：`resolveRelativeMd`、build-index 的扫描逻辑
-- **frontmatter 解析**：build-index.js 的 YAML/字段提取
-- **静态校验脚本**：check-overview.js、arch-lint.sh 自身的检查逻辑
-
-**Bug 修复同样 TDD**：先在 tests/ 加一个能复现该 bug 的失败测试（红），再修代码让它转绿。这样同类 bug 不会重现。
-
-**豁免**（不强制 TDD）：
-- 纯文本编辑：`kb/*.md`、CLAUDE.md、README 等的内容修订
-- UI 样式调整：overview.html 的 CSS
-- 配置变更：settings.local.json、.gitignore 等
-
-**push 前自动跑测试，双层 gate**：
-1. `scripts/git-hooks/pre-push` —— git 层硬拦截（手动/自动 push 都过这一道）
-2. `exit-check.sh` 的 auto-push 块 —— Stop 时若 >5 commits 未 push，先跑测试通过才 push
-
-**测试入口**：
-- `bash test.sh`（推荐）—— 跑 `tests/*.test.js`，spec reporter
-- 直接：`node --test tests/*.test.js`
-- 单文件：`node --test tests/lib.test.js`
-
-**首次安装 hook**：`bash scripts/install-hooks.sh`（设置 `core.hooksPath = scripts/git-hooks`，新机器克隆后跑一次）
-
-**测试文件组织**：
-```
-tests/
-├── lib.test.js              ← scripts/lib.js 纯函数
-├── link-renderer.test.js    ← marked link renderer 输出契约
-├── build-index.test.js      ← manifest.json 数据完整性
-└── integration.test.js      ← 全量 kb/ markdown 链接静态解析
-```
-
-新增测试时按"被测对象"命名为 `<source>.test.js`。需要在 Node 中可用的纯逻辑统一放 `scripts/lib.js`（UMD 双导出，浏览器和 Node 都能加载）。
+- 错误趋向区域（marked 渲染、路径解析、frontmatter、lint 脚本）必须 TDD：先红后绿
+- Bug 修复必须先在 tests/ 加复现 case
+- 测试入口：`bash test.sh`
+- pre-push hook 兜底：`bash scripts/install-hooks.sh` 安装
 
 ### Git 规则
 
-1. **每次完成一批文件变更后立即自动 commit**，不等用户提醒。判断标准：一个逻辑主题的改动完成（如一篇文章的笔记沉淀、一个脚本的编写）→ 立刻 `git add -A && git commit`。
-2. Commit message 采用 [Conventional Commits](https://www.conventionalcommits.org/) 格式：
-   - `feat: xxx` — 新功能（如新增 lint 工具、live reload）
-   - `fix: xxx` — 修复 bug 或格式问题
-   - `chore: xxx` — 维护性工作（规则更新、配置调整）
-   - `docs: xxx` — 纯文档/知识内容变更
-   - `refactor: xxx` — 重构（不改变行为）
-3. 消息用中文或英文均可，简明描述"做了什么、为什么"。
-4. **退出时提醒未 push 的 commit**，由 Stop hook 自动检查。
+详见 [.claude/skills/auto-commit-discipline/SKILL.md](.claude/skills/auto-commit-discipline/SKILL.md) —— Claude Code 会按 skill 触发条件自动加载完整规则。核心要点：
+
+- 完成一批文件变更立即 commit（不等用户提醒）
+- Conventional Commits 格式
+- ≥5 commits 未 push 时 Stop hook 自动 push
+- 永不 amend 已 push 的 commit、永不 --no-verify
 
 ### 会话退出检查（重要）
 
@@ -173,10 +136,10 @@ tests/
 
 | 层级 | Hook | 脚本 | 检查内容 |
 |------|------|------|---------|
-| **约束层** | SessionStart | `scripts/preflight.sh` → `scripts/arch-lint.sh` | 机械检查 frontmatter 完整性、交叉链接有效性（死链扫描）、元信息头规范、重复标题、行数限制（>1000 警告/>1500 错误）、memory 过期（>14天告警）、遗留未提交变更、manifest.json 过期、上次 session 摘要 |
-| **约束层** | Stop | `exit-check.sh` → `lint.sh` + `check-overview.js` + `session-log.sh` + `permission-audit.sh` + 未 push 检查 | markdown 格式、git 状态、INDEX 日期、overview.html 健康（12 项含行数限制）、session 日志、权限审计、未 push 的 commit（>5 自动 push） |
+| **约束层** | SessionStart | `scripts/preflight.sh` → `scripts/arch-lint.sh` | 10 项机械检查：frontmatter 完整性、元信息头规范、交叉链接（死链）、重复标题、磁盘 vs INDEX 一致性、大小写一致性（Linux 兼容）、行数限制（>1000 警告/>1500 错误）、memory frontmatter 格式、零 npm 依赖 enforce、脚本被引用一致性。外加 memory 过期（>14 天，frontmatter lastUpdated 优先，fallback 文件 mtime）、遗留未提交变更、manifest.json 过期、上次 session 摘要 |
+| **约束层** | Stop | `exit-check.sh` → `lint.sh` + `check-overview.js` + `session-log.sh` + `permission-audit.sh` + 未 push 检查 | markdown 格式（纯 bash awk 实现，零 npm 依赖）、git 状态、INDEX.md 与 kb/ 数量一致性、overview.html 健康（12 项含行数限制）、session 日志、权限审计、未 push 的 commit（**≥5 自动 push，所有分支统一规则**——单人知识库无需 main 保护，由 pre-push hook 的 test + mermaid 守恒兜底）|
 | **文档层** | — | `.claude/session-logs/` | 每日 session 日志存档（同日多次 Stop 累加 append） |
-| **文档层** | — | `memory/*.md` | 所有记忆文件带 `lastUpdated` 时间戳，>14 天未更新自动告警 |
+| **文档层** | — | `memory/*.md` | 记忆文件优先用 frontmatter 内 `lastUpdated`（任意缩进），无此字段时 fallback 到文件 mtime，>14 天告警 |
 
 > 注：UserPromptSubmit hook 已移除（commit-reminder.sh 已淘汰）——由 AI 主动 auto-commit 替代机械提醒。AI 每完成一批文件变更后立即 `git add -A && git commit`，不等用户提醒。
 
@@ -185,10 +148,14 @@ tests/
 1. **文件格式检查**：运行 `./lint.sh` 做自动格式校验（heading、空行等），然后人工扫描本次变动的 md 文件，确认元信息头（`> 最后整理: YYYY-MM-DD | 来源: xxx`）符合规范。发现格式不一致的文件立即修正。
 2. **交叉链接检查**：确认新增/修改的文件有指向关联文件的双向链接（`[[./xxx]]` 或 `> 关联:` 格式）。
 3. **Memory 检查**：确认本次会话中用户的新偏好、新反馈、新项目上下文已写入 `memory/` 目录并更新 `MEMORY.md` 索引。
-4. **Git 检查**：确认所有变更已提交（AI 应在变更发生后立即 auto-commit，无需等退出），`git status` 显示 clean。同时检查是否有未 push 的 commit，如有则提醒用户 `git push`。
-5. **INDEX.md 日期**：确认索引日期已更新至本次会话日期。
+4. **Git 检查**：确认所有变更已提交（AI 应在变更发生后立即 auto-commit，无需等退出），`git status` 显示 clean。同时检查是否有未 push 的 commit，如有则提醒用户 `git push`（≥5 时 Stop hook 会自动 push，pre-push 的 test + mermaid 守恒兜底）。
+5. **INDEX 一致性**：若新增/删除了 md 文件，确认 `node scripts/build-index.js` 已跑过，INDEX.md 条目数 = kb/ 实际 md 数（INDEX.md 自身不再包含动态日期，避免 git noise）。
 
 上述检查全部通过后，向用户报告检查结果，确认可以安全退出。
+
+### Plan 系统
+
+长期任务（跨多个 session 的实施项目）的 plan 位于 [`docs/superpowers/plans/`](docs/superpowers/plans/)。新 plan 通过 superpowers `writing-plans` skill 生成。Plan 文件 frontmatter 中 `status:` 字段或 `> 状态: xxx` 段标记进度（已完成 / completed / done / closed 视为关闭，其他视为开放）。Stop hook 的 `[9/9]` 自动列出未完成 plan。
 
 ## 重要提醒
 
