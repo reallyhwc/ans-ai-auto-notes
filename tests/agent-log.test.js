@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
+const { execFileSync } = require('node:child_process');
 const { generateId, appendEvent, foldEvents, parseTranscript } = require('../scripts/lib-agent-log.js');
 
 test('generateId: 格式 r-YYYY-MM-DD-HH-MM-<4hex>', () => {
@@ -144,4 +145,79 @@ test('parseTranscript: 含 malformed JSON 行 → 跳过坏行，其他行正常
   } finally {
     fs.unlinkSync(tmpFile);
   }
+});
+
+function runHook(mode, stdinJson, env = {}) {
+  return execFileSync('node', ['scripts/agent-log-hook.js', mode], {
+    input: JSON.stringify(stdinJson),
+    env: Object.assign({}, process.env, env),
+    encoding: 'utf8',
+  });
+}
+
+test('agent-log-hook subagent: 解析 stdin + 追加 start event', () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agent-log-hook-'));
+  const logFile = path.join(tmpDir, '2026-06.jsonl');
+  runHook('subagent', {
+    transcript_path: path.resolve('tests/fixtures/agent-log-transcript-sample.jsonl'),
+    subagent_name: 'kb-auditor',
+  }, { AGENT_LOG_FILE: logFile });
+
+  const content = fs.readFileSync(logFile, 'utf8');
+  const lines = content.split('\n').filter(l => l);
+  assert.equal(lines.length, 1);
+  const ev = JSON.parse(lines[0]);
+  assert.equal(ev.event, 'start');
+  assert.equal(ev.agent, 'kb-auditor');
+  assert.equal(ev.parent_id, null);
+  assert.deepEqual(ev.tools_used.sort(), ['Bash', 'Edit', 'Read']);
+  assert.deepEqual(ev.files_changed.sort(), ['kb/a.md', 'kb/b.md']);
+  assert.equal(ev.duration_ms, 496000);
+  assert.equal(ev.model, 'claude-opus-4-7');
+  assert.equal(ev.outcome, 'unknown');
+  assert.equal(ev.title, null);
+  assert.equal(ev.summary, null);
+  assert.match(ev.id, /^r-\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-[0-9a-f]{4}$/);
+
+  fs.rmSync(tmpDir, { recursive: true });
+});
+
+test('agent-log-hook main: 有实质工作 → 写一行 start', () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agent-log-hook-'));
+  const logFile = path.join(tmpDir, '2026-06.jsonl');
+  runHook('main', {
+    transcript_path: path.resolve('tests/fixtures/agent-log-transcript-sample.jsonl'),
+  }, { AGENT_LOG_FILE: logFile });
+
+  const content = fs.readFileSync(logFile, 'utf8');
+  const lines = content.split('\n').filter(l => l);
+  assert.equal(lines.length, 1);
+  assert.equal(JSON.parse(lines[0]).agent, 'main');
+
+  fs.rmSync(tmpDir, { recursive: true });
+});
+
+test('agent-log-hook main: 无实质工作 → 不写', () => {
+  // 构造一个只有 Read 的 transcript
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agent-log-hook-'));
+  const fakeTranscript = path.join(tmpDir, 't.jsonl');
+  fs.writeFileSync(fakeTranscript, [
+    '{"role":"user","content":"问个问题","timestamp":"2026-06-02T00:00:00Z"}',
+    '{"role":"assistant","content":[{"type":"tool_use","name":"Read","input":{"file_path":"a"}}],"timestamp":"2026-06-02T00:00:05Z","model":"claude-opus-4-7"}',
+  ].join('\n') + '\n');
+
+  const logFile = path.join(tmpDir, '2026-06.jsonl');
+  runHook('main', { transcript_path: fakeTranscript }, { AGENT_LOG_FILE: logFile });
+
+  assert.equal(fs.existsSync(logFile), false, 'log file should not be created when no substantive work');
+
+  fs.rmSync(tmpDir, { recursive: true });
+});
+
+test('agent-log-hook: 无 transcript_path → 静默退出（不报错）', () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agent-log-hook-'));
+  const logFile = path.join(tmpDir, '2026-06.jsonl');
+  runHook('main', {}, { AGENT_LOG_FILE: logFile });
+  assert.equal(fs.existsSync(logFile), false);
+  fs.rmSync(tmpDir, { recursive: true });
 });
