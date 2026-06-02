@@ -72,6 +72,10 @@ ans-ai-auto-notes/
 2. 两处内容各有侧重，**不是复制**。
 3. 两处互相留链接：`相关: ../技术/ai/rnn.md` ↔ `相关: ../../读书笔记/我看见的世界.md`
 
+### 决策先例（ADR）
+
+遇到分类歧义或重大架构决策时，先看 [`docs/decisions.md`](docs/decisions.md)。如果是新的争议点，决策后追加 ADR（编号单调递增）。这帮助 AI 在分类摇摆时有先例可循，避免目录漂移。
+
 ### Timeline 规则
 
 1. 按周生成：`timeline/YYYY-WXX.md`
