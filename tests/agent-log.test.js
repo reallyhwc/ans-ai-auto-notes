@@ -221,3 +221,58 @@ test('agent-log-hook: 无 transcript_path → 静默退出（不报错）', () =
   assert.equal(fs.existsSync(logFile), false);
   fs.rmSync(tmpDir, { recursive: true });
 });
+
+function runPatch(args, env = {}) {
+  return execFileSync('node', ['scripts/agent-log.js'].concat(args), {
+    env: Object.assign({}, process.env, env),
+    encoding: 'utf8',
+  });
+}
+
+test('agent-log patch: --id last 找当前文件最后一条 start 的 id 并追加 patch', () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agent-log-patch-'));
+  const logFile = path.join(tmpDir, '2026-06.jsonl');
+  fs.writeFileSync(logFile, [
+    '{"event":"start","id":"r-1","time":"2026-06-02T00:00:00Z","agent":"main"}',
+    '{"event":"start","id":"r-2","time":"2026-06-02T01:00:00Z","agent":"main"}',
+  ].join('\n') + '\n');
+
+  runPatch(['patch', '--id', 'last', '--title', 'T2', '--summary', 'S2', '--outcome', 'success'],
+    { AGENT_LOG_FILE: logFile });
+
+  const lines = fs.readFileSync(logFile, 'utf8').split('\n').filter(l => l);
+  assert.equal(lines.length, 3);
+  const p = JSON.parse(lines[2]);
+  assert.equal(p.event, 'patch');
+  assert.equal(p.id, 'r-2');
+  assert.equal(p.title, 'T2');
+  assert.equal(p.summary, 'S2');
+  assert.equal(p.outcome, 'success');
+
+  fs.rmSync(tmpDir, { recursive: true });
+});
+
+test('agent-log patch: --id <full> 直接用该 id', () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agent-log-patch-'));
+  const logFile = path.join(tmpDir, '2026-06.jsonl');
+  fs.writeFileSync(logFile, '{"event":"start","id":"r-x","time":"2026-06-02T00:00:00Z","agent":"main"}\n');
+
+  runPatch(['patch', '--id', 'r-x', '--title', 'X'], { AGENT_LOG_FILE: logFile });
+
+  const lines = fs.readFileSync(logFile, 'utf8').split('\n').filter(l => l);
+  const p = JSON.parse(lines[1]);
+  assert.equal(p.id, 'r-x');
+  assert.equal(p.title, 'X');
+
+  fs.rmSync(tmpDir, { recursive: true });
+});
+
+test('agent-log patch: --id last 但无 start → 报错 exit 1', () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agent-log-patch-'));
+  const logFile = path.join(tmpDir, '2026-06.jsonl');
+  assert.throws(
+    () => runPatch(['patch', '--id', 'last', '--title', 'X'], { AGENT_LOG_FILE: logFile }),
+    /no start event found/i
+  );
+  fs.rmSync(tmpDir, { recursive: true });
+});
