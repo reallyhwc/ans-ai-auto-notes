@@ -321,6 +321,11 @@ GIT_HOOKS=$(find scripts/git-hooks -type f 2>/dev/null)
 
 while IFS= read -r script; do
   SCRIPT_NAME=$(basename "$script")
+  # 豁免：脚本顶部含 `# arch-lint-ignore-unref:` 注释（如 PostToolUse hook script，
+  # 由 settings.local.json 引用而非 hook 链路；该文件 .gitignore 不参与 scan）
+  if head -5 "$script" 2>/dev/null | grep -q "^# arch-lint-ignore-unref:"; then
+    continue
+  fi
   REFERENCED=0
   for ref in "${REFERENCING[@]}"; do
     [ -f "$ref" ] || continue

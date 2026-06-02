@@ -1,4 +1,5 @@
 #!/bin/bash
+# arch-lint-ignore-unref: Hook script attached via PostToolUse in .claude/settings.local.json (managed by bootstrap.sh)
 # verify-claim.sh — PostToolUse hook：验证 Write/Edit 写入的 kb/ 或 memory/ 文件确实存在
 # 输出: append 到 .claude/claim-ledger.log
 #
