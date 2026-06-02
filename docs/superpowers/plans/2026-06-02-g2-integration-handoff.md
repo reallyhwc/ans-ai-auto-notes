@@ -2,7 +2,8 @@
 title: G2 集成阶段交接清单（self-audit 输出）
 description: G2 worktree 完成后的自审计发现，分类整理，标注哪些已在 G2 内修、哪些需集成阶段（Task 18）处理
 date: 2026-06-02
-status: 待集成处理
+status: completed
+completedDate: 2026-06-02
 related:
   - 2026-06-01-kb-system-uplift-plan.md (master plan, Task 18 集成)
 ---

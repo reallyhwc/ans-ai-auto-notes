@@ -59,11 +59,17 @@ function buildSearchIndex(files) {
 
 function extractLinks(text) {
   const links = new Set();
-  // ](./x.md) 和 ](../x.md)
-  const mdLinkRe = /\]\((\.{1,2}\/[^)]+\.md)(?:#[^)]*)?\)/g;
+  // 任何 .md 路径（./x.md, ../x.md, foo.md 同目录裸路径, kb/x.md 仓根路径）
+  // 协议链接 / 纯锚点单独过滤（避免误匹配外链）
+  const mdLinkRe = /\]\(([^)]+\.md)(?:#[^)]*)?\)/g;
   let m;
-  while ((m = mdLinkRe.exec(text))) links.add(m[1]);
-  // [[./x.md]]
+  while ((m = mdLinkRe.exec(text))) {
+    const url = m[1];
+    if (/^(https?:|mailto:|ftp:|\/\/)/i.test(url)) continue;
+    if (url.startsWith('#')) continue;
+    links.add(url);
+  }
+  // [[./x.md]] 风格（仅相对路径，无裸路径变体）
   const bracketLinkRe = /\[\[(\.{1,2}\/[^\]]+\.md)\]\]/g;
   while ((m = bracketLinkRe.exec(text))) links.add(m[1]);
   return Array.from(links);

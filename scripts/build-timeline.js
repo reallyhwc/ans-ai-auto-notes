@@ -87,12 +87,22 @@ function aggregateByWeek(commits) {
     .map(w => { delete w.sortKey; return w; });
 }
 
+// TIMELINE_SINCE env var 控制 git log 时间窗口：
+//   设为 "all"     → 无时间限制（覆盖整个 commit 历史）
+//   设为其他字符串 → 直接传给 git log --since=
+//   不设          → 默认 "6 months ago"
+// 解决 reviewer 反馈：硬编码 6 months 在 1 年后会让早期 commit 悄悄丢失
+function buildGitLogCmd(since) {
+  if (since === 'all') {
+    return 'git log --pretty=format:"%h|%ai|%s"';
+  }
+  return 'git log --since="' + since + '" --pretty=format:"%h|%ai|%s"';
+}
+
 function main() {
-  console.log('[build-timeline] 提取 git log...');
-  const raw = execSync(
-    'git log --since="6 months ago" --pretty=format:"%h|%ai|%s"',
-    { cwd: ROOT, encoding: 'utf-8' }
-  );
+  const since = process.env.TIMELINE_SINCE || '6 months ago';
+  console.log('[build-timeline] 提取 git log (since=' + since + ')...');
+  const raw = execSync(buildGitLogCmd(since), { cwd: ROOT, encoding: 'utf-8' });
   const commits = parseGitLog(raw);
   console.log('[build-timeline] 解析 ' + commits.length + ' 个 commit');
   const weeks = aggregateByWeek(commits);
@@ -104,4 +114,4 @@ if (require.main === module) {
   main();
 }
 
-module.exports = { parseGitLog, aggregateByWeek, isoWeek, weekRangeLabel };
+module.exports = { parseGitLog, aggregateByWeek, isoWeek, weekRangeLabel, buildGitLogCmd };

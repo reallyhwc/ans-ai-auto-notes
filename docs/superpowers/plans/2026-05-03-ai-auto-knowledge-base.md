@@ -1,3 +1,8 @@
+---
+status: completed
+completedDate: 2026-05-03
+---
+
 # AI 驱动个人知识库 — 实现计划
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.

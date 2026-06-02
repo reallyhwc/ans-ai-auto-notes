@@ -457,18 +457,32 @@ echo ""
 echo "[14/15] anchor 存活检查..."
 ANCHOR_OUT=$(node scripts/check-anchors.js 2>&1)
 echo "$ANCHOR_OUT"
-ANCHOR_WARN=$(echo "$ANCHOR_OUT" | grep -c "anchor 不存在" || echo "0")
-ANCHOR_WARN=$(echo "$ANCHOR_WARN" | awk '{print $1}')
+# pipefail + grep -c 无匹配会让 || echo "0" 与 grep stdout "0\n" 拼成 "0\n0"，
+# 再喂 $((...)) 算术表达式会 syntax error。用 awk END 取最后一行兜底。
+ANCHOR_WARN=$(echo "$ANCHOR_OUT" | grep -c "anchor 不存在" 2>/dev/null | awk 'END {print $1+0}')
 
 # ── 检查 15: 内容具象度（A4） ──
 echo ""
 echo "[15/15] 内容具象度（mermaid / 代码块 / 表格 ≥1）..."
 CONTENT_OUT=$(bash scripts/check-content-quality.sh 2>&1)
 echo "$CONTENT_OUT"
-CONTENT_WARN=$(echo "$CONTENT_OUT" | grep -c "缺少 mermaid" || echo "0")
-CONTENT_WARN=$(echo "$CONTENT_WARN" | awk '{print $1}')
+CONTENT_WARN=$(echo "$CONTENT_OUT" | grep -c "缺少 mermaid" 2>/dev/null | awk 'END {print $1+0}')
 
 # ── 汇总 ──
+# Defensive: bash 3.2 + pipefail 在 grep -c 无匹配时可能让 *_WARN 整体赋值失败
+# 用 :-0 兜底确保所有变量都有值，避免 set -u 触发 unbound variable
+WARN=${WARN:-0}
+LINK_WARN=${LINK_WARN:-0}
+CASE_WARN=${CASE_WARN:-0}
+LINE_WARN=${LINE_WARN:-0}
+MEM_WARN=${MEM_WARN:-0}
+DEPS_ISSUES=${DEPS_ISSUES:-0}
+UNREF_COUNT=${UNREF_COUNT:-0}
+DOC_REF_FAIL=${DOC_REF_FAIL:-0}
+ID_CONTRACT_FAIL=${ID_CONTRACT_FAIL:-0}
+NUM_GAP_WARN=${NUM_GAP_WARN:-0}
+ANCHOR_WARN=${ANCHOR_WARN:-0}
+CONTENT_WARN=${CONTENT_WARN:-0}
 ALL_WARN=$((WARN + LINK_WARN + CASE_WARN + LINE_WARN + MEM_WARN + DEPS_ISSUES + UNREF_COUNT + DOC_REF_FAIL + ID_CONTRACT_FAIL + NUM_GAP_WARN + ANCHOR_WARN + CONTENT_WARN))
 echo ""
 echo "========== Linter 汇总 =========="

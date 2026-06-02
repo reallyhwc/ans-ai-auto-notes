@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { aggregateByWeek, parseGitLog } = require('../scripts/build-timeline.js');
+const { aggregateByWeek, parseGitLog, buildGitLogCmd } = require('../scripts/build-timeline.js');
 
 test('parseGitLog: 解析 git log 格式 (hash|date|subject)', () => {
   const raw = 'abc123|2026-05-28 10:00:00 +0800|docs: 新增 X\n' +
@@ -42,4 +42,17 @@ test('parseGitLog: 跳过日期格式非法的 commit（防止 NaN-WNaN 污染�
   assert.equal(commits.length, 2);
   assert.equal(commits[0].subject, 'good');
   assert.equal(commits[1].subject, 'also good');
+});
+
+test('buildGitLogCmd: 默认模式带 --since', () => {
+  assert.equal(buildGitLogCmd('6 months ago'),
+    'git log --since="6 months ago" --pretty=format:"%h|%ai|%s"');
+  assert.equal(buildGitLogCmd('1 year ago'),
+    'git log --since="1 year ago" --pretty=format:"%h|%ai|%s"');
+});
+
+test('buildGitLogCmd: TIMELINE_SINCE=all 去掉 --since 限制', () => {
+  // 防止 1 年后早期 commit 悄悄丢失：TIMELINE_SINCE=all 无时间限制
+  assert.equal(buildGitLogCmd('all'),
+    'git log --pretty=format:"%h|%ai|%s"');
 });

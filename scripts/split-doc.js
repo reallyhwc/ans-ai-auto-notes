@@ -128,8 +128,12 @@ function splitDocBySections(filePath, sectionTitles) {
     newBody += prologue.replace(/\n+$/, '') + '\n\n';
   }
   // 在保留章节前插入拆分提示
+  // URL 部分只把空格 encode 成 %20（CommonMark 严格解析需要），中文字符保留可读性
   if (newFiles.length > 0) {
-    newBody += '> 已拆分到：' + newFiles.map(f => '[' + f.safeName + '](./' + path.basename(f.path) + ')').join('、') + '\n\n';
+    newBody += '> 已拆分到：' + newFiles.map(f => {
+      const urlSafeFname = path.basename(f.path).replace(/ /g, '%20');
+      return '[' + f.safeName + '](./' + urlSafeFname + ')';
+    }).join('、') + '\n\n';
   }
   newBody += remaining.map(s => s.raw).join('\n');
   fs.writeFileSync(filePath, newBody);
