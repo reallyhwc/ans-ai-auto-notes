@@ -311,6 +311,7 @@ REFERENCING=(
   "test.sh"
   "serve.sh"
   "server.js"
+  "bootstrap.sh"
   "scripts/build-index.js"
   "scripts/check-overview.js"
   ".claude/settings.local.json"
