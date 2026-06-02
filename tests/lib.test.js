@@ -12,6 +12,7 @@ const {
   slugify,
   buildToc,
   resolveRelativeMd,
+  stripInline,
 } = require('../scripts/lib.js');
 
 // ── escapeHtml ─────────────────────────────────────────────
@@ -62,23 +63,32 @@ test('buildToc: 跳过代码块内的 #', () => {
   assert.equal(toc[1].text, 'Also Real');
 });
 
+test('buildToc: 内联代码的 backtick 不影响 id（与 marked token.text 对齐）', () => {
+  const md = '## 3. `@Tool` 注解的内部机制';
+  const toc = buildToc(md);
+  assert.equal(toc.length, 1);
+  assert.equal(toc[0].text, '3. `@Tool` 注解的内部机制');
+  // id 应该用去掉 backtick 后的文本生成，匹配 marked 的 token.text
+  assert.equal(toc[0].id, slugify('3. @Tool 注解的内部机制'));
+});
+
 // ── resolveRelativeMd ──────────────────────────────────────
-const cur = 'kb/技术/AI/Claude-Code/harness-engineering.md';
+const cur = 'kb/技术/AI/Claude-Code/Harness Engineering：AI Agent 时代的工程范式.md';
 
 test('resolveRelativeMd: 同目录 ./X.md', () => {
-  const r = resolveRelativeMd(cur, './claude-code-architecture.md');
-  assert.equal(r.path, 'kb/技术/AI/Claude-Code/claude-code-architecture.md');
+  const r = resolveRelativeMd(cur, './Claude Code 整体架构 & 工作流程.md');
+  assert.equal(r.path, 'kb/技术/AI/Claude-Code/Claude Code 整体架构 & 工作流程.md');
   assert.equal(r.anchor, '');
 });
 
 test('resolveRelativeMd: 跨子目录 ../X/Y.md', () => {
-  const r = resolveRelativeMd(cur, '../AI-Coding/ai-coding-tools.md');
-  assert.equal(r.path, 'kb/技术/AI/AI-Coding/ai-coding-tools.md');
+  const r = resolveRelativeMd(cur, '../AI-Coding/AI 编程工具：CLI Agent 与 GUI IDE 全景对比.md');
+  assert.equal(r.path, 'kb/技术/AI/AI-Coding/AI 编程工具：CLI Agent 与 GUI IDE 全景对比.md');
 });
 
 test('resolveRelativeMd: 多层向上 ../../../X/Y.md', () => {
-  const r = resolveRelativeMd(cur, '../../../实战/技巧/external-references.md');
-  assert.equal(r.path, 'kb/实战/技巧/external-references.md');
+  const r = resolveRelativeMd(cur, '../../../实战/外部参考链接.md');
+  assert.equal(r.path, 'kb/实战/外部参考链接.md');
 });
 
 test('resolveRelativeMd: 锚点保留', () => {
@@ -90,4 +100,25 @@ test('resolveRelativeMd: 锚点保留', () => {
 test('resolveRelativeMd: 无前缀的相对路径', () => {
   const r = resolveRelativeMd('kb/a/b.md', 'c.md');
   assert.equal(r.path, 'kb/a/c.md');
+});
+
+// ── stripInline ────────────────────────────────────────────
+test('stripInline: 去掉 backtick 包围的内联代码', () => {
+  assert.equal(stripInline('1. `@Tool` 注解'), '1. @Tool 注解');
+});
+
+test('stripInline: 去掉粗体 ** 标记', () => {
+  assert.equal(stripInline('**important** text'), 'important text');
+});
+
+test('stripInline: 去掉斜体 * 标记', () => {
+  assert.equal(stripInline('*emphasis* here'), 'emphasis here');
+});
+
+test('stripInline: 混合 backtick + bold + italic', () => {
+  assert.equal(stripInline('`code` and **bold** and *italic*'), 'code and bold and italic');
+});
+
+test('stripInline: 无 markdown 标记原样返回', () => {
+  assert.equal(stripInline('plain text'), 'plain text');
 });
