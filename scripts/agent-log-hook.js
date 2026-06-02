@@ -46,7 +46,10 @@ function main() {
   let stdin;
   try { stdin = JSON.parse(stdinStr); } catch { return; }
 
-  const transcriptPath = stdin.transcript_path;
+  // subagent 模式优先用 agent_transcript_path（subagent 专属），fallback transcript_path
+  // 真实 Claude Code 字段（2026-06 SubagentStop schema）：
+  //   agent_id / agent_type / agent_transcript_path / transcript_path / session_id
+  const transcriptPath = (mode === 'subagent' && stdin.agent_transcript_path) || stdin.transcript_path;
   if (!transcriptPath || !fs.existsSync(transcriptPath)) return;
 
   let parsed;
@@ -55,7 +58,10 @@ function main() {
   // main 模式：无实质工作则 skip
   if (mode === 'main' && !parsed.has_substantive_work) return;
 
-  const agent = mode === 'subagent' ? (stdin.subagent_name || 'unknown') : 'main';
+  // agent name：真实 Claude Code 用 agent_type；旧 fixture 用 subagent_name；都没有则 unknown
+  const agent = mode === 'subagent'
+    ? (stdin.agent_type || stdin.subagent_name || 'unknown')
+    : 'main';
   const time = new Date().toISOString();
 
   const event = {

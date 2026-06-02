@@ -276,3 +276,64 @@ test('agent-log patch: --id last 但无 start → 报错 exit 1', () => {
   );
   fs.rmSync(tmpDir, { recursive: true });
 });
+
+// Task 5 schema discovery (2026-06-02)：真实 Claude Code SubagentStop hook 传的字段是
+// agent_type + agent_transcript_path（不是 subagent_name + transcript_path）。本测试锁定。
+test('agent-log-hook subagent: 用真实 Claude Code stdin schema（agent_type + agent_transcript_path）', () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agent-log-hook-real-'));
+  const logFile = path.join(tmpDir, '2026-06.jsonl');
+  runHook('subagent', {
+    session_id: 'test-session',
+    agent_id: 'a1234567890',
+    agent_type: 'general-purpose',
+    agent_transcript_path: path.resolve('tests/fixtures/agent-log-transcript-sample.jsonl'),
+    transcript_path: '/some/main/transcript.jsonl', // 应该被忽略，优先 agent_transcript_path
+    hook_event_name: 'SubagentStop',
+  }, { AGENT_LOG_FILE: logFile });
+
+  const lines = fs.readFileSync(logFile, 'utf8').split('\n').filter(l => l);
+  assert.equal(lines.length, 1);
+  const ev = JSON.parse(lines[0]);
+  assert.equal(ev.agent, 'general-purpose');
+  assert.deepEqual(ev.tools_used.sort(), ['Bash', 'Edit', 'Read']);
+  assert.deepEqual(ev.files_changed.sort(), ['kb/a.md', 'kb/b.md']);
+
+  fs.rmSync(tmpDir, { recursive: true });
+});
+
+// Task 5 schema discovery：真实 transcript 嵌套 message 结构（含 meta 行无 timestamp）
+test('parseTranscript: 真实 Claude Code nested message schema + meta 行跳过', () => {
+  const tmpFile = path.join(os.tmpdir(), `nested-schema-${Date.now()}.jsonl`);
+  fs.writeFileSync(tmpFile, [
+    '{"type":"last-prompt","leafUuid":"m1"}',  // ← meta 行无 timestamp，应跳过
+    '{"type":"permission-mode","permissionMode":"x"}',  // ← 同上
+    '{"type":"user","timestamp":"2026-06-02T00:00:00Z","message":{"role":"user","content":"hi"}}',
+    '{"type":"assistant","timestamp":"2026-06-02T00:00:10Z","message":{"role":"assistant","model":"claude-opus-4-7","content":[{"type":"tool_use","name":"Edit","input":{"file_path":"kb/x.md","old_string":"a","new_string":"b"}}]}}',
+  ].join('\n') + '\n');
+  try {
+    const r = parseTranscript(tmpFile);
+    assert.equal(r.duration_ms, 10000);  // 00:10 - 00:00 = 10s（meta 行不算）
+    assert.deepEqual(r.tools_used, ['Edit']);
+    assert.deepEqual(r.files_changed, ['kb/x.md']);
+    assert.equal(r.model, 'claude-opus-4-7');
+    assert.equal(r.has_substantive_work, true);
+  } finally {
+    fs.unlinkSync(tmpFile);
+  }
+});
+
+// Task 5 schema discovery：absolute file_path 归一化为相对 ROOT
+test('parseTranscript: 绝对路径 file_path 归一化为 ROOT 相对路径', () => {
+  const tmpFile = path.join(os.tmpdir(), `abs-path-${Date.now()}.jsonl`);
+  const projectRoot = path.resolve(__dirname, '..');
+  fs.writeFileSync(tmpFile, [
+    `{"type":"assistant","timestamp":"2026-06-02T00:00:00Z","message":{"role":"assistant","model":"x","content":[{"type":"tool_use","name":"Edit","input":{"file_path":"${projectRoot}/kb/y.md"}}]}}`,
+    `{"type":"assistant","timestamp":"2026-06-02T00:00:01Z","message":{"role":"assistant","content":[{"type":"tool_use","name":"Edit","input":{"file_path":"/tmp/outside.md"}}]}}`,
+  ].join('\n') + '\n');
+  try {
+    const r = parseTranscript(tmpFile);
+    assert.deepEqual(r.files_changed.sort(), ['/tmp/outside.md', 'kb/y.md']);
+  } finally {
+    fs.unlinkSync(tmpFile);
+  }
+});

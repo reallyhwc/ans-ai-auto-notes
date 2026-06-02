@@ -67,8 +67,17 @@ function foldEvents(events) {
 const WRITE_TOOLS = new Set(['Edit', 'Write', 'NotebookEdit', 'Bash', 'Task']);
 const FILE_WRITE_TOOLS = new Set(['Edit', 'Write', 'NotebookEdit']);
 
+const ROOT = path.resolve(__dirname, '..');
+
 // 从 transcript JSONL 文件解析机械字段
 // 返回: { duration_ms, tools_used, files_changed, model, has_substantive_work }
+//
+// 支持两种 schema:
+//   Claude Code 真实: { timestamp, type, message: { role, content, model, ... } }
+//   测试 fixture (flat): { timestamp, role, content, model, ... }
+//
+// 跳过无 timestamp 的 meta 行（如 type=last-prompt / permission-mode）。
+// file_path 若是 ROOT 下的绝对路径，归一化为相对路径。
 function parseTranscript(transcriptPath) {
   const content = fs.readFileSync(transcriptPath, 'utf8');
   const lines = content.split('\n').filter(l => l.trim());
@@ -76,12 +85,14 @@ function parseTranscript(transcriptPath) {
     try { return [JSON.parse(l)]; } catch { return []; }
   });
 
-  if (messages.length === 0) {
+  // 过滤无 timestamp 的 meta 行（Claude Code 头部的 last-prompt / permission-mode）
+  const withTime = messages.filter(m => m.timestamp);
+  if (withTime.length === 0) {
     return { duration_ms: 0, tools_used: [], files_changed: [], model: null, has_substantive_work: false };
   }
 
-  const firstTime = new Date(messages[0].timestamp).getTime();
-  const lastTime = new Date(messages[messages.length - 1].timestamp).getTime();
+  const firstTime = new Date(withTime[0].timestamp).getTime();
+  const lastTime = new Date(withTime[withTime.length - 1].timestamp).getTime();
   const duration_ms = lastTime - firstTime;
 
   const toolsSet = new Set();
@@ -89,16 +100,22 @@ function parseTranscript(transcriptPath) {
   let model = null;
   let hasSubstantive = false;
 
-  for (const m of messages) {
-    if (m.role === 'assistant') {
-      if (m.model && !model) model = m.model;
-      if (Array.isArray(m.content)) {
-        for (const block of m.content) {
+  for (const m of withTime) {
+    // 真实 Claude Code: message 嵌套。测试 fixture: 字段平铺。
+    const msg = m.message || m;
+    if (msg.role === 'assistant') {
+      if (msg.model && !model) model = msg.model;
+      if (Array.isArray(msg.content)) {
+        for (const block of msg.content) {
           if (block.type === 'tool_use') {
             toolsSet.add(block.name);
             if (WRITE_TOOLS.has(block.name)) hasSubstantive = true;
             if (FILE_WRITE_TOOLS.has(block.name) && block.input && block.input.file_path) {
-              filesSet.add(block.input.file_path);
+              let fp = block.input.file_path;
+              if (path.isAbsolute(fp) && fp.startsWith(ROOT + path.sep)) {
+                fp = path.relative(ROOT, fp);
+              }
+              filesSet.add(fp);
             }
           }
         }
