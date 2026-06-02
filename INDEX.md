@@ -9,9 +9,9 @@
 - [外部参考链接](kb/实战/外部参考链接.md) — 优质外部技术文章、博客、演讲的链接汇总，附带核心要点
 - [知识管理工具对比](kb/实战/知识管理工具对比.md) — Obsidian/Notion/本项目方案 对比分析
 
-## 技术 (49 篇)
+## 技术 (47 篇)
 
-### AI (42 篇)
+### AI (40 篇)
 
 #### AI-Coding (5 篇)
 
@@ -21,7 +21,7 @@
 - [AI 编程的递进路径：从古法编程到多 Agent 协作](kb/技术/AI/AI-Coding/AI 编程的递进路径：从古法编程到多 Agent 协作.md) — 从古法编程到多Agent协作6个Level、程序员未来展望
 - [从 Vibe Coding 到 Spec-Driven 到驾驭工程](kb/技术/AI/AI-Coding/从 Vibe Coding 到 Spec-Driven 到驾驭工程.md) — AI 编程三阶段演进：Vibe Coding（放马跑，爽但危险）→ Spec-Driven Development（契约约束）→ 驾驭工程/Harness Engineering（系统级自动约束），附本项目 Harness 实践拆解
 
-#### Claude-Code (13 篇)
+#### Claude-Code (11 篇)
 
 - [Claude Code 整体架构 & 工作流程](kb/技术/AI/Claude-Code/Claude Code 整体架构 & 工作流程.md) — 整体架构、REPL循环、工具链、Hooks、上下文管理、完整数据流
 - [Claude Code 进阶工作流：从能用到高效](kb/技术/AI/Claude-Code/Claude Code 进阶工作流：从能用到高效.md) — 四阶段成熟度模型（裸聊→文件化→自动化→生态化）、约束>文档>对话三层模型、hooks/memory/plan/manifest/dev-log实战配置
@@ -34,8 +34,6 @@
 - [Skills 渐进式披露架构](kb/技术/AI/Claude-Code/Skills 渐进式披露架构.md) — Skills 的三层渐进式披露机制、token 经济学、frontmatter 全字段、生命周期、动态 context 注入、与 commands/subagent 的边界
 - [Superpowers TDD Skill 工作流拆解](kb/技术/AI/Claude-Code/Superpowers TDD Skill 工作流拆解.md) — TDD 是什么、Superpowers 在其中的角色、LLM 工具调用链详细拆解
 - [子智能体（subagents）机制与实战](kb/技术/AI/Claude-Code/子智能体（subagents）机制与实战.md) — subagent 的定位、与 skill/Agent SDK 的区分、四级 scope 优先级、frontmatter 全字段、三种调用方式、独立 context 机制、协作链路、fork/worktree/persistent memory 进阶
-- [识别自动化机会的方法论](kb/技术/AI/Claude-Code/识别自动化机会的方法论.md) — 训练'看出哪些重复任务能 Commands/Skills/Hooks 自动化'的元能力：三次法则、复述检测、触发器分类、工具决策树、本项目候选清单
-- [黄佳-Claude Code 工程化实战 课程笔记](kb/技术/AI/Claude-Code/黄佳-Claude Code 工程化实战 课程笔记.md) — 极客时间黄佳《Claude Code 工程化实战》课程的学习导读：按章节记录学习节点、关键问题、对应专题文件链接、个人疑问与扩展阅读
 
 #### 基础 (3 篇)
 
@@ -87,4 +85,9 @@
 
 - [世界的逻辑 — 马兆远](kb/读书笔记/世界的逻辑 — 马兆远.md) — 马兆远《世界的逻辑》：图灵机、冯诺依曼结构、计算思维等相关概念梳理
 - [我看见的世界 — 李飞飞](kb/读书笔记/我看见的世界 — 李飞飞.md) — AI 女神李飞飞自传：ImageNet、斯坦福 AI Lab、人文与技术交汇
+
+## 课程笔记 (2 篇)
+
+- [Claude Code 工程化实战 黄佳](kb/课程笔记/Claude Code 工程化实战 黄佳.md) — 极客时间黄佳《Claude Code 工程化实战》课程的学习导读：按章节记录学习节点、关键问题、对应专题文件链接、个人疑问与扩展阅读
+- [识别自动化机会的方法论](kb/课程笔记/识别自动化机会的方法论.md) — 训练'看出哪些重复任务能 Commands/Skills/Hooks 自动化'的元能力：三次法则、复述检测、触发器分类、工具决策树、本项目候选清单
 
