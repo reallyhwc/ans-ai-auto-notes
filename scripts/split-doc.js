@@ -23,11 +23,14 @@ function sanitizeFilename(name) {
     .trim();
 }
 
-// 把 md 按 ## 切段，返回 [{title, body, raw, startIdx, endIdx}]
+// 把 md 按 ## 切段，返回 { prologue, sections }
+// prologue: 首个 ## 之前的所有内容（含 h1 + lead text），不属于任何 section
+// sections: [{title, body, raw}]
 function parseH2Sections(content) {
   const lines = content.split('\n');
   const sections = [];
   let current = null;
+  let prologue = '';
   let inCode = false;
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -35,16 +38,15 @@ function parseH2Sections(content) {
     if (!inCode) {
       const m = /^##\s(.+)$/.exec(line);
       if (m) {
-        if (current) {
-          current.endIdx = i - 1;
-          sections.push(current);
-        }
-        current = { title: m[1].trim(), startIdx: i, endIdx: lines.length - 1, raw: '' };
+        if (current) sections.push(current);
+        current = { title: m[1].trim(), raw: '' };
         continue;
       }
     }
     if (current) {
       current.raw += line + '\n';
+    } else {
+      prologue += line + '\n';
     }
   }
   if (current) sections.push(current);
@@ -52,7 +54,29 @@ function parseH2Sections(content) {
     s.body = s.raw;  // body 不含 ## 标题行
     s.raw = '## ' + s.title + '\n' + s.body;
   });
-  return sections;
+  return { prologue, sections };
+}
+
+// 检测剩余章节是否都是 `## N. ...` 样式；是则重编号从 1 开始
+function renumberH2Sections(sections) {
+  const numberedPattern = /^(\d+)\.\s(.+)$/;
+  // 只有所有 section 都是 N. 样式时才重编号（混合样式不动）
+  const allNumbered = sections.length > 0 && sections.every(s => numberedPattern.test(s.title));
+  if (!allNumbered) return sections;
+  return sections.map((s, idx) => {
+    const m = numberedPattern.exec(s.title);
+    const newTitle = (idx + 1) + '. ' + m[2];
+    return {
+      ...s,
+      title: newTitle,
+      raw: '## ' + newTitle + '\n' + s.body,
+    };
+  });
+}
+
+// YAML 安全转义：title 含双引号时转义为 \"
+function escapeYamlString(s) {
+  return String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }
 
 function splitDocBySections(filePath, sectionTitles) {
@@ -68,12 +92,12 @@ function splitDocBySections(filePath, sectionTitles) {
       body = content.substring(end + 3).replace(/^\n+/, '');
     }
   }
-  const sections = parseH2Sections(body);
+  const { prologue, sections } = parseH2Sections(body);
   const titleSet = new Set(sections.map(s => s.title));
   // 验证章节存在
   for (const t of sectionTitles) {
     if (!titleSet.has(t)) {
-      throw new Error('章节未找到: ' + t + '（可用：' + [...titleSet].join('，') + '）');
+      throw new Error('章节未找到: ' + t + '（可用：' + [...sections.map(s => s.title)].join('，') + '）');
     }
   }
   // 生成新文件 + 收集要移除的章节
@@ -81,21 +105,31 @@ function splitDocBySections(filePath, sectionTitles) {
   const newFiles = [];
   sectionTitles.forEach(t => {
     const sec = sections.find(s => s.title === t);
-    const fname = sanitizeFilename(t) + '.md';
+    // sanitize 后的名字同时用于 fname 和 frontmatter title（保持一致）
+    const safeName = sanitizeFilename(t);
+    const fname = safeName + '.md';
     const fpath = path.join(dir, fname);
     if (fs.existsSync(fpath)) {
       throw new Error('输出文件已存在: ' + fpath);
     }
-    const newFm = '---\ntitle: "' + t + '"\ndescription: "从 ' + path.basename(filePath) + ' 拆出"\n---\n\n# ' + t + '\n\n' + sec.body;
+    const safeNameYaml = escapeYamlString(safeName);
+    const sourceFnYaml = escapeYamlString(path.basename(filePath));
+    const newFm = '---\ntitle: "' + safeNameYaml + '"\ndescription: "从 ' + sourceFnYaml + ' 拆出"\n---\n\n# ' + safeName + '\n\n' + sec.body;
     fs.writeFileSync(fpath, newFm);
-    newFiles.push({ title: t, path: fpath });
+    newFiles.push({ title: t, safeName: safeName, path: fpath });
   });
   // 重写原文件
-  const remaining = sections.filter(s => !removed.has(s.title));
+  let remaining = sections.filter(s => !removed.has(s.title));
+  // 如果剩余章节都是 `## N. ...` 样式，重编号防跳号（CLAUDE.md 强约束）
+  remaining = renumberH2Sections(remaining);
   let newBody = fm;
+  // 保留 prologue（h1 + lead text）
+  if (prologue.trim()) {
+    newBody += prologue.replace(/\n+$/, '') + '\n\n';
+  }
   // 在保留章节前插入拆分提示
   if (newFiles.length > 0) {
-    newBody += '> 已拆分到：' + newFiles.map(f => '[' + f.title + '](./' + path.basename(f.path) + ')').join('、') + '\n\n';
+    newBody += '> 已拆分到：' + newFiles.map(f => '[' + f.safeName + '](./' + path.basename(f.path) + ')').join('、') + '\n\n';
   }
   newBody += remaining.map(s => s.raw).join('\n');
   fs.writeFileSync(filePath, newBody);

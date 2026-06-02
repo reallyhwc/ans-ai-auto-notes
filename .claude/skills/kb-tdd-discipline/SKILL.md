@@ -48,9 +48,20 @@ description: Use when modifying any file under scripts/ or tests/ in this ANS AI
 
 ```
 tests/
-├── lib.test.js              ← scripts/lib.js 纯函数
+├── lib.test.js              ← scripts/lib.js 纯函数（含 stripInline / slugify / resolveRelativeMd）
 ├── link-renderer.test.js    ← marked link renderer 输出契约
 ├── build-index.test.js      ← manifest.json 数据完整性
+├── build-timeline.test.js   ← timeline.json 聚合（按 ISO 周）
+├── search.test.js           ← 全文搜索 tokenize + buildSearchIndex
+├── backlinks.test.js        ← 反向链接图 extractLinks + buildBacklinks
+├── anchor-check.test.js     ← anchor 存活检查
+├── session-log.test.js      ← session-log 触发条件（commit 增量）
+├── content-quality.test.js  ← arch-lint 内容具象度（白名单 + 阈值）
+├── verify-claim.test.js     ← PostToolUse 沉淀验证 hook
+├── sync-memory.test.js      ← memory 双向 sync（mtime 较新者覆盖）
+├── plans-status.test.js     ← list-open-plans 状态解析
+├── split-doc.test.js        ← 半自动拆分工具
+├── server.test.js           ← server.js 路径安全 + SSE 端点
 └── integration.test.js      ← 全量 kb/ markdown 链接静态解析
 ```
 
