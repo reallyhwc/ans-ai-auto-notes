@@ -2850,6 +2850,21 @@ git push origin kb-uplift-g5-tools
 
 ## 集成与验收
 
+### ⚠️ 集成前必修（G3 self-review 发现的 forward reference）
+
+G3 worktree 内的 `.claude/skills/auto-commit-discipline/SKILL.md` 末尾「与其他 skill / hook 的关系」段引用了：
+
+- `exit-check.sh [7/8]` —— 但 G3 worktree 中 exit-check 仍是 `[N/7]`（G2 才把它改成 `[N/8]` 然后 G4 再改成 `[N/9]`）
+- `verify-claim.sh (PostToolUse hook)` —— G2 才创建，G3 worktree 不存在
+
+**集成 G2 之后**（最早能修的时机），需要打开 `.claude/skills/auto-commit-discipline/SKILL.md` 把这两行的具体编号 / 文件名改对：
+- `exit-check.sh [7/8]` → 若 G4 也合入，改为 `[7/9]`；否则 `[7/8]`
+- `verify-claim.sh` 验证存在后保留即可
+
+或者更稳妥：在 skill 里用通用写法去掉具体编号引用（参考 `kb-content-style` skill 章节编号段的写法 "由 arch-lint.sh 章节编号连续性检查自动兜底"）。
+
+另外 G2/G4 集成时可能还需要给 `.gitignore` 加 `!.claude/settings.local.json` 例外（G3 worktree 已经把 `.claude/` 改为 `.claude/* + !.claude/skills/`，但 settings.local.json 仍被排除）。
+
 ### Task 18: 5 worktree 串行 rebase + merge
 
 **执行者**: 主仓 main 分支（不在任何 worktree 内）
