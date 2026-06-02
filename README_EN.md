@@ -1,169 +1,266 @@
 [中文](README.md) | **English**
 
-# AI Auto Notes Template — Fork-and-Go AI Knowledge Base Scaffold
+# ANS AI Auto Notes — Harness KB Template
 
-> Fork this repo, fill in your background, then chat with AI — your knowledge base grows automatically. Zero manual organizing, fully local.
+> Personal knowledge base template based on [Harness Engineering](https://www.anthropic.com/news/harness-engineering). AI conversations auto-distill into notes; mechanical constraints ensure maintainability; cross-device sync ensures portability.
 
-[:books: Browse Knowledge Base →](INDEX.md) &nbsp;|&nbsp; [:bar_chart: Visual Overview](http://localhost:8765/overview.html)
+## One-Liner
 
-## What Is This?
+**Use AI to write notes, but AI must follow your rules — and the rules aren't enforced by "telling AI", they're enforced by hooks + linters.**
 
-This is a **ready-to-use AI knowledge base template**. After forking, every conversation with Claude Code automatically classifies, summarizes, and organizes content into your own structured Markdown knowledge base.
+A perfect CLAUDE.md gets forgotten; a lint script never does.
 
-**Core Philosophy: You don't take notes — AI does. You just chat.**
-
-## Quick Start (3 Steps)
+## 5-Minute Quick Start
 
 ```bash
-# 1. Fork & Clone
-git clone git@github.com:<your-username>/ans-ai-auto-notes.git
-cd ans-ai-auto-notes
+# 1. Clone the template
+git clone <this-repo-url> my-kb
+cd my-kb
 
-# 2. Fill in your background (AI adapts its style accordingly)
-#    Edit the "User Background" section in CLAUDE.md
-#    Edit memory/user-profile.md with your details
+# 2. One-command onboarding (7 steps: claude detection → install-hooks → settings → PostToolUse hook injection → memory sync → build index → run tests)
+bash bootstrap.sh
 
-# 3. Start chatting — knowledge base grows automatically
-claude
+# 3. Start local preview
+./serve.sh
+# Browser auto-opens http://localhost:8765
+
+# 4. Personalize your KB
+# - Edit CLAUDE.md "User Background" section
+# - Start writing in kb/ (AI auto-categorizes by directory)
+# - git commit periodically
 ```
 
-That's it. AI will automatically:
-- Extract knowledge points → write to `kb/` topic files
-- Auto Git commit → commit after each batch of changes
-- When files get too large → proactively propose splits
-- On exit → automatically run health checks
+See [SETUP.md](SETUP.md) for detailed steps.
 
-## Features
+## Core Architecture: Harness Three-Layer Model
 
-- **Auto-Extraction**: AI identifies what's worth recording without prompting
-- **Smart Aggregation**: Same-topic knowledge appended to same file, continuously reorganized
-- **Proactive Divergence**: AI doesn't just answer — it suggests "Want me to record X too?"
-- **Three-Layer Constraints**: Harness Engineering — rules enforced mechanically via hooks
-- **Visual Overview**: Local preview with category browsing, timeline, search, word cloud, Mermaid diagrams
-- **Zero Network Dependency**: All frontend resources vendored locally, instant offline access
-- **Fully Local**: All data in local Git repo — you have 100% control
-- **Auto File Management**: Auto-split proposals when files grow, auto-merge same topics
+```mermaid
+flowchart TD
+    subgraph L1["L1 Constraints —— Machine-Executed"]
+        direction LR
+        H[hooks<br/>SessionStart/Stop/PostToolUse]
+        ALINT[arch-lint.sh<br/>15 mechanical checks]
+        ECHK[exit-check.sh<br/>9 exit verifications]
+        PRE[pre-push hook<br/>test + mermaid integrity]
+    end
 
-## Visual Overview
+    subgraph L2["L2 Documents —— Filesystem-Persisted"]
+        SKILL[.claude/skills/<br/>3 project-level skills]
+        ADR[docs/decisions.md<br/>ADR records]
+        PLAN[docs/superpowers/plans/<br/>cross-session plans]
+        MEM[.claude/memory-snapshot/<br/>cross-device memory]
+    end
 
-Run `./serve.sh` to launch the local preview page with:
+    subgraph L3["L3 Conversation —— Real-Time AI Understanding"]
+        CLAUDE[CLAUDE.md<br/>project instructions]
+    end
 
-- **Category Browsing**: Recursive tree display with expand/collapse
-- **Timeline**: Weekly conversation summary archive with note links
-- **Full-text Search + Word Cloud**: Keyword cloud before search, click to jump
-- **Markdown Rendering**: Code highlighting, Mermaid diagrams, internal links, TOC
-- **Live Reload**: Browser auto-refreshes on file changes
-- **Dark Mode**: Follows system theme or manual toggle
-- **Font Size**: Four levels (S/M/L/XL) one-click switch
-
-All frontend dependencies vendored in `scripts/vendor/` — **zero network requests, instant offline**.
-
-## Harness Engineering: Three-Layer Constraint System
-
-**"Constraints > Documentation > Conversation"** — rules upgraded from "rely on saying" to "rely on execution":
-
-```
-Constraint Layer (Hooks)    → SessionStart preflight + Stop exit check + Architecture Linter
-Documentation Layer (Files) → Session logs + Memory storage + Plan tracking
-Conversation Layer (AI)     → CLAUDE.md rules + AI reasoning
+    L3 -.->|"when rules fragment"| L2
+    L2 -.->|"when rules mechanize"| L1
+    L1 ==>|"Constraints > Documents > Conversation"| OK[Reliable Agent Output]
 ```
 
-| Layer | Trigger | What It Does |
-|-------|---------|--------------|
-| **Constraint** | SessionStart | Environment check + stale changes + memory expiry (>14d) + Architecture Linter |
-| **Constraint** | Stop | Markdown lint + Git status + 12 health checks + Session log + Unpushed reminder |
-| **Documentation** | Stop → File | Auto-generate session log from git diff |
-| **Documentation** | Cross-Session | Layered memory with timestamps, >14 days auto-alert |
+**Core principle**: What can be mechanized shouldn't be told; what can be filed shouldn't be remembered.
 
-## Project Structure
+## 6 Harness Components
+
+| Component | Implementation | What You Edit |
+|---|---|---|
+| **Context Building** | CLAUDE.md + skill descriptions + INDEX.md | CLAUDE.md / skills |
+| **Tool Definition** | `scripts/*.{js,sh}` (13+ scripts) | add new / modify existing |
+| **Constraints** | arch-lint 15 items + skill triggers | add lint / modify skill |
+| **Feedback Loops** | exit-check 9 items + arch-lint + pre-push | add hooks / adjust thresholds |
+| **Memory Management** | memory-snapshot + ADR + plans + session-logs | add memory / write ADR |
+| **Safety Rails** | pre-push (test + mermaid) + verify-claim hook | add hook conditions |
+
+## Engineering Features
+
+### Automated Checks (Mechanical Constraints)
+
+- ✅ **arch-lint.sh 15 items**: frontmatter / metadata header / dead links / duplicate titles / disk-vs-INDEX consistency / case sensitivity / line-count limits / memory format / zero npm deps / script references / doc→code refs / heading ID contract / section number continuity / **anchor liveness** / **content concreteness**
+- ✅ **exit-check.sh 9 items**: markdown format / git status / INDEX-vs-kb consistency / overview.html health (12 sub-items) / session log / permission audit / unpushed check / **claim audit** / **plans status summary**
+- ✅ **pre-push hook**: runs test.sh + mermaid integrity check (prevents accidental diagram deletion)
+- ✅ **PostToolUse hook** (verify-claim.sh): real-time verifies that when AI claims "saved to xxx.md", the file actually exists
+
+### Data Automation
+
+- ✅ **build-index.js**: scans kb/ → generates manifest.json (with full-text search index + backlinks graph) + INDEX.md
+- ✅ **build-timeline.js**: aggregates git log by ISO week → timeline.json (configurable via `TIMELINE_SINCE` env)
+- ✅ **list-open-plans.js**: parses status from plans, lists incomplete
+
+### Cross-Device / Collaboration
+
+- ✅ **bootstrap.sh**: one-command new-device onboarding (claude detect / install-hooks / settings / memory sync / build / test)
+- ✅ **sync-memory.sh**: bidirectional memory sync (mtime-newer-wins + allowlist scope control)
+- ✅ **install-hooks.sh**: git pre-push hook one-time installation
+
+### Editor Helpers
+
+- ✅ **split-doc.js**: semi-automated split of large files (>1500 lines triggers lint), preserves lead text + auto-renumbers + updates INDEX
+
+### 3 Project-Level Skills (Auto-Loaded)
+
+| Skill | Trigger |
+|---|---|
+| `auto-commit-discipline` | Finishing batch of file changes / before responding when uncommitted |
+| `kb-content-style` | Writing/editing any md under kb/ |
+| `kb-tdd-discipline` | Modifying scripts/ or tests/, or fixing markdown render/path resolve/lint bugs |
+
+## Directory Structure
 
 ```
-ans-ai-auto-notes/
-├── kb/                     # Knowledge base (your notes grow here)
-│   ├── 技术/AI/            # AI-related (5 preset subdirectories)
-│   ├── 技术/Java/          # Java tech stack
-│   ├── 技术/计算机基础/     # CS fundamentals
-│   ├── 实战/               # Hands-on tips & pitfall records
-│   └── 读书笔记/           # Reading notes
-├── timeline/               # Weekly conversation summaries (auto-generated)
-├── memory/                 # AI memory (user profile, project rules, feedback)
-├── scripts/                # Automation scripts (no changes needed)
-│   ├── vendor/             # Frontend deps (mermaid / marked / wordcloud2)
-│   ├── build-index.js      # Index builder
-│   └── ...                 # lint / session-log / audit etc.
-├── overview.html           # Visual overview page
-├── server.js               # Local HTTP server (SSE live reload)
-├── CLAUDE.md               # ⚠️ AI behavior rules (edit user background after fork)
-└── timeline.json           # Timeline data
+my-kb/
+├── kb/                          ← knowledge base (categorized by topic)
+│   ├── 技术/ (Technology)
+│   │   ├── AI/                  ← 5 sub-dirs (Foundations/LLM/Claude-Code/AI-Coding/Applications)
+│   │   ├── Java/
+│   │   └── 计算机基础/ (CS Foundations)
+│   ├── 实战/ (Real-world)
+│   └── 读书笔记/ (Reading Notes)
+├── timeline/                    ← weekly summaries (manually maintained, narrative)
+├── timeline.json                ← auto-generated (build artifact)
+├── tests/                       ← unit + integration tests (node --test, zero deps)
+├── test.sh                      ← test entry (bash test.sh)
+├── scripts/                     ← 14+ engineering scripts (lint / hook / data / cross-device)
+├── INDEX.md                     ← table of contents (auto-generated by build-index.js)
+├── manifest.json                ← classification + search + backlinks data (build artifact)
+├── overview.html                ← visual navigator (fetches manifest + timeline)
+├── server.js + serve.sh         ← local preview server (port 8765)
+├── bootstrap.sh + SETUP.md      ← new device onboarding
+├── exit-check.sh                ← Stop hook (9-item exit checks)
+├── lint.sh                      ← markdown format check (pure bash awk)
+├── CLAUDE.md                    ← project instructions (loaded at AI startup)
+├── docs/
+│   ├── decisions.md             ← ADR records
+│   └── superpowers/
+│       ├── specs/               ← design docs
+│       └── plans/               ← implementation plans
+├── .claude/
+│   ├── settings.local.json      ← hook config (not in git)
+│   ├── skills/                  ← project-level skills (in git)
+│   ├── memory-snapshot/         ← cross-device memory staging (in git)
+│   ├── session-logs/            ← session logs (not in git)
+│   └── claim-ledger.log         ← claim audit log (not in git)
+└── memory/                      ← AI auto-memory (existing)
 ```
 
-## Prerequisites
+## Personalize Your KB
 
-- [Node.js](https://nodejs.org/) >= 18
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (AI conversation engine)
+3 things to make the template "yours" after cloning:
 
-## Common Commands
+### 1. Edit CLAUDE.md "User Background"
+
+```markdown
+## User Background
+
+- Software engineer, 30s
+- Interested in AI applications, system design
+- Currently reading "Designing Data-Intensive Applications"
+```
+
+AI will adjust its response style and example choices based on this.
+
+### 2. Start Writing in kb/
+
+Just tell AI "let's discuss X". AI will distill the conversation into kb/ following the rules in `.claude/skills/kb-content-style/SKILL.md`:
+
+- Prefer Mermaid diagrams; preserve demos; avoid abstraction
+- Aggregate by topic (don't split by date)
+- Chinese filenames = frontmatter title
+- >1000 lines → consider split; >1500 lines → must split
+
+### 3. Write Your First ADR
+
+When facing a classification dispute ("where does this Spring AI vs LangChain note go?"), AI checks `docs/decisions.md` first. After deciding, append an ADR:
+
+```markdown
+## ADR-004: Spring AI vs LangChain note placed in kb/技术/AI/应用/
+
+- Date: 2026-06-15
+- Status: Accepted
+- Context: ...
+- Decision: ...
+- Rationale: ...
+```
+
+Next time AI faces a similar classification, it'll cite this ADR.
+
+## Advanced Usage
+
+### Plan System (Cross-Session Persistent Tasks)
+
+Long-running tasks (e.g., "refactor entire Java directory") go in `docs/superpowers/plans/YYYY-MM-DD-<topic>.md` with frontmatter `status: 进行中`. Stop hook's `[9/9]` lists all incomplete plans to prevent forgetting. Mark `status: completed` when done.
+
+### split-doc for Large Files
+
+When arch-lint warns a file is >1000 lines:
 
 ```bash
-./serve.sh                    # Launch local preview (port 8765)
-node scripts/build-index.js   # Rebuild manifest.json + INDEX.md
-./lint.sh                     # markdownlint format check
-node scripts/check-overview.js # 12 health checks
-bash scripts/arch-lint.sh     # 8 KB architecture checks
+node scripts/split-doc.js kb/技术/Java/jvm-gc.md --sections "GC 算法,GC 调优"
 ```
 
-## Customization Guide
+Generates 2 new files + original keeps split-link hints + auto-rebuilds INDEX.md.
 
-After forking, you only need to modify these — everything else works out of the box:
+### sync-memory for Cross-Device
 
-| Must Change | File | Description |
-|------------|------|-------------|
-| **User Background** | `CLAUDE.md` → "User Background" | AI adapts style based on this |
-| **Detailed Profile** | `memory/user-profile.md` | Career, tech stack, interests |
+Device A wrote a memory preference, want it on Device B:
 
-| Optional | File | Description |
-|---------|------|-------------|
-| KB Structure | `CLAUDE.md` → Directory rules | Default: Tech/Hands-on/Reading Notes |
-| Split Threshold | `CLAUDE.md` → File split rules | Default: >1000 lines warn, >1500 must split |
-| Note Style | `CLAUDE.md` → Note style rules | Default: QA style with demos |
-| New Categories | Create dirs under `kb/` | AI auto-detects and classifies |
+```bash
+# Device A
+echo "feedback-zero-npm-deps.md" >> .claude/memory-snapshot/.allowlist
+bash scripts/sync-memory.sh
+git add .claude/memory-snapshot/ && git commit -m "chore: sync memory" && git push
 
-## Built-in Automation
+# Device B
+git pull
+bash bootstrap.sh   # auto-runs sync-memory
+```
 
-| Capability | Description |
-|-----------|-------------|
-| **Auto Knowledge Extraction** | AI judges and records knowledge after each conversation |
-| **Auto Git Commit** | Commits immediately after each batch of changes |
-| **File Split Proposals** | AI proactively proposes splits when files >1000 lines |
-| **Exit Health Checks** | 12 automated checks (lint / dead links / Git status etc.) |
-| **Auto Index Rebuild** | INDEX.md updates when files are added/removed |
-| **Memory Persistence** | AI remembers your preferences across sessions |
+### Worktree Workflow
 
-## Tech Stack
+For complex changes, use `using-git-worktrees` skill for isolation:
 
-| Component | Technology | Description |
-|-----------|-----------|-------------|
-| AI Engine | Claude Code | Conversation-driven, auto knowledge distillation |
-| Frontend | mermaid + marked + wordcloud2 | Diagrams/Markdown/Word cloud, all vendored |
-| Server | Node.js (server.js) | Zero-dep HTTP + SSE live reload |
-| Index | build-index.js | Scans kb/ → manifest.json |
-| QA | arch-lint + check-overview + markdownlint | Hook auto-execution, CI-level local checks |
-| Storage | Git + Pure Markdown | Full version control, zero lock-in |
+```
+You: Refactor X in a worktree
+Claude: [auto-invokes using-git-worktrees → completes → integrates]
+```
 
 ## FAQ
 
-**Q: Do I need to be a programmer to use this?**
-A: Currently requires Node.js and Claude Code installation (some technical bar). But usage itself is zero-code — you just chat.
+### Why "Zero npm Deps"?
 
-**Q: Can I change the directory structure?**
-A: Yes. Directory structure under `kb/` is fully customizable — modify the rules in `CLAUDE.md`.
+See [`docs/decisions.md`](docs/decisions.md) ADR-002. Short version: KB projects don't need complex deps; bash + Node built-ins + CDN imports are enough, avoiding dep maintenance overhead.
 
-**Q: Will my knowledge base content be uploaded to the cloud?**
-A: No. All data stays in your local Git repo. You choose whether to push to GitHub.
+### How long until CLAUDE.md changes take effect?
 
-**Q: Can I use Cursor / Windsurf / other AI IDEs?**
-A: This template is designed around Claude Code's Hooks system. Other AI tools don't support the full feature set yet.
+Next AI session startup (SessionStart hook triggers). For the current session, manually tell AI "re-read CLAUDE.md".
+
+### What if lint fails?
+
+- Errors (❌) must be fixed before push (pre-push hook blocks)
+- Warnings (⚠️) only inform, don't block; can accumulate
+- See full `bash scripts/arch-lint.sh` output for details
+
+### How to back up?
+
+The whole repo is plain text. `git push` to any remote (GitHub / GitLab / private git) works. Memory backs up via memory-snapshot in git.
+
+### How to update from template?
+
+Set this template as upstream remote, periodically cherry-pick engineering upgrades (don't merge — kb/ would conflict):
+
+```bash
+git remote add template <this-repo-url>
+git fetch template
+git cherry-pick template/main -- scripts/  # only migrate engineering files
+```
+
+## Acknowledgments
+
+- [Harness Engineering](https://www.anthropic.com/news/harness-engineering) — Anthropic's AI engineering paradigm
+- [superpowers](https://github.com/anthropics/superpowers) — Claude Code's skill ecosystem
+- All early users who provided feedback
 
 ## License
 
-[MIT](LICENSE)
+MIT
