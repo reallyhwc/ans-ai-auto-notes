@@ -19,8 +19,9 @@ Icon
 *.swo
 *~
 
-# Claude Code
-.claude/
+# Claude Code（默认全排除，仅 skills/ 子目录入库以便跨设备/团队复用）
+.claude/*
+!.claude/skills/
 
 # Aone Copilot (plans / tasks 等本地状态文件，不入库)
 .aone_copilot/
