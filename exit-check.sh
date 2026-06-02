@@ -8,19 +8,19 @@ cd "$(dirname "$0")"
 echo ""
 echo "========== 退出检查 =========="
 
-# [1/7] 格式检查
+# [1/8] 格式检查
 echo ""
-echo "[1/7] 格式检查 (markdownlint)..."
+echo "[1/8] 格式检查 (markdownlint)..."
 bash lint.sh
 
-# [2/7] Git 状态
+# [2/8] Git 状态
 echo ""
-echo "[2/7] Git 状态..."
+echo "[2/8] Git 状态..."
 git status --short
 
-# [3/7] INDEX.md 存在性 + 与磁盘一致性
+# [3/8] INDEX.md 存在性 + 与磁盘一致性
 echo ""
-echo "[3/7] INDEX.md 状态..."
+echo "[3/8] INDEX.md 状态..."
 if [ ! -f INDEX.md ]; then
   echo "  ❌ INDEX.md 不存在，请运行 node scripts/build-index.js"
 else
@@ -42,26 +42,26 @@ else
   [ "$MISSING_FILES" -gt 0 ] && echo "  ❌ $MISSING_FILES 个 INDEX.md 引用的文件不存在！请检查是否只写了文档但没创建文件"
 fi
 
-# [4/7] overview.html 健康检查
+# [4/8] overview.html 健康检查
 echo ""
-echo "[4/7] overview.html 健康检查..."
+echo "[4/8] overview.html 健康检查..."
 node scripts/check-overview.js
 
-# [5/7] 生成 session 日志
+# [5/8] 生成 session 日志
 echo ""
-echo "[5/7] 生成 session 日志..."
+echo "[5/8] 生成 session 日志..."
 bash scripts/session-log.sh
 
-# [6/7] 权限审计
+# [6/8] 权限审计
 echo ""
-echo "[6/7] 权限审计..."
+echo "[6/8] 权限审计..."
 bash scripts/permission-audit.sh
 
-# [7/7] 未 push 检查（≥5 个自动 push，所有分支统一规则）
+# [7/8] 未 push 检查（≥5 个自动 push，所有分支统一规则）
 # 设计取舍：单人知识库项目 + 永远在 main 工作，"main 保护"反而阻碍主流程
 # 安全网由 pre-push hook 兜底：bash test.sh 通过 + mermaid 守恒检查
 echo ""
-echo "[7/7] 未 push 检查..."
+echo "[7/8] 未 push 检查..."
 
 # 检查当前分支
 BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "HEAD")
@@ -99,6 +99,22 @@ elif [ "$UNPUSHED_COUNT" -gt 0 ]; then
   echo "  建议: git push origin $BRANCH"
 else
   echo "  ✓ 所有 commit 已 push"
+fi
+
+# [8/8] 沉淀声明审计
+echo ""
+echo "[8/8] 沉淀声明审计..."
+LEDGER=".claude/claim-ledger.log"
+if [ ! -f "$LEDGER" ]; then
+  echo "  ✓ 无沉淀声明记录"
+else
+  MISSING_COUNT=$(grep -c " | MISSING$" "$LEDGER" 2>/dev/null || echo 0)
+  if [ "$MISSING_COUNT" -gt 0 ]; then
+    echo "  ❌ $MISSING_COUNT 次沉淀声明文件不存在："
+    grep " | MISSING$" "$LEDGER" | tail -10
+  else
+    echo "  ✓ 所有沉淀声明文件均存在"
+  fi
 fi
 
 echo ""
