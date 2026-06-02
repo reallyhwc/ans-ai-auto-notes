@@ -9,7 +9,7 @@ description: "Agent循环、MCP协议、FC机制、Skill定位、五者关系"
 
 ## 一句话定位
 
-Agent 是"能调用工具、多步循环完成任务"的 LLM 应用形态。MCP 是连接 Agent 和外部工具的开放协议。微调是让通用模型学会你的领域。
+Agent 是"能调用工具、多步循环完成任务"的 LLM 应用形态。MCP 是连接 Agent 和外部工具的开放协议。Skill 是 Agent 框架的能力扩展包（往 Prompt 注规则 + 工作流）。微调是让通用模型学会你的领域。
 
 > 关联: [llm](./LLM（大语言模型）.md) — LLM 核心原理 | [llm-prompt-rag](<./Prompt 与 RAG.md>) — Prompt 与 RAG 体系 | [ai-agent-tools](<../应用/AI Agent 工具生态.md>) — Agent 工具生态对比 | [claude-code-architecture](<../Claude-Code/Claude Code 整体架构 & 工作流程.md>) — Claude Code 整体架构与工作流程
 
@@ -34,29 +34,21 @@ Agent:
 
 ### 1.2 Agent 的核心循环
 
-```
-        ┌──────────────────────────┐
-        │     Agent 循环             │
-        │                          │
-        │  ┌─────────┐             │
-        │  │  思考    │ ← LLM 分析当前状态，决定下一步
-        │  └────┬────┘             │
-        │       │                  │
-        │       ▼                  │
-        │  ┌─────────┐             │
-        │  │  行动    │ → 调用工具 (搜索/计算/API/写文件...)
-        │  └────┬────┘             │
-        │       │                  │
-        │       ▼                  │
-        │  ┌─────────┐             │
-        │  │  观察    │ ← 工具返回结果
-        │  └────┬────┘             │
-        │       │                  │
-        │       ▼                  │
-        │  任务完成？ → 是 → 输出结果
-        │       │                  │
-        │       否 → 回到"思考"    │
-        └──────────────────────────┘
+```mermaid
+flowchart TD
+    Think["思考<br/>LLM 分析当前状态，决定下一步"]
+    Act["行动<br/>调用工具（搜索/计算/API/写文件...）"]
+    Observe["观察<br/>工具返回结果"]
+    Done["输出结果"]
+
+    Think --> Act --> Observe --> Check{任务完成？}
+    Check -- 是 --> Done
+    Check -- 否 --> Think
+
+    style Think fill:#e3f2fd
+    style Act fill:#fff3e0
+    style Observe fill:#e8f5e9
+    style Done fill:#f3e5f5
 ```
 
 ### 1.3 具体例子：订机票 Agent
@@ -97,7 +89,13 @@ LLM 最终输出:
   "北京今天晴天，气温 25°C，适合出门~"
 ```
 
-### 1.5 Function Calling vs MCP：决策层 vs 执行层
+---
+
+## 2. FC、MCP、Agent 三者对照与执行通道
+
+§1 讲了 Agent 是什么 + 怎么循环 + 关键能力 Function Calling。本节把容易混淆的三对概念放在一起对照：FC vs MCP（决策 vs 执行）、Agent 应用 vs MCP（系统 vs 管道）、然后落到"Spring 后端要走哪条执行通道"的决策图。
+
+### 2.1 Function Calling vs MCP：决策层 vs 执行层
 
 **Function Calling 和 MCP 是两个完全不同层次的东西，但因为都跟"工具调用"相关，经常被混在一起。**
 
@@ -187,33 +185,29 @@ Agent 的能力取决于它能调用什么工具：
   - 浏览器自动化 (打开网页、填表单)
 ```
 
-### 1.6 Agent 应用 vs MCP：完整系统 vs 工具管道
+### 2.2 Agent 应用 vs MCP：完整系统 vs 工具管道
 
 **这是比 FC vs MCP 更容易混淆的一对，因为两者都跟"工具调用"有关——但层次完全不同。**
 
 **Agent 应用是一个完整的自主系统，MCP 只是一根标准化的工具连接线。**
 
-```
-┌─────────────────────────────────────────────────────────┐
-│  Agent 应用（完整产品）                                    │
-│                                                         │
-│  ┌──────────┐   ┌──────────┐   ┌──────────┐            │
-│  │  LLM 大脑 │ → │ ReAct 循环│ → │ 工具调用  │            │
-│  │  (推理)   │   │ (思考→行动)│   │          │            │
-│  └──────────┘   └──────────┘   └────┬─────┘            │
-│                                     │                   │
-│  还有: 记忆系统、用户界面、Prompt 管理、错误处理...         │
-│                                     │                   │
-│                              ┌──────┴──────┐            │
-│                              │             │            │
-│                        本地函数        MCP 管道 ← 这里才是 MCP
-│                        (直调)       (JSON-RPC)           │
-│                                         │               │
-│                                    ┌────┴────┐          │
-│                                    │ MCP     │          │
-│                                    │ Server  │ ← 工具提供者
-│                                    └─────────┘          │
-└─────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph Agent["Agent 应用（完整产品）"]
+        direction TB
+        LLM["LLM 大脑<br/>（推理）"] --> ReAct["ReAct 循环<br/>（思考→行动）"]
+        ReAct --> Tool["工具调用"]
+        Mem["记忆系统 / UI / Prompt 管理 / 错误处理 ..."]
+        Tool --> Local["本地函数<br/>（直调）"]
+        Tool --> MCPPipe["MCP 管道<br/>（JSON-RPC）"]
+    end
+
+    MCPPipe --> Server["MCP Server<br/>（工具提供者）"]
+
+    style Agent fill:#f3e5f5
+    style LLM fill:#e8f5e9
+    style MCPPipe fill:#fce4ec
+    style Server fill:#fff3e0
 ```
 
 **核心差异表**：
@@ -232,26 +226,23 @@ Agent 的能力取决于它能调用什么工具：
 
 **实际项目中的关系**——一个 Spring Boot 应用可以同时是两者：
 
-```
-┌──────────────────────────────────┐
-│  Spring Boot 应用                 │
-│                                  │
-│  HTTP 入口（Agent 服务）          │
-│  POST /chat → AgentController    │
-│    → DeepSeek API（推理+FC）      │
-│    → 本地工具执行                 │
-│    → 结果整合回复用户             │
-│                                  │
-│  MCP 入口（工具提供）             │
-│  stdin ← Claude Code             │
-│    → @Tool 反射调用               │
-│    → stdout 返回结果              │
-│                                  │
-│  两者共享: OrderService（业务逻辑）│
-└──────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph App["Spring Boot 应用"]
+        HTTP["HTTP 入口（Agent 服务）<br/>POST /chat → AgentController<br/>→ DeepSeek API（推理+FC）<br/>→ 本地工具执行<br/>→ 结果整合回复用户"]
+        MCPIn["MCP 入口（工具提供）<br/>stdin ← Claude Code<br/>→ @Tool 反射调用<br/>→ stdout 返回结果"]
+        Svc["OrderService<br/>（业务逻辑：两者共享）"]
+        HTTP --> Svc
+        MCPIn --> Svc
+    end
+
+    style App fill:#f3e5f5
+    style HTTP fill:#e3f2fd
+    style MCPIn fill:#fce4ec
+    style Svc fill:#fff3e0
 ```
 
-### 1.7 三种执行通道全景对比：FC 之下，三条路径通后端
+### 2.3 三种执行通道全景对比：FC 之下，三条路径通后端
 
 **这是 Java 后端程序员最容易迷惑的地方——三种方式最终都"调到了后端服务"，但架构差异巨大。**
 
@@ -455,7 +446,9 @@ sequenceDiagram
 
 **③ "把 @Tool 改成 @Bean FunctionCallback 不就跟方案 C 一样了吗？"**——技术上能做到同样的功能，但失去了 MCP 的核心价值：**标准化和跨平台复用**。`@Bean FunctionCallback` 是 Spring AI 专有 API，只有 Spring AI Agent 能用。`@Tool` 暴露为 MCP Server 后，任何支持 MCP 的客户端都能调用。
 
-### 1.8 编译时注册 vs 运行时发现：MCP 的快速扩展能力
+> 关联: [Spring AI](<../../Java/Spring AI.md>) — Spring AI 框架的 Agent / FC / MCP server 完整接入指南（本节三种方案的 Java 端落地细节）
+
+### 2.4 编译时注册 vs 运行时发现：MCP 的快速扩展能力
 
 三种方案的差异归结为一个核心问题：**Agent 如何知道它有哪些工具可用？**
 
@@ -500,7 +493,7 @@ flowchart TB
 
 ---
 
-## 2. MCP 协议
+## 3. MCP 协议
 
 MCP（Model Context Protocol）是 AI 工具调用的标准化协议——写一次 Server，所有支持 MCP 的 LLM 都能用。
 
@@ -510,9 +503,9 @@ MCP（Model Context Protocol）是 AI 工具调用的标准化协议——写一
 
 ---
 
-## 3. `@Tool` 注解的内部机制
+## 4. `@Tool` 注解的内部机制
 
-### 3.1 启动阶段：做了什么
+### 4.1 启动阶段：做了什么
 
 和 `@GetMapping` 是同类东西——标记方法为"外部可调用入口"。启动时三步：
 
@@ -544,78 +537,64 @@ MCP（Model Context Protocol）是 AI 工具调用的标准化协议——写一
 
 如果一个 `@Tool` 方法的参数是自定义 DTO，Spring AI 会递归展开其字段，自动生成完整的 JSON Schema。
 
-### 3.2 工具发现：tools/list 流程
+### 4.2 工具发现：tools/list 流程
 
-```
-Claude Code 启动
-  │
-  ├─ 读 .mcp.json → 找到 command + args
-  ├─ spawn 子进程 → Java 应用启动
-  │     └─ Spring Boot init
-  │          └─ @EnableMcpServer → 注册 MCP 端点
-  │               └─ 扫描所有 @Tool → 构建注册表 (Map<String, ToolCallback>)
-  │
-  ├─ 发 tools/list ──stdin──→ {"method":"tools/list", "id":1}
-  │                           │
-  │                     Java  └─ 遍历注册表 → 生成工具列表 JSON → stdout
-  │
-  └─ 收到 [{"name":"queryOrders","description":"...","inputSchema":{...}}, ...]
-       │
-       └─ 注入 LLM System Prompt:
-           "你可以使用以下工具:
-            - queryOrders(userId): 查询订单
-            - refundOrder(orderId, amount): 发起退款"
+```mermaid
+sequenceDiagram
+    participant CC as Claude Code
+    participant Java as Java 子进程<br/>(Spring AI MCP Server)
+    participant LLM
+
+    Note over CC: 启动：读 .mcp.json
+    CC->>Java: spawn 子进程
+    Note over Java: Spring Boot init<br/>@EnableMcpServer → 注册 MCP 端点<br/>扫描 @Tool → 构建 Map<String, ToolCallback>
+
+    CC->>Java: stdin: {"method":"tools/list","id":1}
+    Java->>Java: 遍历注册表 → 生成工具列表 JSON
+    Java->>CC: stdout: [{"name":"queryOrders",<br/>"description":"...","inputSchema":{...}}, ...]
+
+    CC->>LLM: 注入 System Prompt：<br/>"你可以使用以下工具:<br/>- queryOrders(userId): 查询订单<br/>- refundOrder(orderId, amount): 发起退款"
 ```
 
 **LLM 看到的不是 Java 代码，是 `tools/list` 返回的 JSON Schema。**
 
-### 3.3 完整请求链路：从你说一句话到方法被调用
+### 4.3 完整请求链路：从你说一句话到方法被调用
 
-```
-你: "帮我查 user_id=123 的订单"
-          │
-          ▼
-① LLM 推理（第 1 次，不出声）
-   看到 System Prompt 里有工具 "queryOrders(userId)"
-   → 判断: 用户要查订单，该调 queryOrders
-   → LLM 输出 tool_call JSON（不是文字回复）:
-     {"tool_calls":[{"function":{"name":"queryOrders",
-                     "arguments":{"userId":"123"}}}]}
+用户输入："帮我查 user_id=123 的订单"
 
-② Claude Code MCP Client 拦截
-   拼 JSON-RPC:
-   {"jsonrpc":"2.0","method":"tools/call","id":42,
-    "params":{"name":"queryOrders","arguments":{"userId":"123"}}}
+```mermaid
+sequenceDiagram
+    participant User as 你
+    participant LLM
+    participant CC as Claude Code<br/>(MCP Client)
+    participant Java as Spring AI<br/>(MCP Server)
+    participant Svc as OrderService
+    participant DB
 
-③ 通过 stdin → Java 子进程
+    User->>LLM: "帮我查 user_id=123 的订单"
+    Note over LLM: ① 第 1 次推理（不出声）<br/>System Prompt 里有 queryOrders(userId)<br/>判断该调 queryOrders
+    LLM->>CC: tool_call JSON：<br/>{"function":"queryOrders",<br/>"arguments":{"userId":"123"}}
 
-④ Spring AI 收到 → 解析 method="tools/call"
-   → 从注册表 Map 找到 "queryOrders" 的 ToolCallback
-   → 反序列化 arguments → userId="123"
-   → 反射调用: method.invoke(orderMcpTools, "123")
+    Note over CC: ② 拼 JSON-RPC
+    CC->>Java: ③ stdin: {"jsonrpc":"2.0","method":"tools/call",<br/>"id":42,"params":{"name":"queryOrders",<br/>"arguments":{"userId":"123"}}}
 
-⑤ 你的 @Tool 方法执行
-   queryOrders("123")
-     → orderService.queryByUser("123")    ← 走到已有的 Service
-       → SELECT * FROM orders WHERE user_id = '123'
-         → 返回 List<Order> [Order#8842, Order#8843]
+    Note over Java: ④ 解析 method=tools/call<br/>注册表查 queryOrders ToolCallback<br/>反序列化 arguments
+    Java->>Svc: ⑤ method.invoke(orderMcpTools, "123")
+    Svc->>DB: orderService.queryByUser("123")<br/>→ SELECT * FROM orders WHERE user_id='123'
+    DB->>Svc: List<Order> [#8842, #8843]
+    Svc->>Java: 返回结果
 
-⑥ 序列化 → JSON → 装进 MCP 响应格式
-   {"jsonrpc":"2.0","id":42,
-    "result":{"content":[{"type":"text","text":"[{\"orderId\":8842,...}]"}]}}
+    Note over Java: ⑥ 序列化 → MCP 响应格式
+    Java->>CC: ⑦ stdout: {"jsonrpc":"2.0","id":42,<br/>"result":{"content":[{"type":"text",<br/>"text":"[{...}]"}]}}
 
-⑦ stdout → Claude Code 收到结果
-
-⑧ 把结果喂回 LLM（第 2 次推理）
-   "之前你让我查的订单结果: 订单#8842 ¥299 已发货, 订单#8843 ¥158 待付款"
-
-⑨ LLM 组织自然语言:
-   "你共有 2 个订单: #8842 ¥299 已发货, #8843 ¥158 待付款"
+    Note over LLM: ⑧ 第 2 次推理<br/>"订单结果: #8842 ¥299 已发货,<br/>#8843 ¥158 待付款"
+    CC->>LLM: 把结果喂回
+    LLM->>User: ⑨ "你共有 2 个订单:<br/>#8842 ¥299 已发货, #8843 ¥158 待付款"
 ```
 
 **关键：每次工具调用 = LLM 被调了 2 次**（第 1 次决定调哪个工具，第 2 次把工具结果组织成自然语言）。如果对话涉及多个工具调用（先查订单 → 再发起退款），每一步都是一次独立的 LLM 推理 + 工具执行循环。
 
-### 3.4 一句话总结
+### 4.4 一句话总结
 
 `@Tool` → 启动时反射扫描生成 JSON Schema → `tools/list` 返回给 LLM → LLM 决定调用 → 框架反射执行你标注的方法 → 结果序列化返回 → LLM 组织成自然语言。
 
@@ -623,7 +602,7 @@ Claude Code 启动
 
 ---
 
-## 4. Claude Code 与 Superpowers
+## 5. Claude Code 与 Superpowers
 
 ```
 L1: 基座模型 (Foundation Model)
@@ -646,33 +625,33 @@ L5: 插件/技能系统  ← Superpowers 在这
     扩展 L4 产品的行为和工作流
 ```
 
-### 4.1 Claude Code 工作原理
+### 5.1 Claude Code 工作原理
 
 **Claude Code = 编程 Agent。** 内部结构和 Agent 循环完全一致：
 
-```
-Claude Code 内部循环:
+```mermaid
+flowchart TD
+    U["你：'帮我把这个 bug 修了'"]
+    LLM["Claude LLM<br/>（云端 GPU）<br/>分析任务，制定计划"]
+    Tool["工具执行<br/>Read / Grep / Bash / Edit / Write"]
+    Obs["观察结果"]
+    Done["输出结果"]
 
-  你: "帮我把这个 bug 修了"
-      │
-      ▼
-  ┌─────────┐
-  │  LLM    │ ← Claude 模型 (云端 GPU) — 分析任务，制定计划
-  └────┬────┘
-      │ "我需要先读代码找到 bug"
-      ▼
-  ┌──────────┐
-  │ 工具执行  │ → Read/Grep/Bash/Edit/Write
-  └────┬─────┘
-      ▼
-  观察结果 → 任务没完成 → 回到 LLM 继续思考
-      │
-      完成 → 输出结果
+    U --> LLM
+    LLM -->|"'我需要先读代码找到 bug'"| Tool
+    Tool --> Obs
+    Obs --> Check{任务完成？}
+    Check -- 没完成 --> LLM
+    Check -- 完成 --> Done
+
+    style LLM fill:#e8f5e9
+    style Tool fill:#fff3e0
+    style Done fill:#f3e5f5
 ```
 
 核心能力 = **Claude 模型**（推理，云端）+ **工具集**（Read/Write/Edit/Bash/Grep，本机执行）。
 
-### 4.2 Claude Code 修 bug 的完整多轮流程
+### 5.2 Claude Code 修 bug 的完整多轮流程
 
 ```
 你: "帮我修 UserService 的 NPE bug"
@@ -702,7 +681,7 @@ Claude Code 内部循环:
 
 **本质：LLM 思考 → 调用工具 → 观察结果 → 再思考 → 循环直到完成。** 每轮工具调用本地执行，不消耗 LLM token。
 
-### 4.3 Skill 到底是什么：结构化配置包，不是 MCP
+### 5.3 Skill 到底是什么：结构化配置包，不是 MCP
 
 **Skill = 一个可复用的"能力模板包"**，内容就是三样东西：
 
@@ -738,9 +717,12 @@ Claude Code 内部循环:
 | 提供什么 | LLM + 工具执行能力 | 预定义工作流 + 最佳实践 |
 | 类比 | IDE | IDE 的插件 |
 
+> 关联: [Skills 渐进式披露架构](<../Claude-Code/Skills 渐进式披露架构.md>) — Claude Code skill 的三层渐进式披露机制（这里是概念，那里是实现细节）
+> 关联: [Superpowers TDD Skill 工作流拆解](<../Claude-Code/Superpowers TDD Skill 工作流拆解.md>) — 一个具体 skill 怎么把"纪律"注入 Claude 的工作流
+
 ---
 
-## 5. 微调（已拆分为独立文件）
+## 6. 微调（已拆分为独立文件）
 
 微调是在预训练基座模型上用你的领域数据再训练一轮，让通用模型变成领域专家。
 
@@ -750,52 +732,37 @@ Claude Code 内部循环:
 
 ---
 
-## 6. 五个概念的关系全景
+## 7. 五个概念的关系全景
 
-```
-                         ┌──────────────┐
-                         │   用户输入     │
-                         └──────┬───────┘
-                                │
-                         ┌──────▼───────┐
-                         │   Prompt     │  ← "你现在是客服，可以查订单、退款..."
-                         │   (指令)     │     告诉 LLM 有什么工具、怎么用
-                         └──────┬───────┘
-                                │
-                         ┌──────▼───────┐
-                         │     LLM      │
-                         │  (大脑)      │
-                         └──────┬───────┘
-                                │
-                   ┌────────────┼────────────┐
-                   │            │            │
-         输出文字回复    Function Calling    需要外部信息
-         (直接回答)    (输出 JSON: "调XX")    但不知道该调谁
-                   │            │            │
-                   │    ┌───────▼───────┐    │
-                   │    │ 工具怎么来的？ │    │
-                   │    └───────┬───────┘    │
-                   │            │            │
-                   │   ┌────────┼────────┐   │
-                   │   │        │        │   │
-                   │ 本地函数  HTTP API  MCP │
-                   │ (@Bean)  (REST)  (标准协议)
-                   │   │        │        │   │
-                   │   └────────┼────────┘   │
-                   │            │            │
-                   │    ┌───────▼───────┐    │
-                   │    │   执行结果     │    │
-                   │    └───────┬───────┘    │
-                   │            │            │
-                   │    ┌───────▼───────┐    │
-                   │    │  结果喂回 LLM │    │
-                   │    └───────┬───────┘    │
-                   │            │            │
-                   └────────────┼────────────┘
-                                │
-                         ┌──────▼───────┐
-                         │   最终回复     │
-                         └──────────────┘
+```mermaid
+flowchart TD
+    U[用户输入]
+    P["Prompt（指令）<br/>告诉 LLM：你是客服、<br/>有查订单/退款等工具、<br/>该怎么用"]
+    LLM["LLM（大脑）"]
+
+    U --> P --> LLM
+
+    LLM -->|输出文字回复<br/>直接回答| Done
+    LLM -->|Function Calling<br/>输出 JSON：调 XX| FC[工具怎么来的？]
+
+    FC --> Local[本地函数 @Bean]
+    FC --> Http[HTTP API REST]
+    FC --> MCP[MCP 标准协议]
+
+    Local --> Exec[执行结果]
+    Http --> Exec
+    MCP --> Exec
+
+    Exec --> FeedBack[结果喂回 LLM]
+    FeedBack --> LLM
+
+    LLM ==>|任务完成| Done[最终回复]
+
+    style P fill:#fff3e0
+    style LLM fill:#e8f5e9
+    style FC fill:#e3f2fd
+    style MCP fill:#fce4ec
+    style Done fill:#f3e5f5
 ```
 
 ### 概念对照表
@@ -820,23 +787,18 @@ MCP:    暴露了 "执行 bash"、"读写文件"、"git" 等工具给 Agent
 
 一个完整的实际产品通常是：**微调后的模型 + RAG + Agent 能力 + Skill 工作流 + 精心设计的 Prompt**。
 
-```
-例: 智能客服系统
+```mermaid
+flowchart TD
+    A[用户提问] --> B["Prompt<br/>系统指令 + 用户画像 + 对话历史"]
+    B --> C["RAG 检索<br/>产品知识库 → 找相关文档"]
+    C --> D["Agent 决策<br/>查订单号？调退款 API？还是直接回答？"]
+    D -->|Function Calling<br/>输出 queryOrder JSON| E["MCP 工具调用<br/>queryOrder 实现"]
+    E --> F[微调后的 LLM 生成回答]
 
-  用户提问
-     │
-     ▼
-  Prompt (含系统指令、用户画像、对话历史)
-     │
-     ▼
-  RAG 检索 (产品知识库 → 找到相关文档)
-     │
-     ▼
-  Agent 决策 (需要查订单号? 调退款 API? 还是直接回答?)
-     │  ← Function Calling 输出 {"function": "queryOrder"}
-     │  ← MCP 暴露 queryOrder 工具的实现
-     ▼
-  微调后的 LLM 生成回答
+    style B fill:#fff3e0
+    style C fill:#e8f5e9
+    style D fill:#e3f2fd
+    style E fill:#fce4ec
 ```
 
 > 关联: [llm](./LLM（大语言模型）.md) — LLM 核心原理

@@ -86,6 +86,57 @@ MCP Server 暴露三种能力：
 | **Tools** | 可执行操作（"我能发邮件、查天气"） | POST |
 | **Prompts** | 预定义 Prompt 模板（"我擅长代码审查"） | 静态资源 |
 
+### 1.3 设计渊源：从 LSP 学来的"Host-Client-Server"
+
+MCP 的架构不是凭空想出来的，灵感直接来自 **LSP（Language Server Protocol）**——微软在 2016 年推出、把 VS Code 等编辑器和各种语言后端解耦的协议。两者的核心同构性：
+
+| 维度 | LSP（编辑器领域） | MCP（AI 领域） |
+|------|------------------|----------------|
+| 解决的问题 | 编辑器 × 语言 = M×N 集成爆炸 | LLM × 工具 = M×N 集成爆炸 |
+| 三角架构 | Editor（host）↔ LSP Client ↔ Language Server | LLM Host ↔ MCP Client ↔ MCP Server |
+| 协议层 | JSON-RPC 2.0 | JSON-RPC 2.0（完全一样） |
+| 传输层 | stdio / TCP / WebSocket | stdio / Streamable HTTP（以前还有 SSE，已废） |
+| 能力发现 | `initialize` + `capabilities` 字段协商 | `tools/list` + `prompts/list` + `resources/list` |
+| 标准化收益 | 写一次 TypeScript Server，VS Code/Neovim/Sublime 全能用 | 写一次 MCP Server，Claude/ChatGPT/Gemini 都能用 |
+
+**为什么这种"借鉴"是合理选择**：LSP 已经在工业界证明了 host-client-server 架构能解决多对多集成问题。Anthropic 没必要从零设计，直接拿 LSP 的范式套到 AI 工具领域——把"Language Server 暴露语言能力给编辑器"换成"MCP Server 暴露工具能力给 LLM"，连协议（JSON-RPC）都没换。
+
+**不是 1:1 复刻的地方**：LSP 是双向 RPC（editor 也能主动通知 server，如 `textDocument/didChange`），MCP 大部分场景是 client 拉模式（agent 主动调 `tools/call`）；MCP 多了 Prompts 这一类，LSP 没有对应物（见 §1.4）。
+
+### 1.4 三种能力深入：Prompts 与 OpenAI Plugins 的本质差异
+
+§1.2 表里 Prompts 一笔带过——但它是 MCP 区别于其他工具调用范式的关键。
+
+**Resources / Tools / Prompts 的方向差异**：
+
+```mermaid
+flowchart LR
+    Host["LLM Host<br/>（Claude / ChatGPT）"]
+    Server["MCP Server"]
+
+    Host -->|"Resources: 我想读 X"<br/>（host 主动拉数据）"| Server
+    Host -->|"Tools: 帮我执行 Y"<br/>（host 主动调动作）"| Server
+    Server -.->|"Prompts: 我擅长 Z，<br/>需要的时候直接用这个 prompt"<br/>（server 反向告诉 host）"| Host
+
+    style Host fill:#e8f5e9
+    style Server fill:#fff3e0
+```
+
+- **Resources / Tools**：host → server 的请求-响应，host 主动，server 被动响应
+- **Prompts**：server → host 的"建议"——server 在 `prompts/list` 里 publish 一组 "如果用户问类似 X 的问题，建议你用这个 prompt 模板"。host 可以接受也可以忽略，但 server **能反向影响 host 的行为**
+
+**与 OpenAI Plugins 的对比**：
+
+| 维度 | MCP | OpenAI Plugins（2023 推出，已被 GPTs 取代） |
+|------|-----|--------------------------------------------|
+| 谁能调谁 | host 主动调 server tools，server 主动 publish prompts | 只能 model（host）调 plugin，plugin 永远是被动方 |
+| Prompt 模板 | server 可以 publish，host 决定用不用 | 没有这个概念 |
+| 工具发现 | client 启动时主动 `tools/list` | model 在每次对话里看 OpenAPI spec |
+| 跨平台 | 任何支持 MCP 的 host（Claude / ChatGPT / Gemini / Cursor）都能用 | 只在 ChatGPT 生态内 |
+| 现状 | 持续演进，2025 年成为事实标准 | 2024-04 弃用，被 GPTs（私有化方案）取代 |
+
+**为什么 Prompts 设计很重要**：传统 function calling 范式（含 OpenAI Plugins）的假设是 "host 是大脑，tool 是手脚"，server 只能等指令。但 MCP 让 server 能说 "嘿，如果遇到代码审查任务，用我这个调过音的 prompt 效果更好"——把领域知识从"工具实现"反向注入"决策层"。这是 MCP 不止是"另一个 function calling 包装器"的核心差异。
+
 ---
 
 ## 2. MCP 协议实现内幕
