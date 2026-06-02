@@ -10,8 +10,25 @@ DATE=$(date +%Y-%m-%d)
 TIME=$(date +%H:%M)
 LOG_DIR=".claude/session-logs"
 LOG_FILE="$LOG_DIR/$DATE.md"
+CHECKPOINT_FILE="$LOG_DIR/.last-checkpoint"
 
 mkdir -p "$LOG_DIR"
+
+# ── 触发判定：基于自上次 checkpoint 后的 commit 增量 ──
+# 首次运行（无 checkpoint）：以最早的 commit 为基线，不跳过
+# 已有 checkpoint：计算 <last_sha>..HEAD 的 commit 数，<5 静默退出
+THRESHOLD=5
+if [ -f "$CHECKPOINT_FILE" ]; then
+  LAST_SHA=$(cat "$CHECKPOINT_FILE")
+  if git rev-parse --quiet --verify "$LAST_SHA" >/dev/null 2>&1; then
+    NEW_COMMITS=$(git rev-list --count "$LAST_SHA"..HEAD 2>/dev/null || echo 0)
+    if [ "$NEW_COMMITS" -lt "$THRESHOLD" ]; then
+      # bash 3.2 (macOS 默认) 在 set -u 下会把全角 `）` 粘进变量名，必须用 ${VAR}） 显式 brace 边界
+      [ "${1:-}" != "--quiet" ] && echo "[session-log] 跳过：仅 ${NEW_COMMITS} 个新 commit（阈值 ${THRESHOLD}）"
+      exit 0
+    fi
+  fi
+fi
 
 # Git 输出用 core.quotepath=false 避免中文路径被编码
 GIT="git -c core.quotepath=false"
@@ -111,3 +128,6 @@ if [ "${1:-}" != "--quiet" ]; then
     echo ""
   fi
 fi
+
+# 推进 checkpoint 到当前 HEAD
+git rev-parse HEAD > "$CHECKPOINT_FILE" 2>/dev/null
