@@ -26,6 +26,7 @@ function parseGitLog(raw) {
       if (parts.length < 3) return null;
       const hash = parts[0];
       const dateStr = parts[1].split(' ')[0]; // 取日期部分
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return null; // 防止 NaN-WNaN 污染输出
       const subject = parts.slice(2).join('|');
       return { hash, date: dateStr, subject };
     })

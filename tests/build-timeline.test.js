@@ -33,3 +33,13 @@ test('aggregateByWeek: entries 含 date + summary（commit subject）', () => {
   assert.equal(weeks[0].entries[0].date, '2026-05-25');
   assert.equal(weeks[0].entries[0].summary, 'docs: X');
 });
+
+test('parseGitLog: 跳过日期格式非法的 commit（防止 NaN-WNaN 污染输出）', () => {
+  const raw = 'abc123|2026-05-28 10:00:00 +0800|good\n' +
+              'def456|bad-date|malformed\n' +
+              'ghi789|2026-05-29 11:00:00 +0800|also good';
+  const commits = parseGitLog(raw);
+  assert.equal(commits.length, 2);
+  assert.equal(commits[0].subject, 'good');
+  assert.equal(commits[1].subject, 'also good');
+});
