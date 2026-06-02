@@ -33,7 +33,7 @@
 
 - [CNN（卷积神经网络）](kb/技术/AI/基础/CNN（卷积神经网络）.md) — 图像处理专用网络，卷积+池化
 - [RNN（循环神经网络）](kb/技术/AI/基础/RNN（循环神经网络）.md) — 序列数据处理，LSTM/GRU
-- [Transformer](kb/技术/AI/基础/transformer.md) — 自注意力机制，现代大模型底座
+- [Transformer](kb/技术/AI/基础/Transformer.md) — 自注意力机制，现代大模型底座
 
 #### 大模型 (8 篇)
 
