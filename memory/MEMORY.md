@@ -20,3 +20,4 @@
 - [Directory Structure Preference](目录结构偏好.md) — AI 子树 5 个并列子目录（基础/大模型/Claude-Code/AI-Coding/应用 五子目录），manifest+INDEX 由 build-index 自动生成不要手改
 - [Feedback: RAG Threshold Reminder](feedback-rag-threshold-reminder.md) — 知识库 >50 篇时提醒启动 BM25 索引，>80 篇时提醒启动 MCP Server（规划详见 kb/技术/AI/应用/个人知识库接入 RAG 的规划.md）
 - [Feedback: Agent Log Patch](feedback-agent-log-patch.md) — subagent 结束 / 主 agent 一轮实质工作完后必须立即 patch agent-log 补 title/summary/outcome
+- [Feedback: Spawn kb-auditor](feedback-spawn-kb-auditor.md) — long-form kb 笔记 ≥300 行改动 OR ≥800 行总量后主动 spawn kb-auditor，review-only 隔离 context
