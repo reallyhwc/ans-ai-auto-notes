@@ -1,0 +1,7 @@
+# allowlist —— 控制 sync-memory.sh 同步范围
+# 每行一个文件名（不含路径），仅这些文件会被双向同步
+# 新增 memory 文件后需要手动加入此文件
+#
+# 示例（取消注释启用）:
+# feedback-zero-npm-deps.md
+# user-role-context.md
