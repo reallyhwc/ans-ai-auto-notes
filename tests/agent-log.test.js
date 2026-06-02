@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
-const { generateId, appendEvent, foldEvents } = require('../scripts/lib-agent-log.js');
+const { generateId, appendEvent, foldEvents, parseTranscript } = require('../scripts/lib-agent-log.js');
 
 test('generateId: 格式 r-YYYY-MM-DD-HH-MM-<4hex>', () => {
   const id = generateId(new Date('2026-06-02T21:50:14+08:00'));
@@ -53,4 +53,30 @@ test('foldEvents: 多个 patch 按 time 顺序应用（后写覆盖先写）', (
 test('foldEvents: 孤立 patch（无对应 start）忽略', () => {
   const events = [{ event: 'patch', id: 'r-ghost', time: '2026-06-02T00:00:00Z', title: 'x' }];
   assert.deepEqual(foldEvents(events), []);
+});
+
+test('parseTranscript: duration_ms = 末-首 timestamp 差', () => {
+  const r = parseTranscript('tests/fixtures/agent-log-transcript-sample.jsonl');
+  // 21:50:14 → 21:58:30 = 8min 16s = 496000 ms
+  assert.equal(r.duration_ms, 496000);
+});
+
+test('parseTranscript: tools_used 去重排序', () => {
+  const r = parseTranscript('tests/fixtures/agent-log-transcript-sample.jsonl');
+  assert.deepEqual(r.tools_used.sort(), ['Bash', 'Edit', 'Read']);
+});
+
+test('parseTranscript: files_changed 只算写入工具（Edit/Write/NotebookEdit），去重', () => {
+  const r = parseTranscript('tests/fixtures/agent-log-transcript-sample.jsonl');
+  assert.deepEqual(r.files_changed.sort(), ['kb/a.md', 'kb/b.md']);
+});
+
+test('parseTranscript: model 取第一条 assistant 的 model 字段', () => {
+  const r = parseTranscript('tests/fixtures/agent-log-transcript-sample.jsonl');
+  assert.equal(r.model, 'claude-opus-4-7');
+});
+
+test('parseTranscript: has_substantive_work true（有 Edit/Bash 写入类工具）', () => {
+  const r = parseTranscript('tests/fixtures/agent-log-transcript-sample.jsonl');
+  assert.equal(r.has_substantive_work, true);
 });

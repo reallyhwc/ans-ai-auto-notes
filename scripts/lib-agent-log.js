@@ -63,4 +63,54 @@ function foldEvents(events) {
   return records;
 }
 
-module.exports = { generateId, appendEvent, foldEvents };
+// 写入/副作用工具白名单（spec §4.2）
+const WRITE_TOOLS = new Set(['Edit', 'Write', 'NotebookEdit', 'Bash', 'Task']);
+const FILE_WRITE_TOOLS = new Set(['Edit', 'Write', 'NotebookEdit']);
+
+// 从 transcript JSONL 文件解析机械字段
+// 返回: { duration_ms, tools_used, files_changed, model, has_substantive_work }
+function parseTranscript(transcriptPath) {
+  const content = fs.readFileSync(transcriptPath, 'utf8');
+  const lines = content.split('\n').filter(l => l.trim());
+  const messages = lines.map(l => JSON.parse(l));
+
+  if (messages.length === 0) {
+    return { duration_ms: 0, tools_used: [], files_changed: [], model: null, has_substantive_work: false };
+  }
+
+  const firstTime = new Date(messages[0].timestamp).getTime();
+  const lastTime = new Date(messages[messages.length - 1].timestamp).getTime();
+  const duration_ms = lastTime - firstTime;
+
+  const toolsSet = new Set();
+  const filesSet = new Set();
+  let model = null;
+  let hasSubstantive = false;
+
+  for (const m of messages) {
+    if (m.role === 'assistant') {
+      if (m.model && !model) model = m.model;
+      if (Array.isArray(m.content)) {
+        for (const block of m.content) {
+          if (block.type === 'tool_use') {
+            toolsSet.add(block.name);
+            if (WRITE_TOOLS.has(block.name)) hasSubstantive = true;
+            if (FILE_WRITE_TOOLS.has(block.name) && block.input && block.input.file_path) {
+              filesSet.add(block.input.file_path);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return {
+    duration_ms,
+    tools_used: Array.from(toolsSet),
+    files_changed: Array.from(filesSet),
+    model,
+    has_substantive_work: hasSubstantive,
+  };
+}
+
+module.exports = { generateId, appendEvent, foldEvents, parseTranscript, WRITE_TOOLS, FILE_WRITE_TOOLS };
