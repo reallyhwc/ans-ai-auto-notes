@@ -28,6 +28,8 @@ Icon
 # 例外：settings.json 入库以共享 hook 配置（agent-log-hook 等项目级 hook）；
 # 用户私有偏好仍走 settings.local.json（保持 ignored）
 !.claude/settings.json
+# 例外：agents/ 入库以共享项目级 subagent 定义
+!.claude/agents/
 
 # Aone Copilot (plans / tasks 等本地状态文件，不入库)
 .aone_copilot/
