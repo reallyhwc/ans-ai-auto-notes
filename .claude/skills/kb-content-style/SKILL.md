@@ -23,7 +23,7 @@ description: Use when writing or editing any markdown file under kb/ in this ANS
 - 时序图 → `sequenceDiagram`
 - 架构图 → `flowchart TB` + `subgraph`
 
-ASCII 框图仅在 Mermaid 不适用时使用。
+ASCII 框图仅在 Mermaid 不适用时使用。范例参考 `kb/技术/AI/Claude-Code/claude-code-architecture.md` 内的 8 处 mermaid 用法。
 
 ### 3. 重组而非堆砌
 同一主题的多次对话要持续归纳合并为自上而下的结构化文档，不应出现多个同日期独立小节堆在一起。
@@ -61,12 +61,14 @@ ASCII 框图仅在 Mermaid 不适用时使用。
 | 章节数 | >7-8 个 `##` |
 | 主题凝聚度 | 覆盖 3+ 个可独立成文的方向 |
 
+**判断方法**：读完文件后问自己——"如果一个新人只想了解 X，他需要通读整个文件吗？"如果答案是"是"但 X 只是文件中的一小部分，就应该拆分。
+
 **拆分后**：原文件保留核心 + 指向子文件链接；章节编号重新从 1 整理（无跳号）；更新 INDEX.md 和 overview.html。
 
 ## 章节编号 + 标题 ID
 
-- 使用 `## N.` 样式时，h2 编号必须从 1（或 0）连续递增
-- 内联代码不影响 slugify：`buildToc` 在 slugify 前必须 `stripInline`
+- 使用 `## N.` 样式时，h2 编号必须从 1（或 0）连续递增 —— 由 `arch-lint.sh` 章节编号连续性检查自动兜底
+- 内联代码不影响 slugify：`buildToc` 在 slugify 前必须 `stripInline` —— 由 `arch-lint.sh` 标题 ID 契约检查 + `tests/lib.test.js` 双保险
 - 修改 lib.js slugify 或 heading renderer 时，必须同步更新 lib.js + app.js
 
 ## 跨文件关联
