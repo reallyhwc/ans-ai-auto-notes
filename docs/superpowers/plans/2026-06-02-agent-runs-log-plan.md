@@ -1,6 +1,6 @@
 ---
 title: "Agent Runs 通用日志系统实施计划"
-status: pending
+status: completed
 date: 2026-06-02
 spec: docs/superpowers/specs/2026-06-02-agent-runs-log-design.md
 ---

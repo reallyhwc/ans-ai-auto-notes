@@ -1,6 +1,6 @@
 ---
 title: "Agent Runs 通用日志系统设计"
-status: pending
+status: completed
 date: 2026-06-02
 ---
 
