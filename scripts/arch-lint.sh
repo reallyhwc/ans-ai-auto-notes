@@ -95,8 +95,9 @@ done < <(find kb -name "*.md" -print0 2>/dev/null)
 
 # 3b) 含空格/& 的 .md 链接必须用 <尖括号> 包裹（CommonMark 严格解析）
 # 否则 marked.js 不识别为链接，页面看似有链接但实际无法跳转。
+# 扫描 kb/ + timeline/（手维护周记中也有大量 kb 链接）
 # 修复脚本：node scripts/fix-md-link-spaces.js
-UNQUOTED_LINKS=$(grep -rEn '\]\([^<)][^)]*[ &][^)]*\.md(#[^)]*)?\)' kb/ 2>/dev/null | wc -l | awk '{print $1}')
+UNQUOTED_LINKS=$(grep -rEn '\]\([^<)][^)]*[ &][^)]*\.md(#[^)]*)?\)' kb/ timeline/ 2>/dev/null | wc -l | awk '{print $1}')
 if [ "$UNQUOTED_LINKS" -gt 0 ]; then
   echo "  ⚠️  $UNQUOTED_LINKS 个 .md 链接含空格/& 但未用 <尖括号> 包裹（marked 解析失败）"
   echo "      修复：node scripts/fix-md-link-spaces.js"

@@ -16,7 +16,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const ROOT = path.resolve(__dirname, '..');
-const KB = path.join(ROOT, 'kb');
+// 扫描根：kb 是主战场；timeline 是手维护的周记，里面有大量指向 kb/ 的链接
+const SCAN_ROOTS = ['kb', 'timeline'].map(d => path.join(ROOT, d));
 
 const dryRun = process.argv.includes('--dry-run');
 
@@ -46,7 +47,7 @@ function fixContent(content) {
 module.exports = { fixContent };
 
 if (require.main === module) {
-  const files = walkMd(KB);
+  const files = SCAN_ROOTS.flatMap(r => fs.existsSync(r) ? walkMd(r) : []);
   let totalFiles = 0;
   let totalFixes = 0;
 
