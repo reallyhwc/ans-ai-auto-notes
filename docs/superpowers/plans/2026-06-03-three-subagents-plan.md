@@ -1,6 +1,6 @@
 ---
 title: "三个项目级 subagent 实施计划"
-status: pending
+status: completed
 date: 2026-06-03
 spec: docs/superpowers/specs/2026-06-03-three-subagents-design.md
 ---

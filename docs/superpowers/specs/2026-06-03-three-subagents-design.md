@@ -1,6 +1,6 @@
 ---
 title: "三个项目级 subagent 设计：kb-auditor / plan-executor / idea-extractor"
-status: pending
+status: completed
 date: 2026-06-03
 ---
 
