@@ -296,6 +296,9 @@ function viewContent(path) {
         setTimeout(setupTocObserver, 100);
       }
     }
+
+    // 渲染反向链接（被以下文件引用）
+    renderBacklinks(path);
   }
 
   if (contentCache[path]) {
@@ -670,6 +673,8 @@ function loadManifest(callback) {
   ]).then(function(results) {
     FILE_INDEX.categories = results[0].categories || [];
     FILE_INDEX.timeline = results[1] || [];
+    // 暴露完整 manifest 给侧栏全文搜索 + 反向链接渲染消费
+    window.__manifest = results[0];
     callback(true);
   }).catch(function(err) {
     console.warn('[loadManifest] 加载失败:', err);
@@ -711,3 +716,85 @@ function init() {
 }
 
 init();
+
+// ============================================================
+// 侧栏全文搜索（消费 build-index.js 生成的倒排表）
+// 与"搜索"tab 的 title/desc 检索互补，能搜到正文 token
+// ============================================================
+var __kbSearchDebounceTimer = null;
+function onSearchInput(query) {
+  clearTimeout(__kbSearchDebounceTimer);
+  __kbSearchDebounceTimer = setTimeout(function() { performKbSearch(query); }, 100);
+}
+
+function performKbSearch(query) {
+  var results = document.getElementById('kb-search-results');
+  if (!results) return;
+  var q = (query || '').trim().toLowerCase();
+  if (q.length < 1) {
+    results.style.display = 'none';
+    results.innerHTML = '';
+    return;
+  }
+  if (!window.__manifest || !window.__manifest.searchIndex) {
+    results.innerHTML = '<div class="kb-search-empty">索引未加载</div>';
+    results.style.display = 'block';
+    return;
+  }
+  var idx = window.__manifest.searchIndex;
+  var files = window.__manifest.searchFiles || [];
+  // 拆 query 为 tokens（与 build-index.tokenize 保持一致：英文 \w+ ≥2，中文单字）
+  var tokens = [];
+  (q.match(/[a-zA-Z0-9_]+/g) || []).forEach(function(t) {
+    if (t.length >= 2) tokens.push(t);
+  });
+  (q.match(/[一-鿿]/g) || []).forEach(function(c) { tokens.push(c); });
+  if (tokens.length === 0) {
+    results.style.display = 'none';
+    return;
+  }
+  // AND 匹配：取所有 token 命中文件 idx 的交集
+  var hitSet = null;
+  for (var i = 0; i < tokens.length; i++) {
+    var hits = idx[tokens[i]] || [];
+    var hitsSet = new Set(hits);
+    if (hitSet === null) {
+      hitSet = hitsSet;
+    } else {
+      var next = new Set();
+      hitSet.forEach(function(x) { if (hitsSet.has(x)) next.add(x); });
+      hitSet = next;
+    }
+    if (hitSet.size === 0) break;
+  }
+  var matched = Array.from(hitSet || []).map(function(i) { return files[i]; }).filter(Boolean).slice(0, 20);
+  if (matched.length === 0) {
+    results.innerHTML = '<div class="kb-search-empty">未找到匹配</div>';
+  } else {
+    results.innerHTML = matched.map(function(f) {
+      var title = (f.path || '').split('/').pop().replace(/\.md$/, '');
+      return '<span class="kb-search-item" onclick="viewContent(\'' + escapeAttr(f.path) + '\')" title="' + escapeAttr(f.path) + '">' + escapeHtml(title) + '</span>';
+    }).join('');
+  }
+  results.style.display = 'block';
+}
+
+// ============================================================
+// 反向链接渲染（追加到 .md-content 底部）
+// ============================================================
+function renderBacklinks(path) {
+  if (!window.__manifest || !window.__manifest.backlinks) return;
+  var refs = window.__manifest.backlinks[path] || [];
+  if (refs.length === 0) return;
+  var mdContent = document.querySelector('.md-content');
+  if (!mdContent) return;
+  var html = '<div class="backlinks-block">';
+  html += '<div class="backlinks-title">被以下文件引用 (' + refs.length + ')</div>';
+  html += '<ul>';
+  refs.forEach(function(r) {
+    var title = r.split('/').pop().replace(/\.md$/, '');
+    html += '<li><span class="kb-link" onclick="viewContent(\'' + escapeAttr(r) + '\')" title="' + escapeAttr(r) + '">' + escapeHtml(title) + '</span></li>';
+  });
+  html += '</ul></div>';
+  mdContent.insertAdjacentHTML('beforeend', html);
+}

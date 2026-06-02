@@ -54,6 +54,37 @@ function buildSearchIndex(files) {
 }
 
 // ============================================================
+// 反向链接：扫描 .md 提取链接 -> target 反向图
+// ============================================================
+
+function extractLinks(text) {
+  const links = new Set();
+  // ](./x.md) 和 ](../x.md)
+  const mdLinkRe = /\]\((\.{1,2}\/[^)]+\.md)(?:#[^)]*)?\)/g;
+  let m;
+  while ((m = mdLinkRe.exec(text))) links.add(m[1]);
+  // [[./x.md]]
+  const bracketLinkRe = /\[\[(\.{1,2}\/[^\]]+\.md)\]\]/g;
+  while ((m = bracketLinkRe.exec(text))) links.add(m[1]);
+  return Array.from(links);
+}
+
+function buildBacklinks(files) {
+  const { resolveRelativeMd } = require('./lib.js');
+  const bl = {};
+  files.forEach(src => {
+    const links = extractLinks(src.text);
+    links.forEach(link => {
+      const resolved = resolveRelativeMd(src.path, link);
+      const target = resolved.path;
+      if (!bl[target]) bl[target] = [];
+      if (!bl[target].includes(src.path)) bl[target].push(src.path);
+    });
+  });
+  return bl;
+}
+
+// ============================================================
 // frontmatter 解析（极简，不引入第三方依赖）
 // ============================================================
 function parseFrontmatter(content) {
@@ -212,12 +243,14 @@ function main() {
   categories.forEach(collectFiles);
   const searchIndex = buildSearchIndex(flatFiles);
   const searchFiles = flatFiles.map(f => ({ idx: f.idx, path: f.path }));
+  const backlinks = buildBacklinks(flatFiles);
 
   // 输出 manifest.json
   const manifest = {
     categories: categories,
     searchIndex: searchIndex,
     searchFiles: searchFiles,
+    backlinks: backlinks,
   };
   fs.writeFileSync(MANIFEST_PATH, JSON.stringify(manifest, null, 2) + '\n', 'utf-8');
   console.log('[build-index] 已生成 manifest.json (' + totalFiles + ' 个文件, ' + categories.length + ' 个顶层分类)');
@@ -235,4 +268,4 @@ if (require.main === module) {
   main();
 }
 
-module.exports = { parseFrontmatter, scanDir, countFiles, generateIndexMd, tokenize, buildSearchIndex };
+module.exports = { parseFrontmatter, scanDir, countFiles, generateIndexMd, tokenize, buildSearchIndex, extractLinks, buildBacklinks };

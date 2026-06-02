@@ -154,6 +154,21 @@
   .md-content a { color: var(--text-link); }
   .sidebar-toggle { display: none; padding: 10px; cursor: pointer; text-align: center; color: var(--text-sidebar); font-size: 18px; }
   .sidebar.collapsed .sidebar-toggle { display: block; }
+  .kb-search-wrap { padding: 0 12px 8px; }
+  .sidebar.collapsed .kb-search-wrap { display: none; }
+  .kb-search-input { width: 100%; padding: 6px 10px; font-size: 12px; border: 1px solid rgba(255,255,255,0.15); background: var(--bg-sidebar-hover); color: var(--text-sidebar); border-radius: 4px; outline: none; }
+  .kb-search-input:focus { border-color: var(--accent); }
+  .kb-search-input::placeholder { color: var(--text-faint); }
+  .kb-search-results { max-height: 240px; overflow-y: auto; margin-top: 6px; font-size: 12px; background: var(--bg-sidebar-hover); border-radius: 4px; padding: 4px 6px; }
+  .kb-search-results .kb-search-item { display: block; color: var(--text-sidebar); padding: 4px 4px; cursor: pointer; border-radius: 3px; word-break: break-all; line-height: 1.35; }
+  .kb-search-results .kb-search-item:hover { background: var(--accent); color: #fff; }
+  .kb-search-results .kb-search-empty { color: var(--text-faint); padding: 4px; font-style: italic; }
+  .backlinks-block { margin-top: 32px; padding: 14px 18px; border-top: 1px solid var(--border-hr); color: var(--text-secondary); font-size: 13px; }
+  .backlinks-block .backlinks-title { font-weight: 600; color: var(--text-folder); margin-bottom: 8px; }
+  .backlinks-block ul { margin: 0; padding-left: 18px; }
+  .backlinks-block li { margin: 3px 0; }
+  .backlinks-block .kb-link { color: var(--text-link); cursor: pointer; }
+  .backlinks-block .kb-link:hover { text-decoration: underline; }
 
   .content-with-toc { display: flex; gap: 0; }
   .content-with-toc .md-content { flex: 1; min-width: 0; padding-right: 24px; }
@@ -246,6 +261,17 @@
 <div class="sidebar" id="sidebar">
   <div class="title">知识库导览</div>
   <div class="sidebar-toggle" title="展开侧栏" onclick="toggleSidebar()">☰</div>
+  <div class="kb-search-wrap">
+    <input
+      type="text"
+      id="kb-search"
+      class="kb-search-input"
+      placeholder="🔍 全文搜索…"
+      oninput="onSearchInput(this.value)"
+      autocomplete="off"
+    />
+    <div id="kb-search-results" class="kb-search-results" style="display:none;"></div>
+  </div>
   <div class="tab active" data-tab="categories">分类导览</div>
   <div class="tab" data-tab="timeline">时间线</div>
   <div class="tab" data-tab="search">搜索</div>
