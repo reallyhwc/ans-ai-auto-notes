@@ -45,7 +45,8 @@ function main() {
     return;
   }
 
-  const events = fs.readFileSync(file, 'utf8').split('\n').filter(l => l.trim()).map(l => JSON.parse(l));
+  const events = fs.readFileSync(file, 'utf8').split('\n').filter(l => l.trim())
+    .flatMap(l => { try { return [JSON.parse(l)]; } catch { return []; } });
   const records = foldEvents(events);
   const monthLabel = path.basename(file, '.jsonl');
 
