@@ -72,7 +72,9 @@ const FILE_WRITE_TOOLS = new Set(['Edit', 'Write', 'NotebookEdit']);
 function parseTranscript(transcriptPath) {
   const content = fs.readFileSync(transcriptPath, 'utf8');
   const lines = content.split('\n').filter(l => l.trim());
-  const messages = lines.map(l => JSON.parse(l));
+  const messages = lines.flatMap(l => {
+    try { return [JSON.parse(l)]; } catch { return []; }
+  });
 
   if (messages.length === 0) {
     return { duration_ms: 0, tools_used: [], files_changed: [], model: null, has_substantive_work: false };

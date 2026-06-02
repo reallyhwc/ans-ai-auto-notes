@@ -80,3 +80,68 @@ test('parseTranscript: has_substantive_work true（有 Edit/Bash 写入类工具
   const r = parseTranscript('tests/fixtures/agent-log-transcript-sample.jsonl');
   assert.equal(r.has_substantive_work, true);
 });
+
+test('parseTranscript: 空文件 → zero/empty 默认值', () => {
+  const tmpFile = path.join(os.tmpdir(), `empty-transcript-${Date.now()}.jsonl`);
+  fs.writeFileSync(tmpFile, '');
+  try {
+    const r = parseTranscript(tmpFile);
+    assert.equal(r.duration_ms, 0);
+    assert.deepEqual(r.tools_used, []);
+    assert.deepEqual(r.files_changed, []);
+    assert.equal(r.model, null);
+    assert.equal(r.has_substantive_work, false);
+  } finally {
+    fs.unlinkSync(tmpFile);
+  }
+});
+
+test('parseTranscript: 无 assistant 消息（只有 user/tool_result）→ model=null, has_substantive_work=false', () => {
+  const tmpFile = path.join(os.tmpdir(), `no-assistant-${Date.now()}.jsonl`);
+  fs.writeFileSync(tmpFile, [
+    '{"role":"user","content":"hi","timestamp":"2026-06-02T00:00:00Z"}',
+    '{"role":"tool_result","content":"ok","timestamp":"2026-06-02T00:00:05Z"}',
+  ].join('\n') + '\n');
+  try {
+    const r = parseTranscript(tmpFile);
+    assert.equal(r.model, null);
+    assert.deepEqual(r.tools_used, []);
+    assert.deepEqual(r.files_changed, []);
+    assert.equal(r.has_substantive_work, false);
+  } finally {
+    fs.unlinkSync(tmpFile);
+  }
+});
+
+test('parseTranscript: 写入工具但缺 input.file_path → tools_used 记，files_changed 不记', () => {
+  const tmpFile = path.join(os.tmpdir(), `no-file-path-${Date.now()}.jsonl`);
+  fs.writeFileSync(tmpFile, [
+    '{"role":"user","content":"x","timestamp":"2026-06-02T00:00:00Z"}',
+    '{"role":"assistant","content":[{"type":"tool_use","name":"Edit","input":{}}],"timestamp":"2026-06-02T00:00:05Z","model":"claude-opus-4-7"}',
+  ].join('\n') + '\n');
+  try {
+    const r = parseTranscript(tmpFile);
+    assert.deepEqual(r.tools_used, ['Edit']);
+    assert.deepEqual(r.files_changed, []);
+    assert.equal(r.has_substantive_work, true);
+  } finally {
+    fs.unlinkSync(tmpFile);
+  }
+});
+
+test('parseTranscript: 含 malformed JSON 行 → 跳过坏行，其他行正常解析', () => {
+  const tmpFile = path.join(os.tmpdir(), `malformed-${Date.now()}.jsonl`);
+  fs.writeFileSync(tmpFile, [
+    '{"role":"user","content":"x","timestamp":"2026-06-02T00:00:00Z"}',
+    '{ this is not valid json',  // ← 坏行，应被跳过
+    '{"role":"assistant","content":[{"type":"tool_use","name":"Bash","input":{"command":"echo"}}],"timestamp":"2026-06-02T00:00:05Z","model":"claude-opus-4-7"}',
+  ].join('\n') + '\n');
+  try {
+    const r = parseTranscript(tmpFile);
+    assert.deepEqual(r.tools_used, ['Bash']);
+    assert.equal(r.has_substantive_work, true);
+    assert.equal(r.duration_ms, 5000);
+  } finally {
+    fs.unlinkSync(tmpFile);
+  }
+});
