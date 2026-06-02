@@ -59,7 +59,7 @@ EOF
 
 ## 与其他 skill / hook 的关系
 
-- `exit-check.sh [7/8]` 检查未 push commit 数量，≥5 自动 push
+- `exit-check.sh [7/9]` 检查未 push commit 数量，≥5 自动 push
 - `pre-push hook` 跑 test 兜底
 - `verify-claim.sh` (PostToolUse hook) 验证 kb/ 文件写入
 
