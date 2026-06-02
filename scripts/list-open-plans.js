@@ -14,7 +14,7 @@ function extractStatus(content) {
     const end = content.indexOf('---', 3);
     if (end > 0) {
       const yaml = content.substring(3, end);
-      const m = yaml.match(/^status:\s*"?(.+?)"?\s*$/m);
+      const m = yaml.match(/^status:\s*["']?(.+?)["']?\s*$/m);
       if (m) return m[1].trim();
     }
   }

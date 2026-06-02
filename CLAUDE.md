@@ -141,7 +141,7 @@ ans-ai-auto-notes/
 
 ### Plan 系统
 
-长期任务（跨多个 session 的实施项目）的 plan 位于 [`docs/superpowers/plans/`](docs/superpowers/plans/)。新 plan 通过 superpowers `writing-plans` skill 生成。Plan 文件 frontmatter 中 `status:` 字段或 `> 状态: xxx` 段标记进度（已完成 / completed / done / closed 视为关闭，其他视为开放）。Stop hook 的 `[8/8]` 自动列出未完成 plan。
+长期任务（跨多个 session 的实施项目）的 plan 位于 [`docs/superpowers/plans/`](docs/superpowers/plans/)。新 plan 通过 superpowers `writing-plans` skill 生成。Plan 文件 frontmatter 中 `status:` 字段或 `> 状态: xxx` 段标记进度（已完成 / completed / done / closed 视为关闭，其他视为开放）。Stop hook 的 `[8/8]` 自动列出未完成 plan。<!-- INTEGRATION-NOTE: G2 合入后会引入 [8/?] 沉淀审计，本处需手动改为 [9/9]，并同步 exit-check.sh，详见 docs/superpowers/integration-notes/g4.md -->
 
 ## 重要提醒
 

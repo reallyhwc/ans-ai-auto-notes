@@ -75,6 +75,8 @@ A:
 
 mtime 较新者覆盖较旧者（rsync `--update` 语义），两端各自记录的修改时间决定胜负。
 
+⚠️ **删除不传播**：在一端删除某个 memory 文件不会自动从另一端删除——下次 sync 反而会把另一端的旧版本拷贝回来。如果确实要废弃某条 memory，两端都要手动删，或先从 `.allowlist` 中移除该文件名。
+
 ### Q: timeline.json 来自哪里？
 
 A: `node scripts/build-timeline.js` 从 `git log --since="6 months ago"` 聚合按 ISO 周生成。已加入 `.gitignore`，每次重建即可，无需手维护。

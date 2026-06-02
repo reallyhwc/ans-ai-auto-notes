@@ -66,6 +66,25 @@ test('listOpenPlans: 目录不存在返回空数组', () => {
   assert.deepEqual(open, []);
 });
 
-test('extractStatus: frontmatter status 带引号', () => {
+test('extractStatus: frontmatter status 带双引号', () => {
   assert.equal(extractStatus('---\nstatus: "已完成"\n---\n'), '已完成');
+});
+
+test('extractStatus: frontmatter status 带单引号（YAML 允许）', () => {
+  assert.equal(extractStatus("---\nstatus: 'completed'\n---\n"), 'completed');
+});
+
+test('listOpenPlans: 单引号包裹的 closed 状态正确识别', () => {
+  const fs = require('fs');
+  const os = require('os');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'plans-quote-'));
+  try {
+    fs.writeFileSync(path.join(dir, 'a.md'), "---\nstatus: 'done'\n---\n");
+    fs.writeFileSync(path.join(dir, 'b.md'), "---\nstatus: 'in-progress'\n---\n");
+    const open = listOpenPlans(dir);
+    assert.equal(open.length, 1);
+    assert.equal(path.basename(open[0].file), 'b.md');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 });
