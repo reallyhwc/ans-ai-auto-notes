@@ -14,8 +14,9 @@ WHITELIST=(
 is_whitelisted() {
   local file="$1"
   for prefix in "${WHITELIST[@]}"; do
+    # 必须是目录前缀（带 /），不允许 kb/读书笔记abc.md 之类的误匹配
     case "$file" in
-      "$prefix"/*|"$prefix"*) return 0 ;;
+      "$prefix"/*) return 0 ;;
     esac
   done
   return 1
