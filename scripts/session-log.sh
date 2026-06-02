@@ -23,7 +23,8 @@ if [ -f "$CHECKPOINT_FILE" ]; then
   if git rev-parse --quiet --verify "$LAST_SHA" >/dev/null 2>&1; then
     NEW_COMMITS=$(git rev-list --count "$LAST_SHA"..HEAD 2>/dev/null || echo 0)
     if [ "$NEW_COMMITS" -lt "$THRESHOLD" ]; then
-      [ "${1:-}" != "--quiet" ] && echo "[session-log] 跳过：仅 $NEW_COMMITS 个新 commit（阈值 $THRESHOLD）"
+      # bash 3.2 (macOS 默认) 在 set -u 下会把全角 `）` 粘进变量名，必须用 ${VAR}） 显式 brace 边界
+      [ "${1:-}" != "--quiet" ] && echo "[session-log] 跳过：仅 ${NEW_COMMITS} 个新 commit（阈值 ${THRESHOLD}）"
       exit 0
     fi
   fi
