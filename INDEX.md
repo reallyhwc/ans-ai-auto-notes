@@ -9,9 +9,9 @@
 - [外部参考链接](kb/实战/外部参考链接.md) — 优质外部技术文章、博客、演讲的链接汇总，附带核心要点
 - [知识管理工具对比](kb/实战/知识管理工具对比.md) — Obsidian/Notion/本项目方案 对比分析
 
-## 技术 (47 篇)
+## 技术 (48 篇)
 
-### AI (40 篇)
+### AI (41 篇)
 
 #### AI-Coding (5 篇)
 
@@ -33,7 +33,7 @@
 - [Plugins 插件体系](kb/技术/AI/Claude-Code/Plugins 插件体系.md) — Claude Code plugin 系统：与 standalone 配置的边界、目录结构、manifest schema、能打包的资源、安装方式、marketplace 机制、版本管理、迁移路径
 - [Skills 渐进式披露架构](kb/技术/AI/Claude-Code/Skills 渐进式披露架构.md) — Skills 的三层渐进式披露机制、token 经济学、frontmatter 全字段、生命周期、动态 context 注入、与 commands/subagent 的边界
 - [Superpowers TDD Skill 工作流拆解](kb/技术/AI/Claude-Code/Superpowers TDD Skill 工作流拆解.md) — TDD 是什么、Superpowers 在其中的角色、LLM 工具调用链详细拆解
-- [子智能体（subagents）机制与实战](kb/技术/AI/Claude-Code/子智能体（subagents）机制与实战.md) — subagent 的定位、与 skill/Agent SDK 的区分、四级 scope 优先级、frontmatter 全字段、三种调用方式、独立 context 机制、协作链路、fork/worktree/persistent memory 进阶
+- [子智能体（subagents）机制与实战](kb/技术/AI/Claude-Code/子智能体（subagents）机制与实战.md) — subagent 的定位、与 skill/Agent SDK 的区分、四级 scope 优先级、frontmatter 全字段、三种调用方式、独立 context 机制、协作链路、fork/worktree/persistent memory 进阶、permissionMode 风险与降险配套、skills 预加载 vs 嵌套 spawn 取舍、常见 subagent 配方（数据库查询分析器/code-reviewer/test-runner）
 
 #### 基础 (3 篇)
 
@@ -52,8 +52,9 @@
 - [本地部署 LLM](kb/技术/AI/大模型/本地部署 LLM.md) — Ollama安装使用+进阶玩法(API/Embedding/Modelfile/Web UI)、小模型推荐
 - [生成式 AI](kb/技术/AI/大模型/生成式 AI.md) — 扩散模型：图片/视频/音频生成原理
 
-#### 应用 (13 篇)
+#### 应用 (14 篇)
 
+- [Agent Observability：调用链追踪与排障](kb/技术/AI/应用/Agent Observability：调用链追踪与排障.md) — Agent 系统的可观测性——为什么 agent 比传统服务更难排障；span/parent_id 数据模型；LangSmith / Helicone / OTel / 自建 jsonl 方案对比；本项目 agent-runs.jsonl 落地详解；升级路径
 - [Agent 四大设计范式（深度展开）](kb/技术/AI/应用/Agent 四大设计范式（深度展开）.md) — 意图路由 / ReAct / Plan-and-Execute / Multi-Agent 四种范式的架构图、Prompt 模板、典型案例与对比
 - [Agent 应用运维与韧性：架构之外的生存指南](kb/技术/AI/应用/Agent 应用运维与韧性：架构之外的生存指南.md) — 可观测性、成本、安全、评估、延迟、状态、数据隐私 8 维度对比传统 Java，流量激增多层限流与缓存，线上问题熔断与回放，工程实践与开源项目推荐
 - [Agent 开发实战：选型、框架与思维转换](kb/技术/AI/应用/Agent 开发实战：选型、框架与思维转换.md) — 四范式选型、Spring AI/LangChain/CrewAI 框架速查、学习路径四阶段、Agent vs 传统 Java 应用六维对比与工具设计要点

@@ -1,6 +1,6 @@
 ---
 title: "子智能体（subagents）机制与实战"
-description: "subagent 的定位、与 skill/Agent SDK 的区分、四级 scope 优先级、frontmatter 全字段、三种调用方式、独立 context 机制、协作链路、fork/worktree/persistent memory 进阶"
+description: "subagent 的定位、与 skill/Agent SDK 的区分、四级 scope 优先级、frontmatter 全字段、三种调用方式、独立 context 机制、协作链路、fork/worktree/persistent memory 进阶、permissionMode 风险与降险配套、skills 预加载 vs 嵌套 spawn 取舍、常见 subagent 配方（数据库查询分析器/code-reviewer/test-runner）"
 ---
 
 # 子智能体（subagents）机制与实战
@@ -11,6 +11,7 @@ description: "subagent 的定位、与 skill/Agent SDK 的区分、四级 scope 
 > 关联: [Hooks 事件全景与拦截机制](<./Hooks 事件全景与拦截机制.md>) — SubagentStart/Stop 事件
 > 关联: [Plugins 插件体系](<./Plugins 插件体系.md>) — plugin 内 agents/ 目录与限制
 > 关联: [Claude Code 整体架构 & 工作流程](<./Claude Code 整体架构 & 工作流程.md>) — 主 agent 在整体架构中的位置
+> 关联: [Agent Observability：调用链追踪与排障](<../应用/Agent Observability：调用链追踪与排障.md>) — 如何 trace subagent 调用链、span/parent_id 数据模型、本项目 jsonl 落地
 
 ---
 
@@ -151,6 +152,19 @@ mkdir -p ~/.claude/agents
 子目录路径不影响 subagent 的 identity（identity 只看 `name` 字段）。**唯一约束**：同一 scope 下不能有重名（重名时 Claude Code 静默丢弃一个，不报警告）。
 
 > **特别例外**：plugin 的 `agents/` 子目录会变成 scoped identifier 的一部分。`my-plugin/agents/review/security.md` 注册为 `my-plugin:review:security`。
+
+### §4.1 决策：项目级 vs 用户级怎么选
+
+| 你的 agent 主要做什么 | 放哪 | 理由 |
+|---|---|---|
+| 团队都要用、与代码版本相关（review、build helper、kb 审计） | **项目级** | 跟 git → onboarding 0 成本 + prompt 改动走 PR 评审 + 跟 branch 同步演化 |
+| 跨多个项目复用的通用助手（commit-msg 生成、grep 加速） | **用户级** | 一份定义服务所有项目，省得每个 repo 复制一份 |
+| 含个人偏好（语言风格、签名、喜好的术语） | **用户级** | 不污染团队 |
+| 含敏感信息（你的 API key、内网地址） | **用户级** | 项目级会被 push 到远端 |
+
+**陷阱**：把"通用的小工具"放项目级 → 每个 repo 都要 sync 一份，改一个要改 N 个；把"团队 review SOP"放用户级 → 同事看不到，新人一头雾水。先想"谁会用、与什么对齐"再选位置。
+
+本项目就是这个选择：3 个 agent（kb-auditor / plan-executor / idea-extractor）全在 `.claude/agents/`，跟 git 走、跨设备同步、与 branch 联动；个人级 `~/.claude/agents/` 当前为空。
 
 ---
 
@@ -550,3 +564,229 @@ hooks:
 ```
 
 详见 [Hooks 事件全景与拦截机制](<./Hooks 事件全景与拦截机制.md>)。
+
+---
+
+## §15 skills 预加载 vs 嵌套 spawn 的取舍
+
+新人写复杂 subagent 工作流时常踩的坑：**想让 implementer "懂 TDD" → 第一反应是再 spawn 一个 tdd-coach subagent**。这是把"知识/规范"当"判断/反馈"用，浪费一份 LLM 调用。
+
+> skills 预加载机制本身详见 [Skills 渐进式披露架构](<./Skills 渐进式披露架构.md>)——本节聚焦"什么时候用 skills 替代嵌套 spawn"的设计取舍。
+
+### §15.1 两条路径的本质差异
+
+```mermaid
+flowchart LR
+    subgraph A["路径 A: skills 预加载"]
+        Main1[主 agent] -->|spawn| Imp1[implementer<br/>system prompt 已含 TDD 全文]
+    end
+    subgraph B["路径 B: 嵌套 spawn"]
+        Main2[主 agent] -->|spawn| Imp2[implementer]
+        Imp2 -->|spawn 询问"该怎么 TDD"| Coach[tdd-coach<br/>独立 LLM 实例]
+        Coach -->|返回建议| Imp2
+    end
+```
+
+| 维度 | A. `skills:` 预加载 | B. 嵌套 spawn |
+|------|---------------------|---------------|
+| LLM 调用次数 | 1 次（spawn implementer） | ≥ 2 次（implementer + coach） |
+| Token 成本 | system prompt 长一点 | 翻倍以上（每次都是新 context） |
+| 启动延迟 | 一次性 | implementer 卡在等 coach |
+| 调试难度 | 低（一棵树） | 高（嵌套树，trace 难拼） |
+| 适合场景 | 复用"SOP / 知识 / 规范"——不需要独立判断 | 需要独立判断 + 反馈循环（review→fix） |
+
+### §15.2 配置示例（A 路径）
+
+```yaml
+---
+name: my-implementer
+description: 按 TDD 节奏实施小 feature；改完跑测试，红→停
+tools: Read, Edit, Write, Bash
+skills:
+  - test-driven-development
+  - verification-before-completion
+---
+
+你是 my-implementer。根据 system prompt 上方已注入的 TDD / verification SOP 工作。
+任务: <主 agent 派活时填>
+```
+
+启动时 Claude Code 会把 `~/.claude/skills/test-driven-development/SKILL.md` 和 `verification-before-completion/SKILL.md` **完整 body** 直接拼进 my-implementer 的 system prompt。subagent 启动就"自带"这两套 SOP，**不用再嵌套 spawn coach**。
+
+### §15.3 何时反过来该嵌套
+
+skills 预加载只能塞"静态知识"。真的需要独立判断 + 反馈循环时，必须嵌套：
+
+- **Reviewer**：implementer 写完代码，spawn 一个 spec-reviewer 独立判断 "符合 spec 吗"——它的 verdict 不能事先写死在 SOP 里
+- **Fixer**：reviewer 报问题，spawn 一个 fix subagent 修，再回头 review——这是 loop，不是直线
+- **Search/Research**：每个子查询独立做 web search 写不进 system prompt
+
+本项目的 `plan-executor` 就是这种嵌套架构：implementer + spec-reviewer + quality-reviewer + fix-loop（最多 3 轮）。
+
+### §15.4 决策三问
+
+写 subagent 前问自己：
+
+1. 我想让它**懂某套规范**还是**做独立判断**？懂规范 → A；独立判断 → B
+2. 这个"知识"是**静态文档**（写好的 SKILL.md）还是**动态推理**（要看具体代码再下判断）？静态 → A；动态 → B
+3. 我能不能用一段 prompt 替代这次 spawn？能 → A（甚至直接写进主 prompt 不要 subagent）；不能 → B
+
+**反例**：把"代码 style 检查器"做成嵌套 spawn 的 style-coach → 完全可以 `skills: [code-style-guide]` 解决，省一次 LLM 调用。
+
+---
+
+## §16 permissionMode 风险与降险配套
+
+### §16.1 4 种模式的实际行为
+
+| 模式 | Edit/Write 弹窗? | Bash 弹窗? | 适合场景 |
+|---|---|---|---|
+| `default` | ✓ 弹 | ✓ 弹 | 高敏任务 / 调试期 |
+| `acceptEdits` | ✗ 自动通过 | ✓ 仍弹 | **自动修复 / 重构（推荐起点）** |
+| `auto` | Claude 自己判断 | Claude 自己判断 | 行为不稳定，避免 |
+| `bypassPermissions` | ✗ 全自动 | ✗ 全自动 | 沙箱/容器内，外部别用 |
+| `plan` | — | — | 只做规划不执行（Read-only） |
+
+> **关键差异**：`acceptEdits` **不**自动通过 Bash——这是它和 `bypassPermissions` 的安全分界线。`rm -rf` 这种破坏性命令仍会弹窗。
+
+### §16.2 自动修复 subagent 选 `acceptEdits` 的风险
+
+```mermaid
+flowchart TD
+    Bug[发现 bug] --> Spawn[spawn auto-fixer]
+    Spawn --> Edit1[修文件 1]
+    Edit1 --> Test1[跑测试]
+    Test1 -->|绿| Edit2[修文件 2 顺手优化]
+    Edit2 --> Test2[跑测试]
+    Test2 -->|红| Fix[改测试让它绿]
+    Fix --> Test3[再跑]
+    Test3 -->|绿，但已造假| Done[claim 修复]
+    Done --> Disaster[10 个 commit 后才发现]
+```
+
+具体风险：
+
+1. **修错文件**：connectional 上下文不足，agent 在错的文件上动手
+2. **连锁放大**：第 1 处修对了，第 2 处的"顺手优化"超出范围
+3. **测试造假**：测试设计有漏洞 → agent 改测试文件让它"绿"
+4. **CI 误改**："为了让 CI 通过"改 `.github/workflows/`、`.gitignore`、lockfile
+5. **长跑无监督**：autofix 跑 30 分钟，发现问题已 20 个 commit 之后
+
+### §16.3 6 项配套降险字段/做法
+
+```yaml
+# (1) tools 严白名单 —— 不给 Bash，或只给极小 Bash
+tools: Read, Edit
+# 如果必须 Bash，prompt 里硬约束："Bash 只允许跑 'bash test.sh'，其它一律拒绝"
+
+# (2) description 写紧 dispatch 条件
+description: |
+  仅在 lint 报告非空时被 dispatch；不要把"性能优化""重构"任务派给我。
+
+# (3) prompt 内置防线（subagent body 里）
+你必须遵守:
+- 禁止改 tests/ 自身（防造假绿）
+- 禁止改 .gitignore / .github/ / *.lock / package.json
+- 禁止改 .claude/ 下任何文件
+- 每改一个文件后跑 `bash test.sh`，红→立即 STOP 报告，不要继续
+
+# (4) PreToolUse hook 兜底（settings.json）
+"PreToolUse": [
+  { "matcher": "Edit",
+    "hooks": [{"type": "command", "command": "scripts/block-sensitive-paths.sh"}] }
+]
+```
+
+> 更多 hook 模式（PreToolUse / PostToolUse / Stop / SubagentStop 全景）见 [Hooks 事件全景与拦截机制](<./Hooks 事件全景与拦截机制.md>)。
+
+外加：
+
+5. **git commit 颗粒度**：要求 subagent 每完成一个文件就 commit（不许累积一堆未提交改动），便于精准 revert
+6. **从最小权限起步**：先只 `acceptEdits` + `Read + Edit`，覆盖 80% 修复需求；要 Bash 时再加，且明确边界
+
+### §16.4 决策卡
+
+| 任务类型 | 推荐 permissionMode | tools 白名单 |
+|---|---|---|
+| Review-only（审计、查重） | 不写（默认 inherit） | `Read, Grep, Glob` |
+| Auto-fix（lint / format） | `acceptEdits` | `Read, Edit`（无 Bash） |
+| TDD implementer | `default` | `Read, Edit, Write, Bash` |
+| Sandboxed agent（容器内） | `bypassPermissions` | 完整工具 |
+
+---
+
+## §17 设计示例：常见 subagent 配方
+
+### §17.1 数据库查询分析器（review-only）
+
+```yaml
+---
+name: db-query-analyzer
+description: 分析慢 SQL，给出 EXPLAIN ANALYZE 解读 + 优化建议；不改代码、不连主库
+tools: Read, Grep, Glob, Bash, WebFetch
+---
+
+你是 db-query-analyzer。
+
+输入: 主 agent 给你 SQL 文件路径 / SQL 字符串 / schema 路径。
+
+步骤:
+1. Read SQL + schema 了解结构
+2. Grep / Glob 查代码里调用此 query 的位置（拼上下文）
+3. Bash 跑 `EXPLAIN ANALYZE <query>` —— 用环境变量 $DB_RO_URL（只读副本）
+4. WebFetch 取 PG 官方 EXPLAIN 文档（如果遇到陌生 plan node）
+5. 返回结构化分析
+
+**Bash 严格约束**:
+- 只允许 SELECT / EXPLAIN / SHOW
+- 严禁 INSERT / UPDATE / DELETE / DDL（DROP / ALTER / CREATE）
+- 严禁连主库 ($DB_URL)，只走 $DB_RO_URL
+
+**输出契约**:
+DB-VERDICT: <slow|acceptable|fast> — <一句话核心瓶颈>
+
+## EXPLAIN 解读
+- 关键 plan node: ...
+- 实际 rows / cost / time: ...
+
+## 瓶颈定位
+- 缺索引 / 全表扫 / N+1 / ...
+
+## 优化建议（按收益）
+1. **High**: 加索引 idx_xxx ON table(col) — 预计 P95 200ms→20ms
+2. **Medium**: ...
+
+**不要**:
+- 不要 Edit/Write 任何文件（你也没这工具权限）
+- 不要 ALTER 实际表结构
+- 不要把分析报告写到 kb/（污染 manifest）
+```
+
+**为什么这样配**：
+
+| 工具 | 给/不给 | 理由 |
+|---|---|---|
+| Read | ✓ | 读 SQL + schema |
+| Grep / Glob | ✓ | 找调用方上下文 |
+| Bash | ✓（约束） | 跑 EXPLAIN，无 Bash 等于瞎分析；约束靠 prompt + 只读账号 |
+| WebFetch | ✓ | 取 PG 官方文档 |
+| Edit / Write | ✗ | review-only，建议交主 agent 决策 |
+| Task | ✗ | 不嵌套 |
+
+**生产更稳妥的硬保障**：给 subagent 的 `$DB_RO_URL` 是**只读账号**——即使 prompt 防线被绕过，账号层面也写不了。这是"防御纵深"思路。
+
+> 也可对比 [MCP 集成实战（含 Spring AI）](<./MCP 集成实战（含 Spring AI）.md>) 中的 DB server 方案——subagent + 只读账号 vs MCP server 暴露 DB tool 是两种 DB 集成思路：subagent 适合"分析+建议"场景；MCP server 适合"被多 agent 复用的稳定 DB 接口"。
+
+### §17.2 其他常见配方（speed sheet）
+
+| 用途 | tools | permissionMode | 关键防线 |
+|---|---|---|---|
+| **Code reviewer** | Read, Grep, Glob | 不设（inherit） | prompt: 只输出 verdict，不改代码 |
+| **Test runner** | Read, Bash | acceptEdits | Bash whitelist: 只许 `bash test.sh` / `npm test` |
+| **Doc generator** | Read, Grep, Write | acceptEdits | Write 路径限定 `docs/`（prompt） |
+| **Refactor bot** | Read, Edit, Bash | acceptEdits | 必须每文件 commit；禁改 tests |
+| **API explorer** | WebFetch, Read | 不设 | URL 白名单（仅你的 API 域名） |
+| **本项目 kb-auditor** | Read, Grep, Glob, Bash | 不设 | 无 Write/Edit，Bash 只为 mkdir + heredoc 写 report |
+
+每条配方核心都是 **tools 最小化 + prompt 防线 + 必要时硬保障（hook / 只读账号 / 容器）** 三件套。
+

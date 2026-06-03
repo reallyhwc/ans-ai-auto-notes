@@ -11,6 +11,7 @@ description: "意图路由 / ReAct / Plan-and-Execute / Multi-Agent 四种范式
 > 关联: [llm-agent-mcp](<../大模型/Agent 与 MCP.md>) — Agent 循环、MCP 协议、FC 机制的概念原理
 > 关联: [openai-agents-sdk](<./OpenAI Agents SDK 与多角色协作.md>) — Multi-Agent 范式的工业实现
 > 关联: [agent-ops-and-resilience](<./Agent 应用运维与韧性：架构之外的生存指南.md>) — 运维/SRE 视角（可观测性、成本、熔断、开源方案）
+> 关联: [Agent Observability：调用链追踪与排障](<./Agent Observability：调用链追踪与排障.md>) — 多 Agent 协作的 trace 拼树、span/parent_id 数据模型、Orchestrator-Worker 调用链分析
 
 ---
 
@@ -285,6 +286,55 @@ graph TD
 | **上下文** | 完整对话历史传递 | 子 Agent 各自独立上下文 |
 | **并行性** | 串行执行 | 可并行分派 |
 | **适合** | 流程明确的流水线任务 | 需要多角色同时工作的任务 |
+
+### 生产实战：Anthropic Research（Orchestrator-Worker 旗舰案例）
+
+Anthropic 把 **Research** 功能（Claude.ai 网页/桌面版的"深度研究"模式）做成了 Sub-Agent 架构的旗舰演示。
+
+**业务场景**：用户问一个需要多源调研的复杂问题——
+- "过去一年开源 LLM 推理框架的格局变化"
+- "竞品 X 的定价策略演变"
+- "向量数据库主要玩家的融资 + 用户增长"
+
+传统 RAG 是 search → top-k → summary，遇到这种"需要交叉验证 + 多视角综合"的问题就力不从心。Anthropic Research 改成 Orchestrator-Worker：
+
+```mermaid
+flowchart TD
+    Q["用户问题<br/>过去一年 LLM 推理框架格局"] --> Lead["Lead Researcher<br/>(Orchestrator)"]
+    Lead -->|拆问| S1["Sub-Agent 1<br/>市场份额 + 用户增长"]
+    Lead -->|并行| S2["Sub-Agent 2<br/>主要玩家融资动态"]
+    Lead -->|并行| S3["Sub-Agent 3<br/>开源生态 + commit 活跃度"]
+    Lead -->|并行| Sn["Sub-Agent N<br/>价格 / 性能基准"]
+    S1 -->|结构化摘要 + 引文| Lead
+    S2 -->|结构化摘要 + 引文| Lead
+    S3 -->|结构化摘要 + 引文| Lead
+    Sn -->|结构化摘要 + 引文| Lead
+    Lead --> Cite["Citation Agent<br/>补全引用、查 dead link"]
+    Cite --> Report["最终报告<br/>5-15 页，带 inline citation"]
+```
+
+**为什么是 Sub-Agent 而非单 agent 跑长链**：
+
+| 单 agent 长链 | Sub-Agent 并行（Anthropic 选择） |
+|---|---|
+| context window 越填越满，后期信息丢失 | 每个子任务在自己的小 context 里专注 |
+| 串行总耗时 30+ 分钟 | 并行 5-10 分钟 |
+| 一处搜索失败拖累全局 | 失败隔离：单个 sub-agent 挂了不影响其他 |
+| 引用难追溯（混在长 chain 里） | 每条事实带 sub-agent id + fetch 时间戳 |
+| context 难复用 | Lead 只接收摘要，自己 context 不会被中间过程污染 |
+
+**业务价值**：
+
+- 把"分析师 1-2 小时人工调研"压缩到 **5-10 分钟**
+- 输出**带 citation 可验证**——每个论断点击能跳到具体来源
+- 是 Anthropic 当下力推的"Claude 能做工作而不只是聊天"的旗舰演示
+
+**对应到本范式分类**：Anthropic Research 是 Orchestrator-Worker（中心调度式）的最大规模生产实例。Worker 之间无依赖、可并行、各自独立 context——这三个特征是 Orchestrator-Worker 高效的前提，也是判断"我的需求适不适合这套架构"的检查清单。
+
+**借鉴价值（自己做类似系统）**：
+- 拆问能力是关键——Lead Researcher 的 system prompt 决定了拆得好不好（粒度太粗 → 子 agent context 还是会爆；太细 → 子 agent 之间信息冗余）
+- Citation Agent 单独成 agent 而非内嵌——"引用补全 + 死链检查"是独立职责，混在 Lead 里会污染综合逻辑
+- 子 agent 数量动态——简单问题 2-3 个 worker，复杂问题 8-10 个，靠 Lead 自己判断
 
 ---
 
