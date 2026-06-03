@@ -25,6 +25,10 @@ Icon
 !.claude/skills/
 # 例外：memory-snapshot 跟踪入 git 用于跨设备同步（A6）
 !.claude/memory-snapshot/
+# 例外：settings.json 含 SubagentStop / Stop hook 注册，必须跟 git
+!.claude/settings.json
+# 例外：项目级 subagent 定义（kb-auditor / plan-executor / idea-extractor）
+!.claude/agents/
 
 # Aone Copilot (plans / tasks 等本地状态文件，不入库)
 .aone_copilot/

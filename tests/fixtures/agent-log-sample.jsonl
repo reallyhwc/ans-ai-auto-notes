@@ -1,0 +1,6 @@
+{"event":"start","id":"r-1","time":"2026-06-01T10:00:00+08:00","agent":"main","tools_used":["Edit","Bash"],"files_changed":["a.md"],"duration_ms":120000,"outcome":"unknown","model":"claude-opus-4-7","title":null,"summary":null}
+{"event":"patch","id":"r-1","time":"2026-06-01T10:02:00+08:00","title":"fix bug","summary":"修了 a.md","outcome":"success"}
+{"event":"start","id":"r-2","time":"2026-06-01T11:00:00+08:00","agent":"kb-auditor","tools_used":["Read","Grep"],"files_changed":[],"duration_ms":60000,"outcome":"unknown","model":"claude-opus-4-7","title":null,"summary":null}
+{"event":"patch","id":"r-2","time":"2026-06-01T11:01:00+08:00","title":"审 a.md","summary":"通过","outcome":"success"}
+{"event":"start","id":"r-3","time":"2026-06-02T09:00:00+08:00","agent":"main","tools_used":["Bash","Task"],"files_changed":[],"duration_ms":300000,"outcome":"unknown","model":"claude-opus-4-7","title":null,"summary":null}
+{"event":"patch","id":"r-3","time":"2026-06-02T09:06:00+08:00","title":"长任务","summary":"卡住了","outcome":"blocked"}
