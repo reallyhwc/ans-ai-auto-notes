@@ -326,7 +326,7 @@ Research $ARGUMENTS thoroughly:
 | Skill 用 `context: fork` | Skill 决定任务内容，借 agent 类型的工具/模型来执行 |
 | Subagent 用 `skills` 字段 | Subagent 决定身份，预加载 skill 内容作为知识 |
 
-两者底层用同一套机制。详见 [子智能体（subagents）机制与实战 §9.3](./子智能体（subagents）机制与实战.md)。
+两者底层用同一套机制。详见 [子智能体（subagents）机制与实战](./子智能体（subagents）机制与实战.md) — §9 高级用法（context: fork） + §15 skills 预加载 vs 嵌套 spawn 取舍（什么时候用 skills 字段替代再 spawn 一个 subagent）。
 
 **警告**：`context: fork` 只对**有明确任务指令**的 skill 有意义。如果你的 skill 只是"用这些 API 约定"这种 reference 内容，fork 出来的 subagent 拿不到 actionable prompt，会空跑。
 
