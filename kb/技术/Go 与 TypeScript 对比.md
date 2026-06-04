@@ -201,4 +201,242 @@ TS/JS 是全球最大的开发者群体，开源项目想吸引社区贡献，TS
 
 30 天能重构完本身也说明 TS 的工程效率在应用层确实更高。
 
-相关: [[../技术/AI/Claude-Code/从 Claude Code 看 AI 编程工具生态.md]] [[../技术/AI/应用/AI 工作流平台：Dify、Coze 与 Claude Code 的组合.md]]
+## 4. 动手 Demo（从 Java 视角对比）
+
+### 4.1 Go：并发 HTTP Server + 文件扫描
+
+Go 的招牌组合——goroutine + channel。下面是一个 CLI 工具的骨架：并发扫目录下所有 `.go` 文件，统计行数。
+
+```go
+package main
+
+import (
+    "bufio"
+    "fmt"
+    "net/http"
+    "os"
+    "path/filepath"
+    "strings"
+    "sync"
+)
+
+// ========== Demo 1: 并发扫描文件统计行数 ==========
+
+func countLines(path string) (int, error) {
+    f, err := os.Open(path)
+    if err != nil {
+        return 0, err
+    }
+    defer f.Close()
+    scanner := bufio.NewScanner(f)
+    lines := 0
+    for scanner.Scan() {
+        lines++
+    }
+    return lines, scanner.Err()
+}
+
+func scanDir(dir string) map[string]int {
+    // channel 用于 goroutine 间安全传递结果
+    type result struct {
+        file  string
+        lines int
+    }
+    results := make(chan result)
+
+    // 收集所有 .go 文件
+    var files []string
+    filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+        if strings.HasSuffix(path, ".go") {
+            files = append(files, path)
+        }
+        return nil
+    })
+
+    // 每个文件起一个 goroutine 并发统计
+    for _, f := range files {
+        go func(filePath string) {  // ← goroutine，比 Java 线程轻量 100 倍
+            n, _ := countLines(filePath)
+            results <- result{filePath, n} // channel 发送，天然线程安全
+        }(f)
+    }
+
+    // 收集结果
+    out := make(map[string]int)
+    for range files {
+        r := <-results // channel 接收，自动阻塞等待
+        out[r.file] = r.lines
+    }
+    return out
+}
+
+// ========== Demo 2: 三行启动一个 HTTP Server ==========
+
+func helloServer() {
+    http.HandleFunc("/api/scan", func(w http.ResponseWriter, r *http.Request) {
+        dir := r.URL.Query().Get("dir")
+        result := scanDir(dir)
+        // JSON 序列化，零注解零配置
+        w.Header().Set("Content-Type", "application/json")
+        fmt.Fprintf(w, `{"files": %d, "total_lines": ...}`, len(result))
+    })
+
+    fmt.Println("listening on :8080")
+    http.ListenAndServe(":8080", nil) // 一行启动，无需 Tomcat
+}
+
+func main() {
+    helloServer()
+}
+```
+
+**Java 程序员读 Go 的关键差异**：
+
+| Go 写法 | Java 等价 | 感受 |
+|---------|-----------|------|
+| `go func(){...}()` | `ExecutorService.submit(() -> {...})` | Go 内建，Java 需要线程池 |
+| `ch := make(chan result)` | `new LinkedBlockingQueue<>()` | Go channel 自带阻塞等待语义 |
+| `http.ListenAndServe(":8080", nil)` | Spring Boot `@RestController` + 内嵌 Tomcat | Go 标准库就够了，零依赖 |
+| `defer f.Close()` | `try (var f = ...) { }` | Go 的 defer 更灵活，函数退出必定执行 |
+| `map[string]int` | `Map<String, Integer>` | 都是哈希表，Go 是语言内建无需 import |
+
+### 4.2 TypeScript：类型体操 + 异步链
+
+TS 的灵魂在类型系统——比 Java 灵活得多。下面用 Qoder CLI 的场景来演示。
+
+```typescript
+// ========== Demo 1: TS 的类型系统（Java 做不到的） ==========
+
+// 字面量联合类型：限定值只能在这几个里
+type AIModel = "qwen-max" | "qwen-plus" | "qwen-turbo";
+type OutputFormat = "json" | "text" | "stream";
+
+// 带判别联合（discriminated union）：根据 code 字段分支
+type ToolCall =
+  | { code: "read_file"; path: string; startLine?: number }  // ← ? 表示可选
+  | { code: "write_file"; path: string; content: string }
+  | { code: "run_shell"; command: string; timeout?: number };
+
+// 泛型 + 条件类型
+type ApiResponse<T> = {
+  ok: true;
+  data: T;
+  requestId: string;
+} | {
+  ok: false;
+  error: string;
+  requestId: string;
+};
+
+// 使用：编辑器会根据 code 自动提示该分支有哪些字段
+function executeTool(call: ToolCall): string {
+  switch (call.code) {
+    case "read_file":
+      return `Reading ${call.path} from line ${call.startLine ?? 1}`;
+      //                          ↑ 编辑器中 .startLine 会有自动补全
+    case "write_file":
+      return `Writing ${call.content.length} chars to ${call.path}`;
+    case "run_shell":
+      return `Running: ${call.command}`;
+  }
+}
+
+// ========== Demo 2: async/await 调 AI API ==========
+
+interface ChatMessage {
+  role: "user" | "assistant" | "system";
+  content: string;
+}
+
+async function chatWithAI(
+  model: AIModel,
+  messages: ChatMessage[]
+): Promise<ApiResponse<string>> {
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ model, messages }),
+  });
+
+  if (!response.ok) {
+    return { ok: false, error: `HTTP ${response.status}`, requestId: "-" };
+  }
+
+  const json = await response.json();
+  return {
+    ok: true,
+    data: json.choices[0].message.content,
+    requestId: json.id,
+  };
+}
+
+// 调用：像写同步代码一样写异步
+const result = await chatWithAI("qwen-max", [
+  { role: "user", content: "Go 和 TS 有什么区别？" }
+]);
+
+if (result.ok) {
+  console.log(result.data);        // ← 这里编辑器知道 result.data 是 string
+} else {
+  console.error(result.error);     // ← 这里编辑器知道 result.error 是 string
+}
+// result.requestId 两个分支都能访问，因为它是公共字段
+```
+
+**Java 程序员读 TS 的关键差异**：
+
+| TS 写法 | Java 等价 | 感受 |
+|---------|-----------|------|
+| `type Code = "a" \| "b"` | Java 没有字面量联合类型，只能用 enum | TS 更灵活 |
+| `{ code: "read"; path: string } \| { code: "write"; content: string }` | sealed class + pattern matching（Java 21） | TS 写法更紧凑 |
+| `path?: string` | `@Nullable String path` | TS 可选参数是类型系统的一部分 |
+| `async/await` | `CompletableFuture` + `.thenApply()` | TS 的 await 更像同步代码 |
+| `type ApiResponse<T> = { ok: true } \| { ok: false }` | 两个类实现同一接口，或 `Either<L,R>` | TS 的 Result 模式写起来很自然 |
+
+### 4.3 同一功能并排对比：并发调多个 API
+
+最直观的感受方式——同一个任务两种写法并排看：
+
+```go
+// Go：goroutine + channel + sync.WaitGroup
+func fetchAll(urls []string) map[string]string {
+    results := make(map[string]string)
+    var mu sync.Mutex
+    var wg sync.WaitGroup
+
+    for _, url := range urls {
+        wg.Add(1)
+        go func(u string) {     // ← 闭包注意：必须传参，否则循环变量竞态
+            defer wg.Done()
+            resp, _ := http.Get(u)
+            body, _ := io.ReadAll(resp.Body)
+            resp.Body.Close()
+
+            mu.Lock()
+            results[u] = string(body)
+            mu.Unlock()
+        }(url)                  // ← 必须把 url 传进去
+    }
+
+    wg.Wait()
+    return results
+}
+```
+
+```typescript
+// TypeScript：Promise.all + map，不需要手动管理锁
+async function fetchAll(urls: string[]): Promise<Record<string, string>> {
+  const promises = urls.map(async (url) => {  // ← 闭包天然捕获当前 url
+    const resp = await fetch(url);
+    const body = await resp.text();
+    return [url, body] as const;
+  });
+
+  const pairs = await Promise.all(promises);
+  return Object.fromEntries(pairs);
+}
+```
+
+> Go 版本需要手动管 WaitGroup、Mutex、闭包传参。TS 版本 `Promise.all` + `Object.fromEntries` 两行收工。这就是为什么应用层工具选 TS——并发模型虽然不如 goroutine 底层高效，但写起来简单太多了。
+
+相关: [[../技术/AI/Claude-Code/从 Claude Code 看 AI 编程工具生态.md]] [[../技术/AI/应用/AI 工作流平台：Dify、Coze 与 Claude Code 的组合.md]] [[../技术/AI/应用/AI 工作流平台：Dify、Coze 与 Claude Code 的组合.md]]
