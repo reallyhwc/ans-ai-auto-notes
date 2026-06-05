@@ -9,11 +9,11 @@
 - [外部参考链接](kb/实战/外部参考链接.md) — 优质外部技术文章、博客、演讲的链接汇总，附带核心要点
 - [知识管理工具对比](kb/实战/知识管理工具对比.md) — Obsidian/Notion/本项目方案 对比分析
 
-## 技术 (49 篇)
+## 技术 (50 篇)
 
 - [Go 与 TypeScript 快速对比](kb/技术/Go 与 TypeScript 对比.md) — Go 和 TypeScript 语言特性、生态、典型用例对比，含 Qoder CLI 从 Go 重构到 TypeScript 的动机推测
 
-### AI (41 篇)
+### AI (42 篇)
 
 #### AI-Coding (5 篇)
 
@@ -54,7 +54,7 @@
 - [本地部署 LLM](kb/技术/AI/大模型/本地部署 LLM.md) — Ollama安装使用+进阶玩法(API/Embedding/Modelfile/Web UI)、小模型推荐
 - [生成式 AI](kb/技术/AI/大模型/生成式 AI.md) — 扩散模型：图片/视频/音频生成原理
 
-#### 应用 (14 篇)
+#### 应用 (15 篇)
 
 - [Agent Observability：调用链追踪与排障](kb/技术/AI/应用/Agent Observability：调用链追踪与排障.md) — Agent 系统的可观测性——为什么 agent 比传统服务更难排障；span/parent_id 数据模型；LangSmith / Helicone / OTel / 自建 jsonl 方案对比；本项目 agent-runs.jsonl 落地详解；升级路径
 - [Agent 四大设计范式（深度展开）](kb/技术/AI/应用/Agent 四大设计范式（深度展开）.md) — 意图路由 / ReAct / Plan-and-Execute / Multi-Agent 四种范式的架构图、Prompt 模板、典型案例与对比
@@ -62,6 +62,7 @@
 - [Agent 开发实战：选型、框架与思维转换](kb/技术/AI/应用/Agent 开发实战：选型、框架与思维转换.md) — 四范式选型、Spring AI/LangChain/CrewAI 框架速查、学习路径四阶段、Agent vs 传统 Java 应用六维对比与工具设计要点
 - [AI Agent 工具生态](kb/技术/AI/应用/AI Agent 工具生态.md) — Hermes Agent（养马）vs OpenClaw（养龙虾）对比、微信 AI 机器人接入
 - [AI 工作流平台：Dify、Coze 与 Claude Code 的组合](kb/技术/AI/应用/AI 工作流平台：Dify、Coze 与 Claude Code 的组合.md) — AI工作流平台(Dify/Coze)：低代码编排多模型协作、与Claude Code的关系和组合方式、MCP多模型调度方案
+- [CLI Coding Agent 系统架构：从 REPL 到自主编程](kb/技术/AI/应用/CLI Coding Agent 系统架构：从 REPL 到自主编程.md) — 拆解 Claude Code / Aider / Codex CLI 等 CLI 编程 Agent 的分层架构、启动流程、Agent Loop、工具系统、权限模型、上下文管理，附可运行 demo
 - [LangChain Agent 开发指南：是什么、怎么用、与 Spring AI 对比](kb/技术/AI/应用/LangChain Agent 开发指南：是什么、怎么用、与 Spring AI 对比.md) — LangChain 核心六件套（Model I/O/Chain/Tool/Memory/Agent/Callbacks）、ReAct Agent 完整代码、与 Spring AI 架构对比、LangGraph 进化版、Java 开发者路线建议
 - [LLM 应用设计](kb/技术/AI/应用/LLM 应用设计.md) — 大模型应用 vs 传统 MySQL/ES 检索：确定性、Tool Calling、幻觉、上下文管理
 - [LLM 智能客服实战](kb/技术/AI/应用/LLM 智能客服实战.md) — 从零到一搭建客服系统：知识整理→RAG→LLM接入→Tool Calling→防幻觉→部署运维
