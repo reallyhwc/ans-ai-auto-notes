@@ -791,3 +791,163 @@ DB-VERDICT: <slow|acceptable|fast> — <一句话核心瓶颈>
 
 每条配方核心都是 **tools 最小化 + prompt 防线 + 必要时硬保障（hook / 只读账号 / 容器）** 三件套。
 
+---
+
+## §18 去芜存菁：高噪声任务处理
+
+> 来源: 黄佳《Claude Code 工程化实战》"去芜存菁：高噪声任务处理——测试运行器与日志分析器" + [官方文档 Common patterns: Isolate high-volume operations](https://code.claude.com/docs/en/sub-agents)
+
+### 18.1 核心矛盾
+
+高噪声任务的特征是**输入简单、输出巨大、有效信息密度极低**：
+
+```mermaid
+graph LR
+    Input["输入<br/>npm test<br/>(3 个 token)"] --> Process["执行过程<br/>5000 行输出"]
+    Process --> Useful["有效信息<br/>3 行失败 case"]
+    Process --> Noise["噪声<br/>4997 行 pass/log"]
+
+    style Noise fill:#ffebee
+    style Useful fill:#e8f5e9
+```
+
+如果在主对话中执行，5000 行全部进入 context → **信噪比灾难**：
+- 挤占后续对话空间（200K 窗口被废输出占满）
+- 注意力稀释（LLM 在 5000 行里"找"3 行有用信息，质量下降）
+- 不可逆（context 中的噪声无法"删除"，只能等 compaction）
+
+### 18.2 Sub-Agent 作为信息漏斗
+
+```mermaid
+graph TB
+    Main["主 Agent"] -->|"跑测试并报告失败"| Sub["Test Runner Sub-Agent"]
+
+    subgraph Sub["Sub-Agent 独立 Context"]
+        Run["执行 npm test<br/>产生 5000 行输出"]
+        Parse["解析输出<br/>提取失败 case"]
+        Analyze["分析错误原因<br/>定位相关代码"]
+        Summary["生成结论<br/>3 行有效信息"]
+        Run --> Parse --> Analyze --> Summary
+    end
+
+    Summary -->|"仅返回结论"| Main
+
+    style Sub fill:#fff9c4
+```
+
+**关键设计**：5000 行噪声全部留在 Sub-Agent 的 context 里，主 Agent 只收到 3 行结论。这就是"去芜存菁"——**Sub-Agent 是一个信息漏斗**。
+
+### 18.3 三种高噪声场景配方
+
+#### 测试运行器（Test Runner）
+
+```yaml
+---
+name: test-runner
+description: 运行测试套件并仅报告失败 case。用于测试执行后的结果分析。
+tools: Bash, Read, Grep
+model: haiku
+---
+```
+
+```markdown
+你是 test-runner。执行测试命令并分析结果。
+
+**流程**：
+1. 执行指定的测试命令
+2. 解析输出，区分 pass / fail / error
+3. 对每个失败 case：定位源码 + 分析原因
+
+**输出格式**（严格遵守）：
+- 总览：X passed, Y failed, Z error
+- 对每个失败：
+  - 测试名
+  - 错误信息（精简到关键行）
+  - 相关源码位置
+  - 可能原因（1-2 句）
+
+**不要输出**：
+- 通过的测试列表
+- 完整 stack trace（只留最关键的 1-2 帧）
+- 测试框架的 banner / summary 装饰行
+```
+
+**为什么用 Haiku**：测试结果解析不需要深度推理，Haiku 完全够用，成本约 Opus 的 1/10。
+
+#### 日志分析器（Log Analyzer）
+
+```yaml
+---
+name: log-analyzer
+description: 分析应用日志/错误日志，重建故障时间线并定位 root cause。
+tools: Bash, Read, Grep
+model: sonnet
+---
+```
+
+```markdown
+你是 log-analyzer。从原始日志中提取故障信息。
+
+**流程**：
+1. 用 grep/awk 过滤目标时间窗口的日志
+2. 识别 ERROR/WARN/异常模式
+3. 重建时间线：什么时候开始出错 → 怎么扩散 → 影响范围
+4. 推断 root cause（附证据）
+
+**输出格式**：
+## 故障时间线
+- HH:MM:SS 首次异常：[具体错误]
+- HH:MM:SS 扩散：[影响了什么]
+- HH:MM:SS 恢复/持续
+
+## Root Cause
+- 推断：[一句话]
+- 证据：[引用关键日志行]
+
+## 建议
+- 紧急：[立即止血]
+- 中期：[根治方案]
+
+**不要输出**：正常日志行、完整 log dump、不相关的 INFO 级日志。
+```
+
+**为什么用 Sonnet 而非 Haiku**：日志分析需要推理因果关系、时间线重建，比纯文本解析复杂一级。
+
+#### 构建输出过滤器（Build Filter）
+
+```yaml
+---
+name: build-watcher
+description: 监控构建/编译过程，仅报告错误和关键警告。
+tools: Bash, Read
+model: haiku
+---
+```
+
+```markdown
+你是 build-watcher。执行构建命令并过滤输出。
+
+**规则**：
+- 构建成功 → 返回 "✓ Build succeeded (Xs)" 一行即可
+- 构建失败 → 返回：错误文件 + 行号 + 错误信息 + 修复建议
+- 有严重警告（deprecated API / security warning）→ 附在成功信息后
+
+**绝对不返回**：下载进度、编译每个文件的 log、链接器 info、bundler stats。
+```
+
+### 18.4 设计原则总结
+
+| 原则 | 做法 | 反例 |
+|------|------|------|
+| **输出契约明确** | system prompt 中写死"不要输出 X" | 让 sub-agent 自己判断返回多少 |
+| **模型降级** | 文本解析用 Haiku，推理用 Sonnet | 全用 Opus 跑测试结果解析 |
+| **工具最小** | test-runner 不需要 Edit/Write | 给全权限"以防万一" |
+| **失败信息优先** | 只报失败，不报成功 | 把 "100 passed" 也返回给主 agent |
+| **可链式组合** | test-runner 发现失败 → 主 agent 派 debugger 修复 | 让 test-runner 自己也修代码 |
+
+### 18.5 与本项目的关联
+
+本项目的 `kb-auditor` 就是一个高噪声任务处理的实例——它需要读大量文件内容（高噪声），但只返回一个 `VERDICT: pass/minor/major` + 几句关键观察（低噪声结论）。
+
+另一个潜在候选：如果后续 `test.sh` 的测试量增长，可以考虑配一个 `test-runner` sub-agent，跑完 30+ 个测试用例后只报失败。当前测试量小（<20 case）还不需要。
+
