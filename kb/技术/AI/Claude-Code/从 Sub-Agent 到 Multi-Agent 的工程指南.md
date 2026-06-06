@@ -581,3 +581,94 @@ graph TD
 ```
 
 不需要一步到位。**每次升级都应该有明确的触发信号**，而不是"预防性架构"。
+
+---
+
+## §8 动手 Demo：Supervisor 模式的两种实现
+
+### 8.1 Claude Code 本地版（Sub-Agent 定义文件）
+
+最小 Supervisor 模式——主 agent 派发 code-reviewer 和 doc-checker 两个 sub-agent：
+
+**`.claude/agents/code-reviewer.md`**：
+
+```yaml
+---
+name: code-reviewer
+description: 审查代码变更的安全性和正确性。只读，不修改文件。
+tools: Read, Grep, Glob, Bash
+model: sonnet
+---
+```
+
+```markdown
+你是 code-reviewer。主 agent 会给你一个 diff 或文件路径。
+
+**审查维度**：
+1. 安全漏洞（注入、XSS、硬编码密钥）
+2. 逻辑错误（边界条件、空指针、竞态）
+3. 性能问题（N+1 查询、内存泄漏）
+
+**输出**：以 `VERDICT: pass | minor (N) | major (N)` 开头，后接具体发现。
+```
+
+**主 agent 的 spawn 调用**（Claude Code 内部）：
+
+```
+Agent({
+  description: "Review security of auth changes",
+  subagent_type: "code-reviewer",
+  prompt: "审查 src/auth/login.ts 最近的改动。重点看 SQL 注入和 token 泄漏风险。"
+})
+```
+
+### 8.2 生产版（Anthropic SDK + TypeScript）
+
+同样的 Supervisor 逻辑，用 Agent SDK 写成可部署的服务：
+
+```typescript
+import Anthropic from "@anthropic-ai/sdk";
+
+const client = new Anthropic();
+
+// Supervisor：解析意图 → 派发 Sub-Agent → 汇总
+async function supervisor(userQuery: string): Promise<string> {
+  // Step 1: 意图分类（用 Haiku，快且便宜）
+  const intent = await client.messages.create({
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 100,
+    messages: [{ role: "user", content: `分类这个问题的类型（code/doc/ops）：${userQuery}` }],
+  });
+  const category = intent.content[0].type === "text" ? intent.content[0].text.trim() : "code";
+
+  // Step 2: 派发对应的 Sub-Agent（用 Sonnet，深度推理）
+  const agentPrompts: Record<string, string> = {
+    code: `你是代码专家。只使用代码搜索工具回答：${userQuery}`,
+    doc: `你是文档专家。只从知识库检索回答：${userQuery}`,
+    ops: `你是运维专家。查日志和监控回答：${userQuery}`,
+  };
+
+  const result = await client.messages.create({
+    model: "claude-sonnet-4-6-20250514",
+    max_tokens: 2000,
+    system: agentPrompts[category] || agentPrompts.code,
+    messages: [{ role: "user", content: userQuery }],
+    // 生产环境这里会配 tools（代码搜索/日志查询等）
+  });
+
+  // Step 3: Supervisor 汇总（跨领域时并行多个 agent）
+  return result.content[0].type === "text" ? result.content[0].text : "无法回答";
+}
+```
+
+### 两种实现的核心差异
+
+| 维度 | Claude Code 版 | SDK 生产版 |
+|------|---------------|-----------|
+| 运行方式 | CLI 进程内 spawn | HTTP 服务 / Serverless |
+| 编排逻辑 | 主 agent 的"脑子"（LLM 判断） | 代码显式编排（if/switch） |
+| 工具调用 | 声明式（`tools:` 字段） | 编程式（tools 数组传入 API） |
+| 状态管理 | 无（session 结束即销毁） | 可持久化（数据库/Redis） |
+| 适用阶段 | 本地验证模式可行性 | 生产服务化部署 |
+
+**实践建议**：先在 Claude Code 里用 sub-agent 定义文件验证"这样拆合不合理"，验证通过后再用 SDK 重写成生产服务。Claude Code 是 Multi-Agent 的**原型验证场**。

@@ -10,6 +10,7 @@ description: "Skills 的三层渐进式披露机制、token 经济学、frontmat
 > 关联: [子智能体（subagents）机制与实战](./子智能体（subagents）机制与实战.md) — skill 和 subagent 的边界
 > 关联: [Hooks 事件全景与拦截机制](<./Hooks 事件全景与拦截机制.md>) — skill frontmatter 内的 hooks 字段
 > 关联: [Superpowers TDD Skill 工作流拆解](<./Superpowers TDD Skill 工作流拆解.md>) — 一个具体 skill 的实战拆解
+> 关联: [从 Sub-Agent 到 Multi-Agent 的工程指南](<./从 Sub-Agent 到 Multi-Agent 的工程指南.md>) — Skills 作为最轻量多智能体模式的定位
 
 ---
 
