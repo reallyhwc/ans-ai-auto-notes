@@ -462,4 +462,4 @@ def execute_tool(name: str, params: dict) -> str:
 | 权限模型 | 3 级 + allowlist | auto/ask | 3 mode 切换 | IDE 内嵌 Accept/Reject |
 | 开源 | 是 (2025.05) | 是 | 是 | 否 |
 
-> 相关: [Agent 四大设计范式（深度展开）](./Agent 四大设计范式（深度展开）.md) | [Harness Engineering](../Claude-Code/Harness Engineering：AI Agent 时代的工程范式.md)
+> 相关: [Agent 四大设计范式（深度展开）](<./Agent 四大设计范式（深度展开）.md>) | [Harness Engineering](<../Claude-Code/Harness Engineering：AI Agent 时代的工程范式.md>)
