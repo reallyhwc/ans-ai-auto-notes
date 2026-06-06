@@ -16,6 +16,7 @@ description: "极客时间黄佳《Claude Code 工程化实战》课程的学习
 
 | 日期 | 章节/主题 | 状态 | 关键收获 |
 |------|---------|------|---------|
+| 2026-06-06 | 量体裁衣：从 Sub-Agents 到 Multi-Agent 的工程指南 | ✅ | 四种模式（Skills/Sub-Agents/Handoffs/Router）+ Supervisor 详解 + 生产部署实例 + 当前项目选型验证 |
 | 2026-06-02 | Q&A round 1：subagents/skills/hooks/MCP/headless/plugins/方法论 | ✅ | 建了 6 个机制专题 + 1 个方法论文件，文档级深度 |
 
 > 后续学习按日期追加在 §1 表格顶部。每次只填关键收获 1-2 句，详细内容写到对应专题文件。
@@ -26,6 +27,7 @@ description: "极客时间黄佳《Claude Code 工程化实战》课程的学习
 
 | 主题 | 专题文件 | 一句话定位 |
 |------|---------|----------|
+| **Multi-Agent 工程指南** | [从 Sub-Agent 到 Multi-Agent 的工程指南](<../技术/AI/Claude-Code/从 Sub-Agent 到 Multi-Agent 的工程指南.md>) | 四种模式 + 升级决策 + 生产部署 + Supervisor 详解 |
 | **子智能体（subagents）** | [子智能体（subagents）机制与实战](../技术/AI/Claude-Code/子智能体（subagents）机制与实战.md) | 寄生在主进程内、独立 context 的一次性 LLM 调用 |
 | **Skills** | [Skills 渐进式披露架构](<../技术/AI/Claude-Code/Skills 渐进式披露架构.md>) | 给 Claude 的"按需加载的小书"，三层渐进式披露 |
 | **Hooks** | [Hooks 事件全景与拦截机制](<../技术/AI/Claude-Code/Hooks 事件全景与拦截机制.md>) | Claude Code 生命周期中 30+ 个事件的回调机制 |

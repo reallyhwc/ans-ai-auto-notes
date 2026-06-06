@@ -12,6 +12,7 @@ description: "subagent 的定位、与 skill/Agent SDK 的区分、四级 scope 
 > 关联: [Plugins 插件体系](<./Plugins 插件体系.md>) — plugin 内 agents/ 目录与限制
 > 关联: [Claude Code 整体架构 & 工作流程](<./Claude Code 整体架构 & 工作流程.md>) — 主 agent 在整体架构中的位置
 > 关联: [Agent Observability：调用链追踪与排障](<../应用/Agent Observability：调用链追踪与排障.md>) — 如何 trace subagent 调用链、span/parent_id 数据模型、本项目 jsonl 落地
+> 关联: [从 Sub-Agent 到 Multi-Agent 的工程指南](<./从 Sub-Agent 到 Multi-Agent 的工程指南.md>) — 四种多智能体模式对比 + 升级决策 + 生产部署
 
 ---
 
