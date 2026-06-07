@@ -126,7 +126,7 @@ public class OrderService {
 
 适用：依赖可选（不注入时有默认值或降级逻辑）。
 
-### 3.3 字段注入（不推荐）
+### 3.3 字段注入（常见但不推荐）
 
 ```java
 @Service
@@ -136,7 +136,48 @@ public class OrderService {
 }
 ```
 
-问题：依赖外部不可见、无法声明 final、单测必须启动 Spring 上下文或用反射。
+日常开发中字段注入反而是最常见的写法，但"常见"不等于"好"。三个真实问题：
+
+**问题一：单测没法干净地 mock**
+
+```java
+// 字段注入：单测必须启动 Spring 上下文（@SpringBootTest），或反射塞值
+// 一个单测启动 5-10 秒 vs 构造器注入纯 new 的毫秒级
+
+// 构造器注入的单测：纯粹 Java 对象，无框架依赖
+var mockRepo = mock(OrderRepository.class);
+var service = new OrderService(mockRepo);  // 干净
+```
+
+**问题二：依赖不可变，字段做不到 final**
+
+```java
+// 构造器注入：final 保证注入后不可重新赋值
+@RequiredArgsConstructor
+public class OrderService {
+    private final OrderRepository repo;
+}
+
+// 字段注入：没有 final，任何地方都可能被改成 null
+@Autowired
+private OrderRepository repo;  // repo = null 是合法的
+```
+
+**问题三：依赖膨胀时字段注入会"悄悄"变大**
+
+```java
+// 字段注入：加依赖只要加一行 @Autowired，没有阻力
+@Autowired private A a;
+@Autowired private B b;
+@Autowired private C c;  // ... 不知不觉 10 个了
+
+// 构造器注入：参数越多越"扎眼"，自动提醒你该拆类了
+public OrderService(A a, B b, C c, D d, E e, F f) {
+    // ↑ 这行看起来就难受，逼你重构
+}
+```
+
+**那为什么现实中字段注入最多？**两个原因：(1) 大部分 CRUD 项目不写单元测试（只写集成测试），字段注入完全够用；(2) Lombok `@RequiredArgsConstructor` + 构造器对新手不够直观。Spring 官方推荐构造器注入不是教条，是大型项目 + 单元测试踩过坑之后的选择。
 
 ### 3.4 有多个同类型 Bean 时的歧义处理
 
@@ -323,7 +364,77 @@ public class LoggingAspect {
 
 为什么 Spring Boot 2.0 起切到 CGLIB？大部分项目不给 Service 抽接口，JDK 代理直接不可用。
 
-### 6.6 AOP 的常见应用场景
+### 6.6 Spring AOP 代理 vs Dubbo RPC 代理
+
+两者底层用的是**同一套 JDK 动态代理机制（`InvocationHandler`）**，但 invoke 内部做的事情完全不同。
+
+```mermaid
+flowchart LR
+    subgraph Spring[Spring AOP 代理]
+        direction TB
+        S1[调用方] -->|"1. orderService.placeOrder()"| S2[代理对象 Proxy]
+        S2 -->|"2. 执行切面链"| S3
+        S2 -->|"3. proceed() → 反射调用"| S4[真实 Bean<br/>同 JVM]
+        S4 -->|"4. 返回结果"| S5[调用方]
+    end
+
+    subgraph Dubbo[Dubbo RPC 代理]
+        direction TB
+        D1[调用方] -->|"1. orderService.placeOrder()"| D2[代理对象 Proxy]
+        D2 -->|"2. 序列化参数 → Netty 发送"| D3[网络层]
+        D3 -->|"3. TCP → 远端反序列化 → 执行"| D4[远程提供者<br/>另一台机器]
+        D4 -->|"4. 响应序列化 → 网络返回"| D5[调用方]
+    end
+```
+
+**都实现了同一个接口：**
+
+```java
+// JDK 动态代理的核心接口 — Spring AOP 和 Dubbo 都实现它
+public interface InvocationHandler {
+    Object invoke(Object proxy, Method method, Object[] args) throws Throwable;
+}
+```
+
+**Spring AOP 的 invoke 内部：**
+
+```java
+// JdkDynamicAopProxy.invoke() 简化
+public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+    // 1. 获取拦截器链（@Before, @Around, @After...）
+    // 2. 逐个执行切面逻辑
+    // 3. 最终 method.invoke(targetBean, args) → 反射调本地真实对象
+    return invocation.proceed();
+}
+// 关键：targetBean 在同一 JVM 里，invoke 后直接拿结果
+```
+
+**Dubbo 的 invoke 内部：**
+
+```java
+// DubboInvoker.invoke() 简化
+public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+    RpcInvocation inv = new RpcInvocation(method, args);
+    Response future = client.request(inv, timeout);  // Netty 发到远端
+    Result result = future.get();                     // 阻塞等响应
+    return result.recreate();                         // 反序列化返回
+}
+// 关键：没有本地 targetBean！invoke 内部是网络调用
+```
+
+对比总结：
+
+| | Spring AOP | Dubbo RPC |
+|---|---|---|
+| 代理目标 | 同 JVM 内的真实 Bean | 远程服务提供者（可能另一台机器） |
+| invoke 内部 | 切面链 + 反射调本地方法 | 序列化 + Netty 网络传输 + 反序列化 |
+| 失败原因 | 本地异常（NPE、业务异常） | 网络超时、序列化失败、远端宕机 |
+| 对调用方透明 | ✅（拿到代理就能调） | ✅（拿到代理就能调，这是共同点） |
+| 代理生成器 | JdkDynamicAopProxy / CglibAopProxy | JavassistProxyFactory / JdkProxyFactory |
+
+**本质上**：都用了代理模式让调用方"感觉在调接口，其实背后有拦截"。**核心差异**：AOP 代理背后是"本地增强"（截住了最后还是调了本地方法），Dubbo 代理背后是"远程调用"（截住了就把你扔到网络上去）。
+
+### 6.7 AOP 的常见应用场景
 
 ```mermaid
 flowchart TD
