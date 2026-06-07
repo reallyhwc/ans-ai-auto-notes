@@ -213,6 +213,48 @@ flowchart TD
 - 范围查询 / 排名 → 跳表 O(log N + M)，M 为返回元素数
 - 查排名 → 跳表每个节点维护 span（跨度），累加得到 O(log N)
 
+### 跳表 vs B+ 树（MySQL InnoDB 索引）
+
+**一句话结论：B+ 树为磁盘设计，跳表为内存设计。** 两者都是 O(log N)，但优化方向完全不同。
+
+```mermaid
+flowchart TD
+    subgraph B加树["B+ 树（MySQL InnoDB）"]
+        direction TB
+        B1["目标：减少磁盘 IO"] --> B2["一个节点 16KB 存几百个 key<br/>高度极矮（千万行 ~3 层）"]
+        B2 --> B3["一次查询 1-3 次磁盘 IO"]
+        B3 --> B4["叶子双向链表 → 范围扫描"]
+        B4 --> B5["插入可能触发页分裂<br/>维护成本高"]
+    end
+
+    subgraph 跳表["跳表（Redis ZSet）"]
+        direction TB
+        S1["目标：实现简单 + 内存操作"] --> S2["每个节点一个值<br/>层数随机（抛硬币）"]
+        S2 --> S3["比较全在内存，极快"]
+        S3 --> S4["层级指针天然有序"]
+        S4 --> S5["插入只改相邻指针<br/>无页分裂"]
+    end
+```
+
+逐项对比：
+
+| 维度 | B+ 树 | 跳表 |
+|------|-------|------|
+| **设计目标** | 为磁盘优化，减少 I/O | 为内存优化，实现简单 |
+| **节点结构** | 一页 16KB 含几百个 key + 子节点指针 | 一个节点一个值 + 多层 forward 指针 |
+| **树高度** | 极矮（千万行 ~3 层） | 约 log N（内存中无所谓） |
+| **查询过程** | 根→非叶→叶，每层二分 | 最高层开始，逐层向右+下降 |
+| **范围查询** | 到叶子后沿双向链表扫 | 找到起点沿 Level 0 链表扫 |
+| **插入成本** | 可能页分裂 + 调整父节点 | 改相邻指针 + 随机生成层数 |
+| **空间占用** | 页内 ~15/16 填充（InnoDB 默认） | 每节点多存 level 个指针 |
+| **代码量** | ~几千行 C | ~几百行 C（t_zset.c） |
+| **适用场景** | 磁盘 DB 索引、文件系统 | 内存数据结构、缓存、排行榜 |
+
+**为什么 MySQL 不用跳表、Redis 不用 B+ 树？**
+
+- **MySQL 场景**：数据在磁盘，一次 IO 读 16KB。B+ 树一个节点恰好一页，一次 IO 过滤掉几百个 key。跳表一个节点一个值，跨页查询 = 大量随机 IO，在磁盘上是灾难。
+- **Redis 场景**：数据全在内存，没有磁盘 IO 概念。跳表比 B+ 树实现简单太多，出 bug 好排查。antirez：_"All the operations are O(log N), the code is simple, and the data structure is easy to debug."_
+
 ### 编码切换
 
 - **ziplist → skiplist+hashtable**：元素数 > `zset-max-ziplist-entries`（默认 128）或 member 长度 > `zset-max-ziplist-value`（默认 64 字节）
@@ -220,7 +262,273 @@ flowchart TD
 
 ---
 
-## 7. 其他高频类型
+## 7. Java 开发中的 Redis 实战
+
+### 7.1 全景图
+
+```mermaid
+flowchart TD
+    Java["Java 后端 Redis 使用场景"] --> Cache[缓存]
+    Java --> Lock[分布式锁]
+    Java --> Bloom[布隆过滤器]
+    Java --> Limit[限流]
+    Java --> Queue[延迟队列]
+    Java --> Session[分布式 Session]
+    Java --> Counter[计数器/统计]
+
+    Cache --> C1["Cache-Aside 旁路缓存"]
+    Cache --> C2["穿透/击穿/雪崩"]
+    Lock --> L1["Redisson + 看门狗"]
+    Lock --> L2["RedLock 争议"]
+    Bloom --> B1["穿透防护"]
+    Bloom --> B2["去重判断"]
+```
+
+### 7.2 缓存 — Cache-Aside 模式
+
+最推荐的缓存模式：读时先查 Redis → 未命中查 DB → 写回 Redis；写时先更新 DB → 再删除缓存。
+
+```java
+// 读
+public User getUser(Long id) {
+    String key = "user:" + id;
+    User user = (User) redisTemplate.opsForValue().get(key);
+    if (user != null) return user;                  // 命中
+
+    user = userMapper.selectById(id);                // 未命中 → 查 DB
+    if (user != null) {
+        redisTemplate.opsForValue().set(key, user, 30, TimeUnit.MINUTES);
+    }
+    return user;
+}
+
+// 写：先 DB 后删缓存（不是更新缓存！）
+@Transactional
+public void updateUser(User user) {
+    userMapper.updateById(user);
+    redisTemplate.delete("user:" + user.getId());
+}
+```
+
+**为什么不直接更新缓存而是删除？** 并发写场景下两个写请求时序可能乱掉，直接 SET 会导致缓存是旧值。删除让下次读重建，避免"双写不一致"。
+
+#### 缓存三大问题
+
+```mermaid
+flowchart TD
+    subgraph Penetration["穿透"]
+        P1["查 DB 里不存在的 key"] --> P2["Redis 没命中 → 打 DB"]
+        P2 --> P3["DB 也查不到 → 攻击者可构造大量不存在 ID 打垮 DB"]
+    end
+
+    subgraph Breakdown["击穿"]
+        B1["一个热点 key 过期"] --> B2["瞬间大量请求同时查 DB"]
+    end
+
+    subgraph Avalanche["雪崩"]
+        A1["大量 key 同时过期 或 Redis 宕机"] --> A2["所有请求打 DB → DB 崩溃"]
+    end
+```
+
+| 问题 | 解决方案 | 示例 |
+|------|---------|------|
+| **穿透** | 布隆过滤器提前拦截 或 缓存空值 | `SET user:9999 null EX 60` |
+| **击穿** | 互斥锁（一个线程查 DB，其他等待） 或 逻辑过期 | `SETNX lock:user:1 1 EX 10` |
+| **雪崩** | 过期时间加随机偏移 + Redis 集群 | `EX random(300, 600)` |
+
+#### 击穿的两种主流方案
+
+```java
+// 方案 A：互斥锁（简单但有短暂阻塞）
+public User getUserWithLock(Long id) {
+    String key = "user:" + id;
+    User user = (User) redisTemplate.opsForValue().get(key);
+    if (user != null) return user;
+
+    String lockKey = "lock:user:" + id;
+    Boolean locked = redisTemplate.opsForValue()
+        .setIfAbsent(lockKey, "1", 10, TimeUnit.SECONDS);
+    if (Boolean.TRUE.equals(locked)) {
+        try {
+            user = userMapper.selectById(id);
+            redisTemplate.opsForValue().set(key, user, 30, TimeUnit.MINUTES);
+        } finally {
+            redisTemplate.delete(lockKey);
+        }
+    } else {
+        Thread.sleep(50);
+        return getUserWithLock(id);  // 重试
+    }
+    return user;
+}
+
+// 方案 B：逻辑过期（不阻塞，可能短暂返回旧值）
+// value 里包一层过期时间字段，物理 key 永不过期
+// 发现逻辑过期 → 开异步线程重建 → 期间返回旧值
+```
+
+### 7.3 分布式锁 — Redisson
+
+#### 自己手写的问题
+
+```java
+// 初版漏洞百出：
+// 问题 1：SETNX + EXPIRE 不是原子操作 → 死锁
+redisTemplate.opsForValue().setIfAbsent(lockKey, "1");  // 刚执行完，机器挂了
+redisTemplate.expire(lockKey, 30, TimeUnit.SECONDS);    // 没执行到 → 永不过期
+
+// 问题 2：删了别人的锁
+// 线程 A 拿锁 → 执行超时锁过期 → 线程 B 拿到锁 → A 执行完把 B 的锁删了
+
+// 问题 3：单点故障 → Redis 宕机锁全没
+```
+
+#### 正确姿势：Redisson
+
+```java
+RLock lock = redissonClient.getLock("lock:order:" + orderId);
+try {
+    if (lock.tryLock(10, 30, TimeUnit.SECONDS)) {  // 等 10s，锁 30s
+        doSomething();
+    }
+} finally {
+    lock.unlock();  // 只删自己的锁（UUID + 线程 ID 校验）
+}
+```
+
+**Redisson 做了什么：**
+
+```mermaid
+flowchart TD
+    subgraph Redisson["Redisson 分布式锁"]
+        Guard["看门狗 Watch Dog<br/>每 10s 续期到 30s<br/>业务没完锁不过期"] --> Check["解锁校验 UUID+线程ID<br/>Lua 脚本原子执行"]
+        Check --> RedLock["RedLock<br/>多节点过半加锁"]
+    end
+```
+
+**看门狗（Watch Dog）**：锁默认 30s 过期，看门狗每 10s 自动续期。只有 JVM 挂了看门狗才停，锁最终靠过期兜底。
+
+**RedLock 争议**：Redis 作者提出多节点过半加锁，但 Martin Kleppmann 指出缺乏 fencing token、时钟跳跃会导致两个客户端同时持锁。实践中：一致性要求极高时用 ZooKeeper/etcd，一般场景 Redisson 足够。
+
+### 7.4 布隆过滤器（Bloom Filter）
+
+**概率型数据结构**：回答"绝对不存在"（100% 准确）或"可能存在"（有误判但可控）。
+
+```
+布隆过滤器说 "没有" → 100% 确定没有（不会漏）
+布隆过滤器说 "有"   → 可能没有（1% 误判率可配置）
+```
+
+#### 原理（30 秒讲清）
+
+```mermaid
+flowchart LR
+    Input["元素 'user123'"] --> H1["hash1 → 3"]
+    Input --> H2["hash2 → 7"]
+    Input --> H3["hash3 → 11"]
+    H1 --> Bit
+    H2 --> Bit
+    H3 --> Bit
+
+    subgraph BitArray["位数组（初始全 0）"]
+        0["[0]=0"] --> 1["[1]=0"] --> 2["[2]=0"] --> 3["[3]=1"] --> 4["[4]=0"] --> 5["[5]=0"] --> 6["[6]=0"] --> 7["[7]=1"] --> 8["[8]=0"] --> 9["[9]=0"] --> 10["[10]=0"] --> 11["[11]=1"]
+    end
+```
+
+1. 一个位数组，初始全 0
+2. 插入：K 个哈希函数算 K 个位置，全部设 1
+3. 查询：算 K 个位置，**全为 1 → 可能存在；任意 0 → 一定不存在**
+
+#### Java 中使用
+
+```java
+// Guava 本地布隆过滤器
+BloomFilter<String> filter = BloomFilter.create(
+    Funnels.stringFunnel(Charset.defaultCharset()),
+    100_0000, 0.01  // 100万元素，1% 误判率
+);
+filter.put("user123");
+filter.mightContain("user123");  // → true
+filter.mightContain("user999");  // → false（一定不存在）
+
+// Redis 布隆过滤器（RedisBloom 模块 或 Redisson）
+RBloomFilter<String> bloomFilter = redissonClient.getBloomFilter("user:bloom");
+bloomFilter.tryInit(100_0000L, 0.01);
+bloomFilter.add("user123");
+bloomFilter.contains("user123");  // → true
+```
+
+#### 防缓存穿透实战
+
+```java
+public User getUserWithBloom(Long id) {
+    // 第一层：布隆过滤器说"一定不存在"→ 直接返回
+    if (!bloomFilter.contains("user:" + id)) return null;
+    // 第二层：正常走 Redis + DB
+    // ...
+}
+```
+
+注意事项：**不支持删除**（删一位可能影响其他元素），需要删除场景用布谷鸟过滤器（Cuckoo Filter）。初始化要预估容量，超量后误判率上升。
+
+### 7.5 限流
+
+```java
+// 固定窗口（简单但有临界问题）
+String key = "rate:api:" + userId;
+Long count = redisTemplate.opsForValue().increment(key);
+if (count == 1) redisTemplate.expire(key, 60, TimeUnit.SECONDS);
+if (count > 100) throw new RuntimeException("限流");
+// 问题：59 秒放 100，下一秒又是 100 → 临界 200 QPS
+
+// 滑动窗口（ZSet 实现，精确）
+String key = "rate:sliding:" + userId;
+long now = System.currentTimeMillis();
+long windowStart = now - 60_000;
+redisTemplate.opsForZSet().removeRangeByScore(key, 0, windowStart);
+Long count = redisTemplate.opsForZSet().count(key, windowStart, now);
+if (count != null && count > 100) throw new RuntimeException("限流");
+redisTemplate.opsForZSet().add(key, String.valueOf(now), now);
+redisTemplate.expire(key, 60, TimeUnit.SECONDS);
+```
+
+### 7.6 一条完整的生产级读链路
+
+```java
+public User getUser(Long id) {
+    // 第一层：布隆过滤器（防穿透）
+    if (!bloomFilter.contains("user:" + id)) return null;
+
+    // 第二层：Redis 缓存
+    User user = (User) redisTemplate.opsForValue().get("user:" + id);
+    if (user != null) return user;
+
+    // 第三层：分布式锁（防击穿）
+    RLock lock = redissonClient.getLock("lock:user:" + id);
+    try {
+        if (lock.tryLock(3, 30, TimeUnit.SECONDS)) {
+            // 双重检查
+            user = (User) redisTemplate.opsForValue().get("user:" + id);
+            if (user != null) return user;
+            // 查 DB
+            user = userMapper.selectById(id);
+            if (user != null) {
+                redisTemplate.opsForValue().set("user:" + id, user,
+                    30 + ThreadLocalRandom.current().nextInt(60), TimeUnit.MINUTES);
+            }
+        }
+    } finally {
+        lock.unlock();
+    }
+    return user;
+}
+```
+
+布隆防穿透、互斥锁防击穿、随机过期防雪崩——三层防护覆盖了缓存三大问题。
+
+---
+
+## 8. 其他高频类型
 
 | 类型 | 用途 | 典型场景 |
 |------|------|---------|
@@ -254,7 +562,7 @@ GEORADIUS shops 120.2 30.3 5 km WITHDIST
 
 ---
 
-## 8. 选型速查
+## 9. 选型速查
 
 ```
 需要计数/缓存简单值？        → String
@@ -270,7 +578,7 @@ GEORADIUS shops 120.2 30.3 5 km WITHDIST
 
 ---
 
-## 9. 底层实现速查表
+## 10. 底层实现速查表
 
 | 数据类型 | 默认编码 | 内部编码（少量数据时） | 核心特点 |
 |---------|---------|---------------------|---------|
