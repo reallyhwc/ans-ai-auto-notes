@@ -541,6 +541,29 @@ unlock 同时调用 `cancelExpirationRenewal()` 从 `EXPIRATION_RENEWAL_MAP` 移
 
 **RedLock 争议**：Redis 作者提出多节点过半加锁，但 Martin Kleppmann 指出缺乏 fencing token、时钟跳跃会导致两个客户端同时持锁。实践中：一致性要求极高时用 ZooKeeper/etcd，一般场景 Redisson 足够。
 
+#### 看门狗的性能开销：为什么单线程 Timer 扛得住
+
+直觉上"每个锁一个递归 Timer"听起来很重，但实际上 Netty HashedWheelTimer 是**单线程时间轮**，不是每个锁开一个线程：
+
+```mermaid
+flowchart TD
+    subgraph Wheel["HashedWheelTimer 时间轮"]
+        direction LR
+        B0["槽 0<br/>[task1, task4, task9]"]
+        B1["槽 1<br/>[task7]"]
+        B2["槽 2<br/>[]"]
+        B3["槽 3<br/>[task2, task5]"]
+        B4["槽 4<br/>[]"]
+        B5["槽 5<br/>[task3, task6, task8]"]
+    end
+
+    Tick["Worker 单线程<br/>每 tick ≈100ms 走一个槽"] -->|"顺序执行当前槽所有 task"| B0
+```
+
+**为什么开销极低**：每个续期 task 在 worker 线程里的真实耗时是**微秒级**——组装 Lua 命令发出，真正执行是 Redis 在干。线程不阻塞等结果，Netty I/O 线程收到 Redis 响应后再回调。
+
+**数量级推演**：10,000 个锁 × 每 10s 续期 = 约 1,000 次调度/s。每次几微秒 → CPU 占用 < 1%。一个 HashedWheelTimer 可以管理几十万个定时任务。再加上实际业务中锁生命周期都很短（毫秒到秒级），不会出现海量长锁同时续期的场景。真正的瓶颈是 Redis 能不能扛住续期 QPS——单体 Redis 10 万 QPS 是日常，续期这点量不算什么。
+
 ### 7.4 布隆过滤器（Bloom Filter）
 
 **概率型数据结构**：回答"绝对不存在"（100% 准确）或"可能存在"（有误判但可控）。
@@ -718,6 +741,130 @@ GEORADIUS shops 120.2 30.3 5 km WITHDIST
 | Set | hashtable | intset | 值全为 NULL 的字典 |
 | Hash | hashtable | ziplist | field-value 交替存 |
 | ZSet | skiplist + dict | ziplist | 双结构共享节点 |
+
+---
+
+## 11. Redis 集群方案对比与分布式锁安全分析
+
+### 11.1 三种方案概览
+
+```mermaid
+flowchart TD
+    subgraph MS["主从复制 Master-Slave"]
+        M1[Master 读写] -->|"异步复制"| S1[Slave 只读]
+        M1 -->|"异步复制"| S2[Slave 只读]
+        Note1[手动故障切换<br/>有数据丢失风险<br/>读写分离可扩展读]
+    end
+
+    subgraph Sentinel["哨兵 Sentinel"]
+        SM[Master] -->|"复制"| SS[Slave]
+        Sent1[Sentinel-1] & Sent2[Sentinel-2] & Sent3[Sentinel-3] -->|"监控"| SM
+        Sent1 & Sent2 & Sent3 -->|"监控"| SS
+        Sent1 ---|"共识"| Sent2 ---|"共识"| Sent3
+        Note2[自动故障切换<br/>依然异步复制，可能丢数据<br/>多哨兵共识防误判]
+    end
+
+    subgraph Cluster["Cluster 集群"]
+        N1["Node 1<br/>Slot 0-5460<br/>Master + Slave"] <-->|"Gossip"| N2["Node 2<br/>Slot 5461-10922<br/>Master + Slave"]
+        N2 <-->|"Gossip"| N3["Node 3<br/>Slot 10923-16383<br/>Master + Slave"]
+        N1 <--> N3
+        Note3[自动分片 + 自动故障切换<br/>16384 slot<br/>水平扩展]
+    end
+```
+
+### 11.2 逐项对比
+
+| 维度 | 主从复制 | 哨兵 Sentinel | Cluster 集群 |
+|------|---------|-------------|-------------|
+| **数据分片** | ❌ 全量数据 | ❌ 全量数据 | ✅ 16384 slot 自动分片 |
+| **高可用** | ❌ 手动切换 | ✅ 自动故障转移 | ✅ 自动故障转移（每分片独立） |
+| **水平扩展** | ❌ 只能垂直 | ❌ 只能垂直 | ✅ 加节点自动 rebalance |
+| **客户端复杂度** | 低（单地址） | 低（哨兵自动发现） | 高（MOVED/ASK 重定向） |
+| **运维复杂度** | 低 | 中（多跑哨兵进程） | 高（多节点 + Gossip 通信） |
+| **数据一致性** | 异步复制，可能丢 | 异步复制，可能丢 | 异步复制，可能丢（Raft 仅用于 failover 决策） |
+| **跨 slot 事务** | ✅ 支持 | ✅ 支持 | ❌ 不支持跨 slot multi-key |
+| **典型规模** | 几十 GB | 几十 GB | 几百 GB ~ TB 级 |
+| **最小节点数** | 2 | 5（3 哨兵 + 1M1S） | 6（3M + 3S，无单点） |
+
+### 11.3 选型建议
+
+```
+数据量 < 几十 GB，只需要高可用        → Sentinel
+数据量 > 几百 GB，需要水平扩展        → Cluster
+开发/测试环境                         → 单机或主从
+跨 slot 事务/批量操作为核心需求        → Sentinel（Cluster 不支持）
+```
+
+### 11.4 为什么 Sentinel 模式下分布式锁不安全
+
+**你的理解是对的**：在 Redis Cluster/Sentinel 中，同一 key 始终路由到唯一节点。但安全漏洞不在路由——在**异步复制 + Failover**。
+
+```mermaid
+sequenceDiagram
+    participant C1 as 客户端 A
+    participant M as Redis Master
+    participant S as Redis Slave
+    participant C2 as 客户端 B
+
+    C1->>M: SET lock:X UUID-A NX PX 30000
+    M-->>C1: OK → A 拿到锁
+    Note over M,S: ⚠️ 锁还没同步到 Slave<br/>Master 宕机！
+
+    M-xM: 宕机
+
+    Sentinel->>S: 提升 Slave 为新 Master
+    Note over S: 新 Master 没有 lock:X！
+
+    C2->>S: SET lock:X UUID-B NX PX 30000
+    S-->>C2: OK → B 也拿到锁了！
+    Note over C1,C2: 💥 A 和 B 同时认为自己持有锁
+```
+
+**这就是 Martin Kleppmann 指出的核心问题**——异步复制导致的锁丢失。Master 挂了之后 Slave 上可能还没有锁数据，新 Master 不认旧锁，其他客户端就能重新获取。
+
+### 11.5 为什么 ZK/etcd 没这个问题
+
+```mermaid
+flowchart LR
+    subgraph Redis["Redis Sentinel"]
+        R1["Master 写成功 → 返回 OK<br/>→ 异步复制到 Slave"] --> RFail["Master 宕<br/>→ 新 Master 可能丢数据"]
+    end
+
+    subgraph ZK["ZooKeeper"]
+        Z1["Leader 写 → 必须过半确认（ZAB）"] --> ZFail["Leader 宕<br/>→ 新 Leader 一定有全量数据"]
+    end
+```
+
+**本质差异**：ZK/etcd 的共识协议保证已提交的数据不会丢失；Redis 的 Sentinel/Cluster 在 failover 时的 Raft 共识**只用于选主**，数据复制始终异步。这就是为什么 ZK 可以做严格互斥锁，而 Redis 只能做"性能优化级的锁"。
+
+### 11.6 实际建议
+
+| 场景 | 选型 |
+|------|------|
+| 防重复提交、限流、缓存击穿保护 | Redis 锁（单节点 + Sentinel 足够） |
+| 库存扣减、转账、严格互斥 | DB 行锁（`SELECT ... FOR UPDATE`）或 ZK/etcd |
+| RedLock 多节点加锁 | 绝大多数场景不需要，运维成本远大于收益 |
+
+**一句话**：Redis 锁解决的是"大概率不出问题"的性能问题，不是"绝对不出问题"的安全问题。
+
+### 11.7 Cluster 模式下的分布式锁要点
+
+在 Cluster 模式下，如果必须用 Redis 锁，需要注意：
+
+```bash
+# 单 key 锁没问题：key 会路由到同一个 slot
+SET lock:order:1001 UUID NX PX 30000
+
+# 但如果锁 key 和业务 key 需要一起操作 → 必须保证同一个 slot
+# 用 hash tag 强制路由：
+SET {order:1001}:lock UUID NX PX 30000
+SET {order:1001}:status "paid"
+# {order:1001} 计算出的 slot 相同，两个 key 在同一节点
+```
+
+Hash tag `{...}` 让多个 key 落在同一 slot，保证 Lua 脚本的原子操作能跨 key 执行——这是 Cluster 模式下做分布式锁的关键 trick。
+
+---
 
 相关：
 - [[热点账户高并发记账方案.md]] — Redis 在高并发场景下的应用
