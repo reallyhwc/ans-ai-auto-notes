@@ -965,6 +965,75 @@ flowchart TD
 
 **一句话**：Cluster 是让 100 个不同的 key 各忙各的（吞吐 ↑），RedLock 是让 5 台机器盯着同一个 key（安全 ↑）。两者方向相反，不可兼得。
 
+### 11.10 Redisson RLock 在不同部署模式下的真实行为
+
+**`redissonClient.getLock("key")` ≠ RedLock。** 你每天用的 `RLock` 只是一个普通单节点锁，Redisson 帮你封装了 Lua 脚本 + 看门狗。RedLock 需要手动构造 `RedissonRedLock`，绝大多数人没用过。
+
+#### 三种部署模式下的实际行为
+
+```mermaid
+flowchart TD
+    subgraph Single["场景 1：单机 Redis"]
+        S1["getLock('lock:1001')"] --> S2["SET lock:1001 UUID:1 NX PX 30000<br/>→ 就这台机器"]
+        S2 --> S3["这台挂了 → 锁丢了"]
+    end
+
+    subgraph Sentinel["场景 2：哨兵模式"]
+        SE1["getLock('lock:1001')"] --> SE2["Redisson 问哨兵：Master 是谁？"]
+        SE2 --> SE3["SET lock:1001 UUID:1 NX PX 30000<br/>→ 写到当前 Master"]
+        SE3 --> SE4["Master 挂了 → 哨兵选新 Master<br/>→ 锁数据可能没同步过去（异步复制）"]
+    end
+
+    subgraph Cluster["场景 3：Cluster 集群"]
+        C1["getLock('lock:1001')"] --> C2["CRC16('lock:1001') % 16384<br/>→ slot 5872 → Node-3"]
+        C2 --> C3["SET lock:1001 UUID:1 NX PX 30000<br/>→ 只写 Node-3 这一台！"]
+        C3 --> C4["Node-3 挂了 → Slave 接管<br/>→ 锁数据可能没同步过去"]
+    end
+```
+
+**三种场景下，锁都只写到一个 Redis 节点。** Cluster 的 16384 个 slot 只是帮你决定了去哪一台，但锁的逻辑没有任何变化——仍然是单节点锁。
+
+#### RedLock 的代码对比
+
+```java
+// ===== 场景 A：你每天都在用的普通 RLock =====
+RLock lock = redissonClient.getLock("lock:order:1001");
+lock.tryLock();
+// → 只去一台机器。Cluster 模式下由 slot 路由决定去哪台
+// → 看门狗正常启动，续期正常执行
+
+// ===== 场景 B：RedLock（RedissonRedLock），你可能从没写过 =====
+// 需要多台 完全独立 的 Redis 实例（不是 Cluster 的分片节点！）
+Config c1 = new Config(); c1.useSingleServer().setAddress("redis://10.0.0.1:6379");
+Config c2 = new Config(); c2.useSingleServer().setAddress("redis://10.0.0.2:6379");
+Config c3 = new Config(); c3.useSingleServer().setAddress("redis://10.0.0.3:6379");
+
+RedissonClient r1 = Redisson.create(c1);
+RedissonClient r2 = Redisson.create(c2);
+RedissonClient r3 = Redisson.create(c3);
+
+RLock l1 = r1.getLock("lock:order:1001");
+RLock l2 = r2.getLock("lock:order:1001");
+RLock l3 = r3.getLock("lock:order:1001");
+
+RedissonRedLock redLock = new RedissonRedLock(l1, l2, l3);
+redLock.tryLock();  // 同时往三台独立机器写同一个 key，≥2 成功才算拿到锁
+```
+
+#### 汇总
+
+| | 日常 RLock | 日常 RLock（Cluster） | RedLock（RedissonRedLock） |
+|---|---|---|---|
+| **代码** | `redissonClient.getLock("key")` | `redissonClient.getLock("key")` | `new RedissonRedLock(l1, l2, l3)` |
+| **锁写几台** | 1 | 1（路由决定哪台） | N（所有独立节点） |
+| **看门狗** | ✅ | ✅ | ✅（每台独立续期） |
+| **用过概率** | 100% | Cluster 用户 | ~0% |
+| **安全性** | 主机挂 = 锁丢 | Master 挂 + 异步复制 = 可能丢 | 少数节点挂 = 锁不丢 |
+| **单 key QPS** | = 单机 | = 单机 | < 单机 |
+| **设计目的** | 性能 | 性能（不同 key 去不同节点） | 安全 |
+
+**核心结论**：100 个节点的 Cluster 对加锁的意义是——100 个**不同的**锁 key 分布到 100 个节点，总锁 QPS ≈ 100 × 单机。但**单把锁**的 QPS 和安全性与单机一样。RedLock 是另一个东西，需要手动构造，跟 Cluster 的分片机制无关。
+
 ---
 
 相关：
