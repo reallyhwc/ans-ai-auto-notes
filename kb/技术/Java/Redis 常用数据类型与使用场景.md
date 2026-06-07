@@ -1034,6 +1034,126 @@ redLock.tryLock();  // 同时往三台独立机器写同一个 key，≥2 成功
 
 **核心结论**：100 个节点的 Cluster 对加锁的意义是——100 个**不同的**锁 key 分布到 100 个节点，总锁 QPS ≈ 100 × 单机。但**单把锁**的 QPS 和安全性与单机一样。RedLock 是另一个东西，需要手动构造，跟 Cluster 的分片机制无关。
 
+### 11.11 RedLock 的适用场景与完整代码
+
+#### 什么时候才需要 RedLock
+
+RedLock 的适用条件极为狭窄——三个条件**同时满足**才值得上：
+
+```mermaid
+flowchart TD
+    C1["条件 1：需要分布式锁<br/>（多个 JVM 实例互斥）"] --> And{AND}
+    C2["条件 2：不能接受锁丢失<br/>（即使 Master 宕机）"] --> And
+    C3["条件 3：不能引入 ZK/etcd<br/>（运维限制/技术栈约束）"] --> And
+    And --> RedLock["RedLock 是唯一选择"]
+
+    C1 -.->|"大部分"| Alt1["单机 Redis 锁"]
+    C2 -.->|"大部分"| Alt2["丢了影响不大<br/>限流/防重复提交"]
+    C3 -.->|"可以引入"| Alt3["ZK/etcd 比 RedLock 可靠"]
+```
+
+场景对比：
+
+| 场景 | 需要分布式？ | 不能丢锁？ | 只有 Redis？ | 结论 |
+|------|:--:|:--:|:--:|------|
+| 防重复提交 | ✅ | ❌ | — | 普通 RLock |
+| API 限流 | ✅ | ❌ | — | 普通 RLock |
+| 缓存击穿保护 | ✅ | ❌ | — | 普通 RLock |
+| **跨行转账扣款** | ✅ | ✅ | ✅ | **RedLock** |
+| 秒杀库存扣减 | ✅ | ✅ | ❌ 有 ZK | ZK Curator 锁 |
+
+唯一现实场景：**团队只有 Redis 运维能力，不能引入 ZK/etcd，但要做涉及钱的分布式互斥。**
+
+#### 完整代码：RedissonRedLock
+
+```java
+// ===== 第一步：为每台独立 Redis 创建 RedissonClient =====
+// 注意：这三台是完全独立的不分片的 Redis，不是 Cluster 节点！
+RedissonClient c1 = Redisson.create(new Config()
+    .useSingleServer().setAddress("redis://192.168.1.10:6379"));
+RedissonClient c2 = Redisson.create(new Config()
+    .useSingleServer().setAddress("redis://192.168.1.11:6379"));
+RedissonClient c3 = Redisson.create(new Config()
+    .useSingleServer().setAddress("redis://192.168.1.12:6379"));
+
+// ===== 第二步：每台上各创建一个同 key 的 RLock =====
+RLock lock1 = c1.getLock("lock:transfer:1001");
+RLock lock2 = c2.getLock("lock:transfer:1001");
+RLock lock3 = c3.getLock("lock:transfer:1001");
+
+// ===== 第三步：打包成 RedLock =====
+RedissonRedLock redLock = new RedissonRedLock(lock1, lock2, lock3);
+
+// ===== 第四步：加锁 =====
+try {
+    if (redLock.tryLock(500, 30000, TimeUnit.MILLISECONDS)) {
+        transferMoney();  // ≥2/3 成功 → 业务执行
+    }
+} finally {
+    redLock.unlock();  // 三台全解
+}
+```
+
+过程图解：
+
+```mermaid
+sequenceDiagram
+    participant App as 你的应用
+    participant R1 as Redis .10
+    participant R2 as Redis .11
+    participant R3 as Redis .12
+
+    App->>R1: SET lock:transfer:1001 UUID NX PX 30000
+    App->>R2: SET lock:transfer:1001 UUID NX PX 30000
+    App->>R3: SET lock:transfer:1001 UUID NX PX 30000
+    Note over App: 三个请求并发发出
+
+    R1-->>App: OK ✅
+    R2-->>App: OK ✅
+    R3-->>App: ERR ❌
+
+    Note over App: ≥2/3 成功 → 加锁成功
+    Note over R1,R2: 看门狗分别对 R1、R2 独立续期
+```
+
+**RedissonRedLock 内部关键逻辑**（`RedissonMultiLock.tryLock`）：
+
+```java
+public boolean tryLock(long waitTime, long leaseTime, TimeUnit unit) {
+    for (RLock lock : locks) {
+        // 各 RLock 并发 tryLock（不是串行）
+        if (lock.tryLock(...)) acquiredLocks.add(lock);
+        // 提前终止：剩余锁数 + 已成功 < 过半 → 不可能赢了
+        if (locks.size() - (i + 1) + acquired < quorum) {
+            unlockAll(); return false;
+        }
+    }
+    return acquired >= quorum;
+}
+```
+
+**跟 Cluster 的关键区分：**
+
+```java
+// ❌ 错误：把 Cluster 分片节点当 RedLock 独立节点
+// Cluster 下同一个 key 只去一个 slot → 一个节点
+// 三台 Master 是分片关系，不是独立关系
+
+// ✅ 日常：Cluster + 普通 RLock（99% 场景）
+RedissonClient r = Redisson.create(clusterConfig);
+RLock lock = r.getLock("lock:order:1001");  // 单节点锁
+
+// ✅ 极端场景：额外部署 3-5 台独立 Redis 做 RedLock
+// 跟你的 Cluster 缓存集群是两套东西
+RedissonRedLock redLock = new RedissonRedLock(
+    client1.getLock("lock:transfer:1001"),
+    client2.getLock("lock:transfer:1001"),
+    client3.getLock("lock:transfer:1001")
+);
+```
+
+**一句话总结**：RedLock 要求额外部署 N 台独立的不分片的 Redis。它们和你用来做缓存的 Cluster 是**两套完全不同的基础设施**。这就是 RedLock 成本高的原因——为了几把重要锁每年多花几万块服务器成本。
+
 ---
 
 相关：
