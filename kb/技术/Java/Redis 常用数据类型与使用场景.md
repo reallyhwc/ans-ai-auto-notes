@@ -401,12 +401,143 @@ try {
 ```mermaid
 flowchart TD
     subgraph Redisson["Redisson 分布式锁"]
-        Guard["看门狗 Watch Dog<br/>每 10s 续期到 30s<br/>业务没完锁不过期"] --> Check["解锁校验 UUID+线程ID<br/>Lua 脚本原子执行"]
+        Guard["看门狗 Watch Dog<br/>Netty Timer 每 10s 续期<br/>业务没完锁不过期"] --> Check["解锁校验 UUID+线程ID<br/>Lua 脚本原子执行"]
         Check --> RedLock["RedLock<br/>多节点过半加锁"]
     end
 ```
 
-**看门狗（Watch Dog）**：锁默认 30s 过期，看门狗每 10s 自动续期。只有 JVM 挂了看门狗才停，锁最终靠过期兜底。
+#### 看门狗（Watch Dog）实现原理
+
+看门狗不是一个独立的"看门狗服务"，而是一个 **Netty HashedWheelTimer 定时任务**，线程级别，只在锁被成功持有期间运行。
+
+```mermaid
+sequenceDiagram
+    participant Thread as 业务线程
+    participant RLock as RedissonLock
+    participant Redis
+    participant Timer as Netty HashedWheelTimer
+
+    Thread->>RLock: tryLock()
+    RLock->>Redis: Lua 加锁脚本
+    Redis-->>RLock: OK
+    RLock->>Timer: 启动续期任务<br/>首次触发 = 30000/3 = 10s 后
+
+    loop 每 10s 一次
+        Timer->>Redis: Lua 续期脚本<br/>if hexists → pexpire 30000
+        Redis-->>Timer: OK → 续期成功
+        Timer->>Timer: 递归调度下次续期
+    end
+
+    Thread->>RLock: unlock()
+    RLock->>Timer: 取消续期任务
+    RLock->>Redis: Lua 解锁脚本
+```
+
+**加锁 Lua 脚本**（注意：锁在 Redis 里是 Hash 结构，不是 String）：
+
+```lua
+-- KEYS[1] = lock key, 如 "lock:order:1001"
+-- ARGV[1] = internalLockLeaseTime, 默认 30000ms
+-- ARGV[2] = UUID:threadId
+
+if (redis.call('exists', KEYS[1]) == 0) then
+    redis.call('hincrby', KEYS[1], ARGV[2], 1);
+    redis.call('pexpire', KEYS[1], ARGV[1]);
+    return nil;  -- 加锁成功
+end;
+
+if (redis.call('hexists', KEYS[1], ARGV[2]) == 1) then
+    redis.call('hincrby', KEYS[1], ARGV[2], 1);    -- 重入计数 +1
+    redis.call('pexpire', KEYS[1], ARGV[1]);
+    return nil;  -- 重入成功
+end;
+
+return redis.call('pttl', KEYS[1]);  -- 锁被他人持有，返回剩余时间
+```
+
+Redis 中锁的实际结构：
+
+```
+Key: lock:order:1001 (Hash)
+  field: "a3f8c2d1-...-1" → value: 1 (重入次数)
+```
+
+用 Hash 而不是 String 的原因：**支持可重入**——同一线程多次加锁，field 相同，value 递增。
+
+**看门狗续期的 Java 核心逻辑**（`RedissonBaseLock.renewExpiration()`）：
+
+```java
+// 启动：tryAcquire 成功后调用
+private void renewExpiration() {
+    ExpirationEntry ent = new ExpirationEntry();
+    ent.setThreadId(threadId);
+    EXPIRATION_RENEWAL_MAP.put(getEntryName(), ent);
+
+    // 用 Netty HashedWheelTimer，首次 10s 后触发
+    Timeout task = connectionManager.getServiceManager()
+        .newTimeout(new TimerTask() {
+            @Override
+            public void run(Timeout timeout) throws Exception {
+                renewExpirationAsync(threadId)
+                    .thenAccept(res -> {
+                        if (res) {
+                            renewExpiration();  // 续期成功 → 递归调度
+                        }
+                        // 续期失败 → 锁已不在了，自然停止
+                    });
+            }
+        }, internalLockLeaseTime / 3, TimeUnit.MILLISECONDS);
+    //  ↑ 30000/3 = 10000ms = 10s
+
+    ent.setTimeout(task);
+}
+```
+
+**续期 Lua 脚本**：
+
+```lua
+-- KEYS[1] = lock key
+-- ARGV[1] = 30000
+-- ARGV[2] = UUID:threadId
+
+if (redis.call('hexists', KEYS[1], ARGV[2]) == 1) then
+    redis.call('pexpire', KEYS[1], ARGV[1]);
+    return 1;
+end;
+return 0;
+```
+
+**解锁 Lua 脚本**：
+
+```lua
+-- ARGV[3] = UUID:threadId
+
+if (redis.call('hexists', KEYS[1], ARGV[3]) == 0) then
+    return nil;  -- 不是你的锁，解不了
+end;
+
+local counter = redis.call('hincrby', KEYS[1], ARGV[3], -1);
+if (counter > 0) then
+    redis.call('pexpire', KEYS[1], ARGV[2]);  -- 还有重入层数，不释放
+    return 0;
+else
+    redis.call('del', KEYS[1]);  -- 重入归零，真正释放
+    return 1;
+end;
+```
+
+unlock 同时调用 `cancelExpirationRenewal()` 从 `EXPIRATION_RENEWAL_MAP` 移除并取消 Timer。
+
+**关键设计细节：**
+
+| 设计点 | 做法 | 原因 |
+|--------|------|------|
+| 定时器选型 | Netty HashedWheelTimer | Redisson 本身就基于 Netty，无需额外线程池 |
+| 续期间隔 | 30s / 3 = 10s | 留容错空间，网络抖动几秒也不怕 |
+| 锁持有者标识 | `UUID:threadId` | UUID 区分 JVM，threadId 区分线程 |
+| 可重入 | Hash value 计数 | 加锁 +1，解锁 -1，归零才 DEL |
+| JVM 崩溃兜底 | 看门狗是 JVM 内线程 → 崩了自然停 → 30s 后过期 | 无需"停止看门狗"这个动作 |
+| 不启动看门狗的条件 | 显式指定了 `leaseTime` | 用户说"60s 够了"就不再续期 |
 
 **RedLock 争议**：Redis 作者提出多节点过半加锁，但 Martin Kleppmann 指出缺乏 fencing token、时钟跳跃会导致两个客户端同时持锁。实践中：一致性要求极高时用 ZooKeeper/etcd，一般场景 Redisson 足够。
 
