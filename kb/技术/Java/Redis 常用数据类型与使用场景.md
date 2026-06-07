@@ -864,6 +864,107 @@ SET {order:1001}:status "paid"
 
 Hash tag `{...}` 让多个 key 落在同一 slot，保证 Lua 脚本的原子操作能跨 key 执行——这是 Cluster 模式下做分布式锁的关键 trick。
 
+### 11.8 Cluster 大规模宕机时的故障行为
+
+**Redis Cluster 不会自动重新分片**。slot 迁移只有一种触发方式：管理员手动执行 `redis-cli --cluster reshard`。
+
+#### 50 台节点同时宕机会发生什么
+
+```mermaid
+flowchart TD
+    Before["宕机前<br/>100 个 Master，各管 ~164 个 slot<br/>每个 Master 有一个 Slave（同机房或跨机房）"]
+
+    Before -->|"一个机房断网<br/>50 个 Master + 50 个 Slave 同时失联"| After
+
+    subgraph After["宕机后"]
+        Alive["存活 50 个 Master + 50 个 Slave<br/>继续服务自己的 slot<br/>正常运行 ✅"]
+        Dead["故障节点对应的 slot<br/>如果 Master 和 Slave 都没了<br/>→ 这些 slot 永久 DOWN ❌"]
+        NoRebalance["⚠️ 故障节点的 slot<br/>不会自动分配给存活节点"]
+    end
+```
+
+具体过程：
+
+```
+1. 50 个 Master 同时失联
+2. 存活节点通过 Gossip 协议在 cluster-node-timeout（默认 15s）后发现超时
+3. 如果故障 Master 的 Slave 还活着 → Slave 发起选举 → 提升为新 Master
+   → 自动接管 slot → 服务恢复 ✅
+4. 如果故障 Master 的 Slave 也一起挂了 → 对应 slot 永久 DOWN
+   → 客户端收到 CLUSTERDOWN 错误
+   → 不会自动重新分配到存活节点 ❌
+```
+
+**为什么不做自动重分片？** 安全考虑。自动重分片等同于假设"故障节点永远不会回来了"。但如果只是网络抖动，30 秒后 50 个节点重新连上——它们带着旧数据回来，和自动分配了新 slot 持有者的节点之间就会**数据冲突和脑裂**。Redis Cluster 的原则：**宁可不可用，不可不一致**。
+
+#### 配置关键项
+
+| 参数 | 默认值 | 含义 |
+|------|--------|------|
+| `cluster-node-timeout` | 15000ms | 超时多久判定节点下线 |
+| `cluster-require-full-coverage` | yes | 有 slot 不可用是否拒绝所有请求 |
+| `cluster-slave-validity-factor` | 10 | Slave 与 Master 断连多久仍有选举资格 |
+
+- `cluster-require-full-coverage yes` → 任何 slot 不可用，整个集群拒绝服务 → 强一致性偏好的选择
+- `cluster-require-full-coverage no` → 存活的 slot 继续服务，故障 slot 报错 → 可用性偏好的选择
+
+#### 生产最佳实践
+
+```
+每个 Master 至少 1 个 Slave，且 Slave 部署在不同物理机房/可用区
+  → 任意单机房断网，Slave 自动接管，集群零中断
+
+cluster-require-full-coverage no
+  → 局部故障不影响正常 slot 的服务
+```
+
+**本质结论**：Cluster 的高可用靠的是每个分片配跨机房 Slave，不是靠"挂了自动重分片"。
+
+### 11.9 RedLock vs Cluster：两个完全不同的方向
+
+**Clarification**：RedLock 和 Cluster 不是一回事，它们解决完全不同的问题。
+
+```mermaid
+flowchart TD
+    subgraph Cluster["Cluster 分片（为吞吐）"]
+        C1["不同 key → 不同节点"]
+        C2["lock:order:1001 → slot 8723 → Node-A"]
+        C3["lock:order:1002 → slot 9105 → Node-B"]
+        C4["单 key QPS = 单节点 QPS"]
+        C5["多 key 总 QPS = N × 单机"]
+        C6["单 key 锁安全性 = 单节点级别<br/>（异步复制风险）"]
+    end
+
+    subgraph RedLock["RedLock 多写（为安全）"]
+        R1["同一 key → 所有独立节点"]
+        R2["lock:X 同时写 Redis-1 到 Redis-5"]
+        R3["锁安全 = N/2+1 节点同意"]
+        R4["单 key QPS < 单节点 QPS"]
+        R5["N 个节点不是分片关系<br/>而是独立的五台机器"]
+    end
+```
+
+#### 回答核心困惑
+
+> "搭建集群，加锁仍需半数以上同意，单机 QPS 没下降，集群起了啥意义？"
+
+**RedLock 的多节点从来不是为了 QPS，是为了容错。** 分片（Cluster）和 多写（RedLock）是两个截然相反的方向：
+
+| | Cluster 分片 | RedLock 多写 |
+|---|---|---|
+| **设计目的** | 水平扩展吞吐 | 分布式锁安全 |
+| **不同 key** | 分布到不同节点 | 不相关 |
+| **同一 key** | 只去一个节点 | 写到所有节点 |
+| **QPS 效果** | 总 QPS = N × 单机 | 锁 QPS < 单机（每节点都处理同一 key） |
+| **容错效果** | 单节点故障 = 部分数据不可用 | 少数节点故障 = 锁仍然安全 |
+| **运维成本** | 中（分片 + 复制管理） | 高（N 台独立机器，无分片关系） |
+
+**Redis Cluster 的意义**：缓存海量数据、扩展缓存吞吐——100 个节点意味着 ~100× 单机缓存容量和 ~100× 总 QPS（不同 key 分摊到不同节点）。加锁只是 Redis 的一个小功能，不是 Cluster 的核心价值。
+
+**RedLock 的意义**：为了一把锁的安全，专门部署 N 台独立的 Redis，牺牲 QPS 换容错。这是一个昂贵的交易——实践中绝大多数业务不需要。需要的锁安全性用 DB 行锁更可靠，需要的锁性能用单机 Redis + Sentinel 就够。
+
+**一句话**：Cluster 是让 100 个不同的 key 各忙各的（吞吐 ↑），RedLock 是让 5 台机器盯着同一个 key（安全 ↑）。两者方向相反，不可兼得。
+
 ---
 
 相关：
