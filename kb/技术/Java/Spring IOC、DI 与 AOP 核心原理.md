@@ -458,21 +458,105 @@ flowchart TD
 2. **方法非 public**：CGLIB 代理只能拦截 public 方法
 3. **异常被吞**：`@Transactional` 只对 RuntimeException 回滚，checked exception 不回滚（除非指定 `rollbackFor`）
 
-### 7.2 循环依赖怎么解决？
+### 7.2 循环依赖与三级缓存
 
-Spring 用**三级缓存**解决构造器注入之外的循环依赖：
+#### 7.2.1 什么场景产生
 
+```java
+@Service
+public class AService {
+    @Autowired
+    private BService bService;  // A 需要 B
+}
+
+@Service
+public class BService {
+    @Autowired
+    private AService aService;  // B 也需要 A
+}
 ```
-singletonObjects（一级，成品）
-    ↑
-earlySingletonObjects（二级，半成品引用）
-    ↑
-singletonFactories（三级，ObjectFactory，可提前暴露）
+
+创建 A → 发现需要 B → 创建 B → 发现需要 A → 原点。不处理就会抛 `BeanCurrentlyInCreationException`。
+
+#### 7.2.2 三级缓存
+
+Spring 在 `DefaultSingletonBeanRegistry` 中维护三个 Map：
+
+```java
+/** 一级：成品 Bean（完全初始化好的） */
+Map<String, Object> singletonObjects = new ConcurrentHashMap<>(256);
+
+/** 二级：半成品引用（已实例化但属性未注入完） */
+Map<String, Object> earlySingletonObjects = new HashMap<>(16);
+
+/** 三级：ObjectFactory（提前暴露的工厂，能触发 getEarlyBeanReference） */
+Map<String, ObjectFactory<?>> singletonFactories = new HashMap<>(16);
 ```
 
-核心思想：A 创建中发现自己需要 B → 去创建 B → B 发现自己需要 A → 从三级缓存拿到 A 的早期引用 → B 完成 → A 拿到完整的 B 完成。
+#### 7.2.3 A ↔ B 完整流程
 
-**构造器循环依赖无解**（因为 Bean 还没实例化，连三级缓存都放不进去），只能改设计。
+```mermaid
+sequenceDiagram
+    participant Spring
+    participant L3 as 三级缓存
+    participant L2 as 二级缓存
+    participant L1 as 一级缓存
+    participant A as AService
+    participant B as BService
+
+    Spring->>A: 1. 反射实例化 A（空壳）
+    Spring->>L3: 2. A 的 ObjectFactory 入三级缓存
+    Spring->>A: 3. 属性注入 → 发现需要 B
+    Spring->>B: 4. 实例化 B
+    Spring->>L3: 5. B 的 ObjectFactory 入三级缓存
+    Spring->>B: 6. 属性注入 → 发现需要 A
+    Spring->>L3: 7. 查三级 → 拿到 A 的早期引用
+    Spring->>L2: 8. A 的半成品移入二级缓存
+    Spring->>B: 9. A 的引用注入给 B
+    Spring->>B: 10. B 初始化完成 → 入一级
+    Spring->>A: 11. B 注入给 A → A 初始化完成 → 入一级
+```
+
+#### 7.2.4 为什么必须有三级缓存（不是两级）
+
+**两级缓存足够解决普通的循环依赖**。第三级是为 **AOP** 准备的。
+
+```java
+@Service
+public class AService {
+    @Autowired
+    private BService bService;
+
+    @Transactional  // ← A 最终需要是代理对象
+    public void doSomething() { ... }
+}
+```
+
+B 注入 A 时，到底拿原始对象还是代理对象？如果 A 有 `@Transactional`，必须拿到代理。**三级缓存的 ObjectFactory 通过 `getEarlyBeanReference()` 在这个节点判断是否需要提前生成代理**：
+
+```java
+// 三级缓存中 ObjectFactory 的内部逻辑（简化）
+addSingletonFactory(beanName, () -> {
+    // getEarlyBeanReference: 有 AOP 切面 → 返回代理；否则 → 返回原对象
+    return getEarlyBeanReference(beanName, mbd, bean);
+});
+```
+
+这就是为什么去掉三级缓存只剩两级不行——缺少一个"判断要不要提前代理"的触发点。`SmartInstantiationAwareBeanPostProcessor.getEarlyBeanReference()` 需要通过三级缓存被调用。
+
+#### 7.2.5 构造器循环依赖无解
+
+```java
+public AService(BService bService) { }  // 构造器就要 B
+public BService(AService aService) { }  // 构造器就要 A
+```
+
+构造器注入把"实例化"和"依赖注入"绑在一起——连构造器都走不完，实例都出不来，三级缓存放不进去。只能改设计：其中一个改成 Setter/字段注入，或引入中间层。
+
+#### 7.2.6 其他无解场景
+
+- **Prototype 作用域**：`@Scope("prototype")` — Spring 不缓存 prototype Bean，三级缓存无效
+- **@Async + @Transactional 叠加**：两个切面可能产生两个不同代理，`getEarlyBeanReference` 创建的代理和最终版本不一致
 
 ### 7.3 @Autowired 和 @Resource 区别？
 
