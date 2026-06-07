@@ -1,0 +1,381 @@
+---
+title: Spring IOC、DI 与 AOP 核心原理
+description: Spring 核心机制详解：IoC（控制反转）设计思想、DI（依赖注入）三种方式、Bean 生命周期、AOP（面向切面编程）动态代理原理，含完整代码 Demo 和 Mermaid 图
+---
+
+> 最后整理: 2026-06-07 | 来源: 与 Claude Code 对话
+
+## 1. IOC、DI、AOP 关系概览
+
+三者不是一个层面的东西：
+
+```mermaid
+flowchart TD
+    IOC[IoC 控制反转<br/>设计思想] -->|实现手段| DI[DI 依赖注入<br/>构造器/Setter/字段]
+    IOC -->|基础平台| Container[IoC 容器<br/>BeanFactory/ApplicationContext]
+    Container -->|提供 Bean 管理能力| AOP[AOP 面向切面<br/>动态代理增强]
+    AOP -->|实现| TX[声明式事务]
+    AOP -->|实现| LOG[统一日志]
+    AOP -->|实现| SEC[权限校验]
+
+    style IOC fill:#e1f5fe
+    style DI fill:#fff9c4
+    style Container fill:#c8e6c9
+    style AOP fill:#ffccbc
+```
+
+- **IoC**：设计思想，把"谁来创建依赖"的控制权从业务代码手里拿走
+- **DI**：实现 IoC 的具体手段，通过构造器/setter/字段注入依赖
+- **AOP**：建立在 IoC 容器之上的横向增强，不修改源码织入逻辑
+
+---
+
+## 2. IoC：为什么需要控制反转
+
+### 2.1 没有 IoC 的传统写法
+
+```java
+public class OrderService {
+    private OrderRepository repo = new OrderRepositoryImpl();  // 自己 new
+    private SmsSender smsSender = new AliyunSmsSender();        // 自己 new
+
+    public void placeOrder(Order order) {
+        repo.save(order);
+        smsSender.send("下单成功");
+    }
+}
+```
+
+问题：OrderService 和具体实现绑死了。换短信服务商 → 改代码 → 重新编译 → 重新部署。
+
+### 2.2 IoC 后的写法
+
+```java
+public class OrderService {
+    private OrderRepository repo;
+    private SmsSender smsSender;
+
+    // 容器把实现塞进来，自己不 new
+    public OrderService(OrderRepository repo, SmsSender smsSender) {
+        this.repo = repo;
+        this.smsSender = smsSender;
+    }
+
+    public void placeOrder(Order order) {
+        repo.save(order);
+        smsSender.send("下单成功");
+    }
+}
+```
+
+### 2.3 控制权反转的本质
+
+```mermaid
+flowchart LR
+    subgraph 传统模式
+        A[OrderService] -->|new| B[OrderRepositoryImpl]
+        A -->|new| C[AliyunSmsSender]
+    end
+
+    subgraph IoC模式
+        D[容器] -->|注入| E[OrderService]
+        D -->|创建| F[OrderRepositoryImpl]
+        D -->|创建| G[AliyunSmsSender]
+        E -.->|声明依赖| D
+    end
+```
+
+传统：业务代码主动创建依赖 → **控制权在业务代码**
+IoC：容器创建并注入依赖 → **控制权在容器**（反转了）
+
+---
+
+## 3. DI：三种注入方式
+
+### 3.1 构造器注入（推荐）
+
+```java
+@Service
+public class OrderService {
+    private final OrderRepository repo;   // final，保证不可变
+    private final SmsSender smsSender;
+
+    // Spring 4.3+ 单构造器可省略 @Autowired
+    public OrderService(OrderRepository repo, SmsSender smsSender) {
+        this.repo = repo;
+        this.smsSender = smsSender;
+    }
+}
+```
+
+**优点**：依赖不可变、方便单测 mock（直接 new 传参）、不依赖反射。
+
+### 3.2 Setter 注入
+
+```java
+@Service
+public class OrderService {
+    private OrderRepository repo;
+
+    @Autowired
+    public void setRepo(OrderRepository repo) {
+        this.repo = repo;
+    }
+}
+```
+
+适用：依赖可选（不注入时有默认值或降级逻辑）。
+
+### 3.3 字段注入（不推荐）
+
+```java
+@Service
+public class OrderService {
+    @Autowired
+    private OrderRepository repo;  // 最省事但隐藏了依赖
+}
+```
+
+问题：依赖外部不可见、无法声明 final、单测必须启动 Spring 上下文或用反射。
+
+### 3.4 有多个同类型 Bean 时的歧义处理
+
+```java
+// 方案 1：@Primary — 指定默认实现
+@Primary
+@Component
+public class AliyunSmsSender implements SmsSender { }
+
+// 方案 2：@Qualifier — 按名称精确指定
+@Autowired
+@Qualifier("aliyunSmsSender")
+private SmsSender smsSender;
+
+// 方案 3：@Resource — 按名称注入（JSR-250，非 Spring 特有）
+@Resource(name = "aliyunSmsSender")
+private SmsSender smsSender;
+```
+
+---
+
+## 4. IoC 容器：BeanFactory vs ApplicationContext
+
+容器本质是一个巨大的 `Map<String, Object>`，key 是 beanName，value 是 bean 实例。
+
+```java
+// 最底层的容器接口
+public interface BeanFactory {
+    Object getBean(String name);
+    <T> T getBean(Class<T> requiredType);
+    boolean containsBean(String name);
+}
+
+// ApplicationContext 继承 BeanFactory，加了更多企业级特性
+public interface ApplicationContext extends BeanFactory, ... {
+    // 事件发布、国际化 MessageSource、资源加载 ResourceLoader
+}
+```
+
+| | BeanFactory | ApplicationContext |
+|---|---|---|
+| 实例化时机 | 懒加载（getBean 时才创建） | 预加载（启动时创建所有单例） |
+| 功能 | 仅 DI | DI + AOP + 事件 + 国际化 + 资源加载 |
+| 日常使用 | ❌ 几乎不用 | ✅ 默认 |
+
+---
+
+## 5. Bean 生命周期（AOP 代理的关键节点）
+
+```mermaid
+sequenceDiagram
+    participant 容器
+    participant BeanDefinition
+    participant Bean实例
+
+    容器->>BeanDefinition: 1. 扫描/解析配置 → BeanDefinition
+    容器->>Bean实例: 2. 实例化（反射调构造器）
+    容器->>Bean实例: 3. 属性填充（依赖注入）
+    容器->>Bean实例: 4. Aware 回调（BeanNameAware 等）
+    容器->>Bean实例: 5. BeanPostProcessor.postProcessBeforeInitialization()
+    容器->>Bean实例: 6. @PostConstruct / InitializingBean
+    容器->>Bean实例: 7. BeanPostProcessor.postProcessAfterInitialization()
+    Note over Bean实例: ⭐ Bean 就绪，可以使用
+    容器->>Bean实例: 8. @PreDestroy（容器关闭时）
+```
+
+关键节点：
+- **第 5 步**：AOP 代理在此创建（`AbstractAutoProxyCreator` 把 Bean 包成代理）
+- **第 7 步**：此时 Bean 才算真正可用
+- 第 5-6-7 步是面试最爱问的三个扩展点
+
+### 实践 Demo：自定义 BeanPostProcessor
+
+```java
+@Component
+public class MyBeanPostProcessor implements BeanPostProcessor {
+
+    @Override
+    public Object postProcessBeforeInitialization(Object bean, String beanName) {
+        if (bean instanceof OrderService) {
+            System.out.println("OrderService 初始化前，依赖已注入但 @PostConstruct 没执行");
+        }
+        return bean;  // 可以在这里返回代理对象
+    }
+
+    @Override
+    public Object postProcessAfterInitialization(Object bean, String beanName) {
+        if (bean instanceof OrderService) {
+            System.out.println("OrderService 初始化后，可以安全使用");
+        }
+        return bean;  // AOP 就是在这里包代理
+    }
+}
+```
+
+---
+
+## 6. AOP：不碰源码的横向增强
+
+### 6.1 没有 AOP 时的横切逻辑问题
+
+```java
+public void transfer(Account from, Account to, BigDecimal amount) {
+    tx.begin();                    // ← 事务
+    log.info("开始转账");           // ← 日志
+    checkPermission();             // ← 权限
+    // ... 真正的业务逻辑只有两行
+    from.debit(amount);
+    to.credit(amount);
+    log.info("转账成功");           // ← 日志
+    tx.commit();                   // ← 事务
+}
+```
+
+事务、日志、权限校验散布在每个方法里——修改一个横切逻辑要改 N 个文件。
+
+### 6.2 AOP 核心术语
+
+```mermaid
+flowchart TB
+    subgraph AOP术语
+        A[JoinPoint 连接点] -->|"所有可以被增强的方法"| E[目标对象的所有方法]
+        B[Pointcut 切入点] -->|"真正选中的方法"| F["execution(* com.xyz.service.*.*(..))"]
+        C[Advice 通知] -->|"增强逻辑"| G["@Before / @After / @Around 方法"]
+        D[Aspect 切面] -->|"Pointcut + Advice 的集合"| H["@Aspect 标注的类"]
+    end
+```
+
+### 6.3 实战 Demo
+
+```java
+@Aspect
+@Component
+public class LoggingAspect {
+
+    // Pointcut：匹配 service 包下所有方法
+    @Pointcut("execution(* com.example.service.*.*(..))")
+    public void serviceLayer() {}
+
+    // Advice：Around 最强大，可以控制是否执行原方法
+    @Around("serviceLayer()")
+    public Object logExecutionTime(ProceedingJoinPoint joinPoint) throws Throwable {
+        long start = System.currentTimeMillis();
+        Object result = joinPoint.proceed();  // 执行原方法
+        long elapsed = System.currentTimeMillis() - start;
+
+        System.out.println(joinPoint.getSignature() + " 耗时: " + elapsed + "ms");
+        return result;
+    }
+}
+```
+
+### 6.4 五种 Advice 对比
+
+| 类型 | 执行时机 | 能阻止目标方法吗 | 能拿到返回值吗 |
+|------|---------|:-:|:-:|
+| `@Before` | 方法执行前 | ❌ | ❌ |
+| `@AfterReturning` | 正常返回后 | ❌ | ✅ |
+| `@AfterThrowing` | 抛异常后 | ❌ | ❌（能拿到异常） |
+| `@After` | 方法结束后（finally 语义） | ❌ | ❌ |
+| `@Around` | 前后都管，最强大 | ✅ 可以不调 proceed() | ✅ |
+
+### 6.5 Spring AOP 底层：JDK 动态代理 vs CGLIB
+
+```java
+// JDK 动态代理：要求目标类实现接口
+// 原理：Proxy.newProxyInstance(classLoader, interfaces, invocationHandler)
+// 生成的代理类：$Proxy0 extends Proxy implements XxxService
+
+// CGLIB：通过继承目标类生成子类
+// 原理：Enhancer + MethodInterceptor，ASM 字节码增强
+// 生成的代理类：XxxServiceImpl$$EnhancerBySpringCGLIB$$xxx extends XxxServiceImpl
+```
+
+对比：
+
+| | JDK 动态代理 | CGLIB |
+|---|---|---|
+| 原理 | 反射 + 接口 | 字节码 + 继承 |
+| 要求 | 必须实现接口 | 类和方法不能是 final |
+| 性能（调用） | 反射调用，稍慢 | 直接调用（子类），更快 |
+| 性能（创建） | 更快 | 生成字节码，稍慢 |
+| Spring 默认 | Boot 1.x 默认 | **Boot 2.x+ 默认** |
+
+为什么 Spring Boot 2.0 起切到 CGLIB？大部分项目不给 Service 抽接口，JDK 代理直接不可用。
+
+### 6.6 AOP 的常见应用场景
+
+```mermaid
+flowchart TD
+    AOP --> TX[声明式事务<br/>@Transactional]
+    AOP --> CACHE[缓存<br/>@Cacheable]
+    AOP --> LOG[统一日志<br/>自定义注解]
+    AOP --> RETRY[重试<br/>@Retryable]
+    AOP --> ASYNC[异步<br/>@Async]
+    AOP --> PERM[权限校验<br/>自定义切面]
+```
+
+`@Transactional` 就是 AOP 的典型应用——Spring 在 `postProcessAfterInitialization` 阶段检查 Bean 有没有 `@Transactional`，有就包一层事务代理。
+
+---
+
+## 7. 常见面试追问
+
+### 7.1 Spring AOP 什么时候失效？
+
+1. **同类内部调用**：`this.methodB()` 没走代理，AOP 不生效 → 解决：注入自己或抽到另一个 Bean
+2. **方法非 public**：CGLIB 代理只能拦截 public 方法
+3. **异常被吞**：`@Transactional` 只对 RuntimeException 回滚，checked exception 不回滚（除非指定 `rollbackFor`）
+
+### 7.2 循环依赖怎么解决？
+
+Spring 用**三级缓存**解决构造器注入之外的循环依赖：
+
+```
+singletonObjects（一级，成品）
+    ↑
+earlySingletonObjects（二级，半成品引用）
+    ↑
+singletonFactories（三级，ObjectFactory，可提前暴露）
+```
+
+核心思想：A 创建中发现自己需要 B → 去创建 B → B 发现自己需要 A → 从三级缓存拿到 A 的早期引用 → B 完成 → A 拿到完整的 B 完成。
+
+**构造器循环依赖无解**（因为 Bean 还没实例化，连三级缓存都放不进去），只能改设计。
+
+### 7.3 @Autowired 和 @Resource 区别？
+
+| | @Autowired | @Resource |
+|---|---|---|
+| 来源 | Spring | JSR-250（JDK） |
+| 注入策略 | 默认 byType | 默认 byName |
+| 配合 | @Qualifier | name 属性 |
+
+---
+
+## 8. 一句话总结
+
+**IoC 是思想（别自己 new），DI 是手段（容器注入），容器是载体（管理 Bean 生命周期），AOP 是容器之上的高级玩法（不碰源码做增强）。**
+
+相关：
+- [[../计算机基础/]] — 设计模式中的依赖倒置原则（DIP）与 IoC 的关系
