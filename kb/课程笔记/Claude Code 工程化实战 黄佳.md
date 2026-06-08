@@ -38,6 +38,7 @@ description: "极客时间黄佳《Claude Code 工程化实战》课程的学习
 | **Headless 模式** | [Headless 模式与 Agent SDK](<../技术/AI/Claude-Code/Headless 模式与 Agent SDK.md>) | `claude -p` 非交互模式，CI/cron/subprocess 入口 |
 | **Plugins** | [Plugins 插件体系](<../技术/AI/Claude-Code/Plugins 插件体系.md>) | 把 skills+agents+hooks+MCP+monitors+bin 打成可发布包 |
 | **方法论** | [识别自动化机会的方法论](./识别自动化机会的方法论.md) | 训练"看出哪些重复任务可自动化"的元能力 |
+| **2026 上半年新特性** | [Claude Code 2026 上半年新特性与项目实践](<../技术/AI/Claude-Code/Claude Code 2026 上半年新特性与项目实践.md>) | Agent View/Teams/Auto Mode/Dynamic Workflows + 项目落地分析 |
 
 ---
 
@@ -127,8 +128,8 @@ graph TB
 
 | 疑问 | 优先级 | 状态 |
 |------|--------|------|
-| Agent Teams 怎么用？多个 agent 并发跑、互相通信的实战模式 | ⭐⭐ | 待课程后续章节 |
-| Background agents（agent-view）和 background subagent 区别 | ⭐⭐ | 待官方文档深读 |
+| Agent Teams 怎么用？多个 agent 并发跑、互相通信的实战模式 | ⭐⭐ | ✅ 已整理到 [2026 上半年新特性 §3.2](<../技术/AI/Claude-Code/Claude Code 2026 上半年新特性与项目实践.md>) |
+| Background agents（agent-view）和 background subagent 区别 | ⭐⭐ | ✅ 已整理到 [2026 上半年新特性 §3.1](<../技术/AI/Claude-Code/Claude Code 2026 上半年新特性与项目实践.md>) |
 | Plugin 分发到私有 git repo 的完整 marketplace 配置 | ⭐ | 待真正要分发时 |
 | `CLAUDE_CODE_FORK_SUBAGENT=1` fork 模式在哪些实际场景更优 | ⭐⭐ | 待试用 |
 | Channels 机制（`--channels` flag）怎么用 | ⭐ | 文档简略 |
