@@ -5,7 +5,7 @@ description: "极客时间黄佳《Claude Code 工程化实战》课程的学习
 
 # Claude Code 工程化实战 黄佳
 
-> 最后整理: 2026-06-02 | 来源: 极客时间课程 + 官方文档交叉验证
+> 最后整理: 2026-06-08 | 来源: 极客时间课程 + 官方文档交叉验证
 
 > 这个文件是**学习驾驶舱**：narrative 形式记录学习节点、对应专题文件、个人疑问。
 > 各机制的深度讲解在专题文件里，链接见下。
@@ -16,6 +16,7 @@ description: "极客时间黄佳《Claude Code 工程化实战》课程的学习
 
 | 日期 | 章节/主题 | 状态 | 关键收获 |
 |------|---------|------|---------|
+| 2026-06-08 | 百舸争流：多任务并行探索与流水线编排 | ✅ | 并行探索 vs 流水线编排两种模式 + Handoff Contract 交接契约 + 混合模式 + 实践：给现有 subagent 加结构化契约 |
 | 2026-06-06 | 去芜存菁：高噪声任务处理——测试运行器与日志分析器 | ✅ | Sub-Agent 作为信息漏斗，三种配方（test-runner/log-analyzer/build-watcher）+ 输出契约 + 模型降级策略 |
 | 2026-06-06 | 量体裁衣：从 Sub-Agents 到 Multi-Agent 的工程指南 | ✅ | 四种模式（Skills/Sub-Agents/Handoffs/Router）+ Supervisor 详解 + 生产部署实例 + 当前项目选型验证 |
 | 2026-06-02 | Q&A round 1：subagents/skills/hooks/MCP/headless/plugins/方法论 | ✅ | 建了 6 个机制专题 + 1 个方法论文件，文档级深度 |
@@ -141,7 +142,7 @@ graph TB
 | 课程概念 | 本项目用了吗 | 怎么用的 / 为什么没用 |
 |---------|------------|------------------|
 | Skills | ✅ | 3 个：kb-content-style、kb-tdd-discipline、auto-commit-discipline |
-| Subagents（自定义） | ❌ | 单人项目，目前没有跨任务的"专家角色"需求 |
+| Subagents（自定义） | ✅ | 3 个：idea-extractor、kb-auditor、plan-executor，已加 Handoff Contract 结构化交接 |
 | Hooks | ✅ | SessionStart（preflight + arch-lint）、Stop（exit-check 多项） |
 | MCP | ❌ | 零依赖原则；skill 系统已覆盖类似需求 |
 | Headless | ❌ | 全部交互模式 |
@@ -149,7 +150,7 @@ graph TB
 | Memory | ✅ | 已有 8 个 memory 文件 + MEMORY.md 索引 |
 
 **短期可能补的**：
-- subagent：写一个 `kb-auditor` agent 跑 long-form 审查（context 隔离）
+- 流水线：content-parser + cross-checker 两个并行子代理，拼成"课程笔记摄入流水线"（Fan-out→Fan-in + kb-auditor 收尾）
 - skill：写一个 `/append-to-course` 帮课程笔记自动 link
 
 **短期不会动的**：MCP、headless、plugin——还没到那个体量。

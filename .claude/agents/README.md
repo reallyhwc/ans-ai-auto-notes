@@ -13,9 +13,9 @@ description: "ans-ai-auto-notes 三个项目级 subagent（kb-auditor / plan-exe
 
 | Agent | 干什么 | 触发方 | 产物 |
 |---|---|---|---|
-| **kb-auditor** | 审 long-form kb 笔记的深度/章节/链接/视觉化 | AI 主动 (≥300 行改动 OR ≥800 行单文件) + 用户显式 | `logs/audits/<basename>-YYYY-MM-DD.md` |
+| **kb-auditor** | 审 long-form kb 笔记的深度/章节/链接/视觉化 | AI 主动 (≥300 行改动 OR ≥800 行单文件) + 用户显式 | `logs/audits/<basename>-YYYY-MM-DD.md` + 结构化 `VERDICT` + issues 列表 + metrics |
 | **plan-executor** | 端到端跑 `docs/superpowers/plans/*.md` 全部 task（嵌套 implementer + reviewer） | 用户显式（"run plan X"） | `logs/plan-runs/<plan>-YYYY-MM-DD.md` |
-| **idea-extractor** | 从长文/URL 识别 KB 沉淀候选（不写盘） | 用户显式 + AI 看到长文章主动提议 | 主对话内的 `EXTRACT-VERDICT:` 建议块 |
+| **idea-extractor** | 从长文/URL 识别 KB 沉淀候选（不写盘） | 用户显式 + AI 看到长文章主动提议 | 结构化 `EXTRACT-VERDICT` + candidates/skipped/existing_overlap |
 
 ## 触发决策树
 
@@ -84,10 +84,10 @@ Task tool:
      --summary "<VERDICT + 关键发现>" \
      --outcome success|partial|blocked
    ```
-3. **执行建议**：
-   - `kb-auditor` Important 级 → 立即 Edit kb 文件；Minor → 视情况
-   - `plan-executor` partial/blocked → 看 `logs/plan-runs/` 里 blocked task 决策
-   - `idea-extractor` 候选 → 跟用户对齐再写 kb（**不要** 自动落盘，extractor 是 review-only）
+3. **消费 Handoff Contract**：
+   - `kb-auditor`：遍历 `issues` 列表，`severity: important` 立即按 `suggestion` 逐项 Edit kb 文件；`minor` 视情况。用 `metrics` 判断是否需要补 mermaid/表格
+   - `plan-executor`：partial/blocked → 看 `logs/plan-runs/` 里 blocked task 决策
+   - `idea-extractor`：按 `candidates` 的 `priority` 顺序处理，用 `depth_hint` 决定写入篇幅，用 `existing_overlap` 避免重复。`action: create` 直接新建；`action: append` 追加到指定 `section`。**不要**跳过 overlap 检查直接写
 
 ## 工具白名单（最小权限）
 
