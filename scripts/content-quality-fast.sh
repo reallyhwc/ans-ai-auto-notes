@@ -13,7 +13,8 @@ WARN_COUNT=0
 if [ "${CQF_CHECK_ALL:-}" = "1" ]; then
   FILES=$(find kb -name "*.md" -type f 2>/dev/null)
 else
-  FILES=$(git diff --name-only HEAD~ 2>/dev/null | grep '^kb/.*\.md$' || true)
+  FILES=$(git diff --name-only HEAD~1 2>/dev/null | grep '^kb/.*\.md$' || true)
+  [ -z "$FILES" ] && FILES=$(git diff --cached --name-only 2>/dev/null | grep '^kb/.*\.md$' || true)
 fi
 
 [ -z "$FILES" ] && echo "  ✓ 无 kb/ 文件需检查" && exit 0

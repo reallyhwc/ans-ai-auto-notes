@@ -25,13 +25,13 @@ END_MS=$(python3 -c "import time; print(int(time.time()*1000))" 2>/dev/null || e
 DURATION_MS=$((END_MS - START_MS))
 TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-# 用 python3 写 JSON（避免 shell 转义问题）
-python3 -c "
-import json, sys
+# 用 python3 写 JSON（通过 env var 传 command 避免引号注入）
+HOOK_CMD="$CMD" python3 -c "
+import json, os
 entry = {
     'time': '$TIME',
     'hook': '$HOOK_NAME',
-    'command': '''$CMD''',
+    'command': os.environ['HOOK_CMD'],
     'exit_code': $EXIT_CODE,
     'duration_ms': $DURATION_MS
 }
