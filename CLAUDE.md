@@ -130,9 +130,9 @@ ans-ai-auto-notes/
 | 层级 | Hook | 配置来源 | 脚本 | 检查内容 |
 |------|------|---------|------|---------|
 | **约束层** | SessionStart | settings.local.json | `scripts/preflight.sh` → `scripts/arch-lint.sh` | 15 项机械检查（frontmatter、元信息头、交叉链接、重复标题、磁盘一致性、大小写、行数限制、memory 格式、零依赖、脚本引用、标题 ID 契约、章节编号、anchor 存活、内容具象度）+ memory 过期 + 遗留变更 + manifest 过期 + session 摘要 |
-| **约束层** | Stop | settings.local.json | `exit-check.sh` → `lint.sh` + `check-overview.js` + `session-log.sh` + `permission-audit.sh` + 未 push 检查 | 9 项退出检查：markdown 格式、git 状态、INDEX 一致性、overview 健康、session 日志、权限审计、未 push commit（≥5 自动 push）、沉淀声明审计、plans 状态 |
+| **约束层** | Stop | settings.local.json | `exit-check.sh` → `lint.sh` + `check-overview.js` + `session-log.sh` + `permission-audit.sh` + 未 push 检查 | 11 项退出检查：markdown 格式、git 状态、INDEX 一致性、overview 健康、session 日志、权限审计、未 push commit（≥5 自动 push）、沉淀声明审计、plans 状态、agent-log patch 合规、内容质量 fast-path |
 | **约束层** | Stop | settings.json | `node scripts/agent-log-hook.js main` | 主 agent 工作日志记录（有实质工作时写入 `logs/agent-runs/` JSONL） |
-| **约束层** | PostToolUse（Write/Edit） | settings.local.json | `scripts/verify-claim.sh` | 每次 Write/Edit kb/ 或 memory/ 文件时验证文件确实存在，写入 `.claude/claim-ledger.log`（exit-check [8/9] 消费） |
+| **约束层** | PostToolUse（Write/Edit） | settings.local.json | `scripts/verify-claim.sh` | 每次 Write/Edit kb/ 或 memory/ 文件时验证文件确实存在，写入 `.claude/claim-ledger.log`（exit-check [8/11] 消费） |
 | **约束层** | SubagentStop | settings.json | `node scripts/agent-log-hook.js subagent` | subagent 工作日志记录（写入 `logs/agent-runs/` JSONL，后续由 AI patch title/summary/outcome） |
 | **文档层** | — | — | `.claude/session-logs/` | 每日 session 日志存档（同日多次 Stop 累加 append） |
 | **文档层** | — | — | `memory/*.md` | 记忆文件优先用 frontmatter 内 `lastUpdated`（任意缩进），无此字段时 fallback 到文件 mtime，>14 天告警 |
@@ -155,7 +155,7 @@ ans-ai-auto-notes/
 
 ### Plan 系统
 
-长期任务（跨多个 session 的实施项目）的 plan 位于 [`docs/superpowers/plans/`](docs/superpowers/plans/)。新 plan 通过 superpowers `writing-plans` skill 生成。Plan 文件 frontmatter 中 `status:` 字段或 `> 状态: xxx` 段标记进度（已完成 / completed / done / closed 视为关闭，其他视为开放）。Stop hook 的 `[9/9]` 自动列出未完成 plan。
+长期任务（跨多个 session 的实施项目）的 plan 位于 [`docs/superpowers/plans/`](docs/superpowers/plans/)。新 plan 通过 superpowers `writing-plans` skill 生成。Plan 文件 frontmatter 中 `status:` 字段或 `> 状态: xxx` 段标记进度（已完成 / completed / done / closed 视为关闭，其他视为开放）。Stop hook 的 `[9/11]` 自动列出未完成 plan。
 
 ## 重要提醒
 
