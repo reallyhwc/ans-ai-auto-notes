@@ -112,8 +112,9 @@ else
   AGENT_BAD=0
   for f in "$AGENT_DIR"/*.md; do
     [ -f "$f" ] || continue
-    AGENT_COUNT=$((AGENT_COUNT + 1))
     BASENAME=$(basename "$f" .md)
+    [ "$BASENAME" = "README" ] && continue
+    AGENT_COUNT=$((AGENT_COUNT + 1))
     # 提取 frontmatter 必填字段
     NAME=$(awk '/^---$/{c++;next} c==1 && /^name:/{sub(/^name: */,""); print; exit}' "$f")
     DESC=$(awk '/^---$/{c++;next} c==1 && /^description:/{sub(/^description: */,""); print; exit}' "$f")

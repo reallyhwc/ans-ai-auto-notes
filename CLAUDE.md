@@ -125,14 +125,19 @@ ans-ai-auto-notes/
 
 ### 会话退出检查（重要）
 
-**自动化 Hook 体系**（`.claude/settings.local.json`，基于 Harness Engineering 三层模型）：
+**自动化 Hook 体系**（`.claude/settings.local.json` + `.claude/settings.json`，基于 Harness Engineering 三层模型）：
 
-| 层级 | Hook | 脚本 | 检查内容 |
-|------|------|------|---------|
-| **约束层** | SessionStart | `scripts/preflight.sh` → `scripts/arch-lint.sh` | 10 项机械检查：frontmatter 完整性、元信息头规范、交叉链接（死链）、重复标题、磁盘 vs INDEX 一致性、大小写一致性（Linux 兼容）、行数限制（>1000 警告/>1500 错误）、memory frontmatter 格式、零 npm 依赖 enforce、脚本被引用一致性。外加 memory 过期（>14 天，frontmatter lastUpdated 优先，fallback 文件 mtime）、遗留未提交变更、manifest.json 过期、上次 session 摘要 |
-| **约束层** | Stop | `exit-check.sh` → `lint.sh` + `check-overview.js` + `session-log.sh` + `permission-audit.sh` + 未 push 检查 | markdown 格式（纯 bash awk 实现，零 npm 依赖）、git 状态、INDEX.md 与 kb/ 数量一致性、overview.html 健康（12 项含行数限制）、session 日志、权限审计、未 push 的 commit（**≥5 自动 push，所有分支统一规则**——单人知识库无需 main 保护，由 pre-push hook 的 test + mermaid 守恒兜底）|
-| **文档层** | — | `.claude/session-logs/` | 每日 session 日志存档（同日多次 Stop 累加 append） |
-| **文档层** | — | `memory/*.md` | 记忆文件优先用 frontmatter 内 `lastUpdated`（任意缩进），无此字段时 fallback 到文件 mtime，>14 天告警 |
+| 层级 | Hook | 配置来源 | 脚本 | 检查内容 |
+|------|------|---------|------|---------|
+| **约束层** | SessionStart | settings.local.json | `scripts/preflight.sh` → `scripts/arch-lint.sh` | 15 项机械检查（frontmatter、元信息头、交叉链接、重复标题、磁盘一致性、大小写、行数限制、memory 格式、零依赖、脚本引用、标题 ID 契约、章节编号、anchor 存活、内容具象度）+ memory 过期 + 遗留变更 + manifest 过期 + session 摘要 |
+| **约束层** | Stop | settings.local.json | `exit-check.sh` → `lint.sh` + `check-overview.js` + `session-log.sh` + `permission-audit.sh` + 未 push 检查 | 9 项退出检查：markdown 格式、git 状态、INDEX 一致性、overview 健康、session 日志、权限审计、未 push commit（≥5 自动 push）、沉淀声明审计、plans 状态 |
+| **约束层** | Stop | settings.json | `node scripts/agent-log-hook.js main` | 主 agent 工作日志记录（有实质工作时写入 `logs/agent-runs/` JSONL） |
+| **约束层** | PostToolUse（Write/Edit） | settings.local.json | `scripts/verify-claim.sh` | 每次 Write/Edit kb/ 或 memory/ 文件时验证文件确实存在，写入 `.claude/claim-ledger.log`（exit-check [8/9] 消费） |
+| **约束层** | SubagentStop | settings.json | `node scripts/agent-log-hook.js subagent` | subagent 工作日志记录（写入 `logs/agent-runs/` JSONL，后续由 AI patch title/summary/outcome） |
+| **文档层** | — | — | `.claude/session-logs/` | 每日 session 日志存档（同日多次 Stop 累加 append） |
+| **文档层** | — | — | `memory/*.md` | 记忆文件优先用 frontmatter 内 `lastUpdated`（任意缩进），无此字段时 fallback 到文件 mtime，>14 天告警 |
+
+> 注：Stop hook 来自两个配置文件叠加（settings.local.json 跑 exit-check.sh，settings.json 跑 agent-log-hook.js），两者都会执行。
 
 > 注：UserPromptSubmit hook 已移除（commit-reminder.sh 已淘汰）——由 AI 主动 auto-commit 替代机械提醒。AI 每完成一批文件变更后立即 `git add -A && git commit`，不等用户提醒。
 
