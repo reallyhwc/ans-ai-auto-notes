@@ -3,7 +3,7 @@ title: "Claude Code 整体架构 & 工作流程"
 description: "整体架构、REPL循环、工具链、Hooks、上下文管理、完整数据流"
 ---
 
-> 最后整理: 2026-05-06 | 来源: 对话 + 网络资料
+> 最后整理: 2026-06-08 | 来源: 对话 + 官方文档
 
 > 关联: [harness-engineering](<./Harness Engineering：AI Agent 时代的工程范式.md>) — Claude Code 是 Harness Engineering 的代表性产品 | [claude-code-advanced-workflow](<./Claude Code 进阶工作流：从能用到高效.md>) — 配置与工作流实战 | [llm-agent-mcp](<../大模型/Agent 与 MCP.md>) — Agent/MCP 协议原理
 
@@ -382,6 +382,77 @@ Round 3: 你又问 → 同样，旧内容命中缓存
 
 这不是插件，是内置行为。
 ```
+
+### 5. Resume 机制（会话恢复）
+
+Claude Code 的每次对话会话都会持久化到本地磁盘（`~/.claude/` 目录下），Resume 机制允许你跨终端、跨时间恢复之前的对话上下文。
+
+**三种恢复方式：**
+
+| 命令 | 行为 | 典型场景 |
+|------|------|---------|
+| `claude -c` | 继续当前目录下**最近一次**会话 | 关掉终端后回来接着干 |
+| `claude -r <id或名称>` | 按 ID 或名称恢复**指定**会话 | 维护多个并行任务线 |
+| `claude -r`（无参数） | 弹出交互式列表选择 | 不记得 ID 时浏览选择 |
+
+**关键能力：**
+
+```
+命名会话 ──→ claude -n "auth-refactor" 启动
+             claude -r "auth-refactor" 恢复
+
+Fork 分叉 ──→ claude --resume abc123 --fork-session
+             从历史会话分叉新会话，原会话不受影响
+
+PR 关联  ──→ claude --from-pr 123
+             恢复与特定 PR 关联的会话
+
+Teleport ──→ claude --teleport
+             将 claude.ai/code 上的 Web 会话拉到本地终端继续
+
+后台会话 ──→ claude -r 列表中标记 bg 的条目
+             v2.1.144 起支持 /resume 后台会话
+```
+
+**底层原理：**
+
+```mermaid
+sequenceDiagram
+    participant U as 用户
+    participant CC as Claude Code
+    participant D as 本地磁盘<br/>~/.claude/
+    participant API as Claude API
+
+    U->>CC: claude -n "my-task"
+    CC->>D: 创建 session transcript
+    CC->>API: 发送 prompt
+    API-->>CC: 返回响应
+    CC->>D: 追加本轮对话到 transcript
+
+    Note over U,D: ... 关掉终端，第二天回来 ...
+
+    U->>CC: claude -r "my-task"
+    CC->>D: 加载 session transcript
+    CC->>CC: 如超出上下文窗口 → 自动压缩(compaction)
+    CC->>API: 带历史上下文发送
+    API-->>CC: 接着之前的语境继续
+```
+
+> **注意**：Resume 加载的是完整对话记录，如果历史很长，系统会自动 compaction（压缩早期消息为摘要），保留最近几轮的完整内容。5 分钟的 Prompt Cache TTL 与 Resume 无关——Resume 是从磁盘重建上下文，不依赖 API 缓存。
+
+### 6. 信息获取渠道
+
+Claude Code 迭代非常快（几乎每天一个小版本），以下是获取一手信息的渠道：
+
+| 渠道 | 地址 | 特点 |
+|------|------|------|
+| **官方 Changelog** | `code.claude.com/docs/en/changelog` | 最权威，每版本详细变更 |
+| **官方文档** | `code.claude.com/docs` | 功能文档，随版本同步 |
+| **完整文档索引** | `code.claude.com/docs/llms.txt` | 所有页面索引，适合让 AI 读 |
+| **GitHub Issues** | `github.com/anthropics/claude-code` | 社区反馈 + feature request |
+| **本地更新** | `claude -v` 查版本 / `claude update` 更新 | 最直接 |
+
+> **实用技巧**：原生安装（`curl ... | bash`）会自动后台更新，Homebrew 需手动 `brew upgrade claude-code`。在 Claude Code 里直接问"最近有什么新功能"也是高效方式——AI 可以实时查阅官方文档。
 
 ## 六、完整数据流：从你输入到我执行的完整路径
 
