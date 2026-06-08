@@ -29,6 +29,7 @@ description: "极客时间黄佳《Claude Code 工程化实战》课程的学习
 
 | 主题 | 专题文件 | 一句话定位 |
 |------|---------|----------|
+| **并行探索与流水线编排** | [并行探索与流水线编排](<../技术/AI/Claude-Code/并行探索与流水线编排.md>) | 两种编排拓扑 + 独立性判定 + 交接契约 + 失败回退 + 混合模式决策树 |
 | **Multi-Agent 工程指南** | [从 Sub-Agent 到 Multi-Agent 的工程指南](<../技术/AI/Claude-Code/从 Sub-Agent 到 Multi-Agent 的工程指南.md>) | 四种模式 + 升级决策 + 生产部署 + Supervisor 详解 |
 | **子智能体（subagents）** | [子智能体（subagents）机制与实战](../技术/AI/Claude-Code/子智能体（subagents）机制与实战.md) | 寄生在主进程内、独立 context 的一次性 LLM 调用 |
 | **Skills** | [Skills 渐进式披露架构](<../技术/AI/Claude-Code/Skills 渐进式披露架构.md>) | 给 Claude 的"按需加载的小书"，三层渐进式披露 |
