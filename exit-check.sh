@@ -127,5 +127,10 @@ echo ""
 echo "[10/11] agent-log patch 合规..."
 node scripts/check-agent-log-compliance.js
 
+# [11/11] 内容质量 fast-path
+echo ""
+echo "[11/11] 内容质量 fast-path..."
+bash scripts/content-quality-fast.sh
+
 echo ""
 echo "========== 退出检查完成 =========="
