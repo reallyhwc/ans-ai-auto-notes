@@ -141,6 +141,8 @@ ans-ai-auto-notes/
 
 > 注：UserPromptSubmit hook 已移除（commit-reminder.sh 已淘汰）——由 AI 主动 auto-commit 替代机械提醒。AI 每完成一批文件变更后立即 `git add -A && git commit`，不等用户提醒。
 
+> 所有 settings.local.json 中的 hook 通过 `scripts/hook-logger.sh` 包装执行，执行结果（耗时、exit code）记录到 `logs/hook-runs.jsonl`（.gitignore 中）。
+
 当用户说"准备退出"、"不聊了"、"下次再继续"或类似结束语时，Stop hook 会自动执行上述检查并输出建议的 commit 命令。除此之外，AI 还需主动完成：
 
 1. **文件格式检查**：运行 `./lint.sh` 做自动格式校验（heading、空行等），然后人工扫描本次变动的 md 文件，确认元信息头（`> 最后整理: YYYY-MM-DD | 来源: xxx`）符合规范。发现格式不一致的文件立即修正。

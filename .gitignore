@@ -39,6 +39,9 @@ Icon
 *.bak
 .worktrees/
 
+# Hook 执行日志（运行时产物，不入库）
+logs/hook-runs.jsonl
+
 # 构建产物（由 build-index.js 生成，不入库）
 manifest.json
 # 构建产物（由 build-timeline.js 生成，不入库）
