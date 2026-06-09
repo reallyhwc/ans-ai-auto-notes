@@ -65,7 +65,7 @@ ans-ai-auto-notes/
 3. **主动性在我这边**：不等用户下指令，我自行判断时机并提案。
 4. **知识内容自动沉淀，不询问**：对话中产生的技术讲解、概念梳理、方案对比等知识内容，直接写入 kb/ 对应文件，不要问"要不要沉淀到知识库？"。仅当涉及文件拆分、合并、重组、目录结构变更时才主动提案。
 
-> 文件拆分、章节编号、"严禁口头沉淀"等内容质量规则统一收敛到 [kb-content-style skill](.claude/skills/kb-content-style/SKILL.md)，写入 kb/ 时由 Claude Code 自动加载。
+> 文件拆分、章节编号、"严禁口头沉淀"等内容质量规则统一收敛到 [kb-content-style skill](.claude/skills/kb-content-style/SKILL.md)，写入 kb/ 时由 AI 助手自动加载。
 
 ### 跨文件关联规则
 
@@ -87,7 +87,7 @@ ans-ai-auto-notes/
 
 ### 笔记风格 & 拆分 & 章节规则
 
-详见 [.claude/skills/kb-content-style/SKILL.md](.claude/skills/kb-content-style/SKILL.md) —— Claude Code 在写入 kb/ 时自动加载。核心要点：
+详见 [.claude/skills/kb-content-style/SKILL.md](.claude/skills/kb-content-style/SKILL.md) —— AI 助手在写入 kb/ 时自动加载。核心要点：
 
 - 保留 demo、Mermaid 优先、反抽象化
 - 同主题聚合，文件内时间倒序
@@ -107,7 +107,7 @@ ans-ai-auto-notes/
 
 ### 测试纪律（软 TDD）
 
-详见 [.claude/skills/kb-tdd-discipline/SKILL.md](.claude/skills/kb-tdd-discipline/SKILL.md) —— Claude Code 在修改 scripts/ 或 tests/ 时自动加载。核心要点：
+详见 [.claude/skills/kb-tdd-discipline/SKILL.md](.claude/skills/kb-tdd-discipline/SKILL.md) —— AI 助手在修改 scripts/ 或 tests/ 时自动加载。核心要点：
 
 - 错误趋向区域（marked 渲染、路径解析、frontmatter、lint 脚本）必须 TDD：先红后绿
 - Bug 修复必须先在 tests/ 加复现 case
@@ -116,7 +116,7 @@ ans-ai-auto-notes/
 
 ### Git 规则
 
-详见 [.claude/skills/auto-commit-discipline/SKILL.md](.claude/skills/auto-commit-discipline/SKILL.md) —— Claude Code 会按 skill 触发条件自动加载完整规则。核心要点：
+详见 [.claude/skills/auto-commit-discipline/SKILL.md](.claude/skills/auto-commit-discipline/SKILL.md) —— AI 助手会按 skill 触发条件自动加载完整规则。核心要点：
 
 - 完成一批文件变更立即 commit（不等用户提醒）
 - Conventional Commits 格式

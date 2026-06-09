@@ -72,8 +72,9 @@ const ROOT = path.resolve(__dirname, '..');
 // 从 transcript JSONL 文件解析机械字段
 // 返回: { duration_ms, tools_used, files_changed, model, has_substantive_work }
 //
+// transcript 格式由 Claude Code 框架归一化，与底层 LLM 无关（Claude/DeepSeek 均适用）。
 // 支持两种 schema:
-//   Claude Code 真实: { timestamp, type, message: { role, content, model, ... } }
+//   框架真实: { timestamp, type, message: { role, content, model, ... } }
 //   测试 fixture (flat): { timestamp, role, content, model, ... }
 //
 // 跳过无 timestamp 的 meta 行（如 type=last-prompt / permission-mode）。
@@ -101,7 +102,7 @@ function parseTranscript(transcriptPath) {
   let hasSubstantive = false;
 
   for (const m of withTime) {
-    // 真实 Claude Code: message 嵌套。测试 fixture: 字段平铺。
+    // 框架 transcript: message 嵌套。测试 fixture: 字段平铺。
     const msg = m.message || m;
     if (msg.role === 'assistant') {
       if (msg.model && !model) model = msg.model;
