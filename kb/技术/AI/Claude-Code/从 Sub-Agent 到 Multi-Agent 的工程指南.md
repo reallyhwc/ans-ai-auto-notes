@@ -5,7 +5,7 @@ description: "Multi-Agent 四种设计模式（Sub-Agents/Skills/Handoffs/Router
 
 # 从 Sub-Agent 到 Multi-Agent 的工程指南
 
-> 最后整理: 2026-06-06 | 来源: 黄佳《Claude Code 工程化实战》课程"量体裁衣：从Sub-Agents到Multi-Agent的工程指南"章节 + 生产实践
+> 最后整理: 2026-06-10 | 来源: 黄佳《Claude Code 工程化实战》课程"量体裁衣：从Sub-Agents到Multi-Agent的工程指南"章节 + 生产实践 + Claude Code 官方文档
 
 > 关联: [子智能体（subagents）机制与实战](./子智能体（subagents）机制与实战.md) — Sub-Agent 机制的底层细节
 > 关联: [Skills 渐进式披露架构](<./Skills 渐进式披露架构.md>) — Skills 模式的实现原理
@@ -725,3 +725,118 @@ graph TB
 区分你用 multi-agent 的动机：
 - **如果纯为了 context 隔离** → 未来可能被更强模型取代，投入适度即可
 - **如果为了角色分离/并行/权限** → 这是长期架构决策，值得认真设计
+
+## §10 Agent Teams：多实例协作模式（实验性）
+
+> 2026-06-10 补充 | 来源: [Claude Code 官方文档 - Agent Teams](https://code.claude.com/docs/en/agent-teams)
+> 需要 Claude Code v2.1.32+，环境变量 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`
+
+### 一句话定位
+
+Sub-agent 是"派出去跑腿的"，Agent Team 是"坐在一起开会的"。
+
+### 架构
+
+```mermaid
+graph TD
+    U["你（一个终端）"]
+    L["Team Lead<br/>主 session，自动成为组长"]
+    A["Teammate A<br/>独立 Claude Code 进程"]
+    B["Teammate B<br/>独立 Claude Code 进程"]
+    C["Teammate C<br/>独立 Claude Code 进程"]
+    TL["共享 Task List"]
+    MB["Mailbox<br/>消息系统"]
+
+    U --> L
+    L -->|spawn| A
+    L -->|spawn| B
+    L -->|spawn| C
+    A <-->|直接对话| B
+    B <-->|直接对话| C
+    A --- TL
+    B --- TL
+    C --- TL
+    A --- MB
+    B --- MB
+    C --- MB
+```
+
+每个 teammate 是**独立的 Claude Code 进程**，有自己的上下文窗口。数据存储在本地：
+- Team 配置：`~/.claude/teams/{team-name}/config.json`
+- 任务列表：`~/.claude/tasks/{team-name}/`
+
+### Sub-Agent vs Agent Team 对比
+
+| 维度 | Sub-Agent | Agent Team |
+|------|-----------|------------|
+| **进程模型** | lead 内部 spawn，共享进程 | 每个 teammate 独立 Claude Code 进程 |
+| **上下文** | 结果摘要回传 lead 上下文 | 各自独立上下文窗口，互不共享 |
+| **通信** | 单向：subagent → lead | 多向：teammate ↔ teammate 直接消息 |
+| **协调** | lead 管理一切 | 共享 Task List + 自行领任务 |
+| **Token 成本** | 低（结果压缩回传） | 高（N 个独立上下文窗口，线性增长） |
+| **适用场景** | 明确的单点任务（搜索、检查） | 需要讨论/辩论/协作的复杂工作 |
+
+**选型一句话：worker 之间需要互相说话吗？** 不需要 → sub-agent；需要 → team。
+
+### 开启方式
+
+```json
+// settings.json
+{
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  }
+}
+```
+
+### 角色定义：三种方式
+
+**1. 自然语言（最常用）**——直接在 prompt 里描述：
+
+```text
+Create an agent team with 3 teammates:
+- "security-reviewer": focus on auth vulnerabilities
+- "perf-reviewer": focus on N+1 queries, memory leaks
+- "test-reviewer": check test coverage and edge cases
+```
+
+**2. 复用 subagent 定义**——引用 `.claude/agents/` 下的已有定义：
+
+```text
+Spawn a teammate using the kb-auditor agent type to review this note.
+```
+
+teammate 继承该 subagent 的 `tools` 白名单和 `model`，body 作为追加指令。但 `skills` 和 `mcpServers` 不继承。
+
+**3. 指定模型**：
+
+```text
+Create a team with 4 teammates. Use Sonnet for each teammate.
+```
+
+### 显示模式
+
+| 模式 | 说明 | 操作方式 |
+|------|------|---------|
+| **in-process**（默认） | 所有 teammate 在同一终端 | `Shift+Down` 切换，`Ctrl+T` 查看任务列表 |
+| **split panes** | 每个 teammate 一个面板 | 需要 tmux 或 iTerm2，点击面板直接交互 |
+
+### 质量管控
+
+- **Plan 审批**：可要求 teammate 先出方案，lead 审批通过后才能动手
+- **Hooks 守门**：`TeammateIdle`（闲置时追加任务）、`TaskCreated`（拦截不合理任务）、`TaskCompleted`（拦截未达标完成）
+
+### 最佳实践
+
+- 建议 **3-5 个 teammate**，每人 5-6 个任务
+- 避免两个 teammate 编辑同一个文件（会互相覆盖）
+- 先从**研究/Review 类任务**入手（不改代码，风险低）
+- 复杂排查可用"竞争假设"模式——teammate 之间互相推翻对方的理论
+
+### 当前限制（实验阶段）
+
+- 不支持 `/resume` 恢复 in-process teammates
+- 一次只能一个 team
+- teammate 不能再嵌套创建 team
+- lead 固定，不能转让组长
+- split pane 不支持 VS Code 内置终端、Windows Terminal、Ghostty
