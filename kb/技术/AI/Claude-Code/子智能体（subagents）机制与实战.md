@@ -14,6 +14,7 @@ description: "subagent 的定位、与 skill/Agent SDK 的区分、四级 scope 
 > 关联: [Agent Observability：调用链追踪与排障](<../应用/Agent Observability：调用链追踪与排障.md>) — 如何 trace subagent 调用链、span/parent_id 数据模型、本项目 jsonl 落地
 > 关联: [从 Sub-Agent 到 Multi-Agent 的工程指南](<./从 Sub-Agent 到 Multi-Agent 的工程指南.md>) — 四种多智能体模式对比 + 升级决策 + 生产部署
 > 关联: [并行探索与流水线编排](./并行探索与流水线编排.md) — 并行/流水线两种编排拓扑 + 交接契约 + 混合模式
+> 关联: [Agent Teams 多会话协作架构](<./Agent Teams 多会话协作架构.md>) — Teammates 互相通信的实验性协作模式
 
 ---
 

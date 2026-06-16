@@ -730,6 +730,8 @@ graph TB
 
 > 2026-06-10 补充 | 来源: [Claude Code 官方文档 - Agent Teams](https://code.claude.com/docs/en/agent-teams)
 > 需要 Claude Code v2.1.32+，环境变量 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`
+>
+> 深度专题详见: [Agent Teams 多会话协作架构](<./Agent Teams 多会话协作架构.md>) — 四大协作设计模式、级联故障发现、选型决策、成本分析
 
 ### 一句话定位
 
