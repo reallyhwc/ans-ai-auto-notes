@@ -157,7 +157,7 @@ ans-ai-auto-notes/
 
 - 完成一批文件变更立即 commit（不等用户提醒）
 - Conventional Commits 格式
-- ≥5 commits 未 push 时 Stop hook 自动 push
+- ≥3 commits 未 push 时 Stop hook 自动 push（含 pull --rebase 重试）
 - 永不 amend 已 push 的 commit、永不 --no-verify
 
 ### 会话退出检查（重要）
