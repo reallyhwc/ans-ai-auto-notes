@@ -1,11 +1,11 @@
 ---
 title: "Headless 模式与 Agent SDK"
-description: "Claude Code 非交互模式：-p 参数全清单、--bare 启动模式、output-format 结构化输出、stream-json 事件类型、CI 集成模式、Agent SDK 关系"
+description: "Claude Code 非交互模式：-p 参数全清单、--bare 启动模式、output-format 结构化输出、stream-json 事件类型、CI 集成模式、Agent SDK 关系、headless vs 自建 Agent 选型"
 ---
 
 # Headless 模式与 Agent SDK
 
-> 最后整理: 2026-06-02 | 来源: 黄佳《Claude Code 工程化实战》课程 + [Claude Code Headless 官方文档](https://code.claude.com/docs/en/headless)
+> 最后整理: 2026-06-16 | 来源: 黄佳《Claude Code 工程化实战》课程 + [Claude Code Headless 官方文档](https://code.claude.com/docs/en/headless)
 
 > 关联: [Claude Code 整体架构 & 工作流程](<./Claude Code 整体架构 & 工作流程.md>) — 交互模式下的整体架构
 > 关联: [子智能体（subagents）机制与实战](./子智能体（subagents）机制与实战.md) — `--agent` 在 headless 里的用法
@@ -443,3 +443,119 @@ fi
 - cron 任务每周一跑"分析过去一周的 timeline.json，提示有没有学得很浅的主题需要展开"
 
 但这些都属于**先用够交互模式**再考虑的优化，不是当务之急。
+
+---
+
+## §15 Claude Code Headless vs 自建 Agent：选型决策
+
+> 最后整理: 2026-06-16 | 来源: 对话讨论
+
+### 15.1 一个常见误解
+
+"Claude Code 的生产环境用法" ≠ "用 Claude Code 构建面向终端用户的产品"。
+
+```
+Claude Code headless（claude -p）
+  → 在你的 开发流水线 / CI / CD / cron 里当一个自动化组件
+  → 服务于开发团队自己
+
+自建 Agent（Agent SDK / Anthropic API）
+  → 嵌入到你的业务系统里，面向外部终端用户
+  → 如客服系统、数据抽取服务、内部工具
+```
+
+两者赛道完全不同：
+
+```mermaid
+flowchart TB
+    subgraph "场景 A：Claude Code headless"
+        direction LR
+        Dev["开发流水线"] --> CC["claude -p"]
+        CC --> CI["CI/CD"]
+        CC --> Git["Git Hooks"]
+        CC --> Cron["定时任务"]
+    end
+
+    subgraph "场景 B：自建 Agent"
+        direction LR
+        User["终端用户"] --> App["你的应用服务"]
+        App --> SDK["Agent SDK / Anthropic API"]
+    end
+```
+
+### 15.2 为什么不直接用裸 API？
+
+"CI 里我写个脚本调 Anthropic API 不也行吗？"——行，但你得自己做全套：
+
+```
+裸 Anthropic API
+  → 你拿到的是一个 LLM，只有对话能力
+  → 想读文件？自己写
+  → 想执行命令？自己写
+  → 想编辑代码？自己写
+  → 想做工具编排？自己写 agentic loop
+
+Claude Code headless
+  → 你拿到的是一个 完整的 Agent
+  → 自带 文件读写 / Bash / 代码编辑 / 搜索 / MCP 全套工具
+  → 自带 agentic loop（规划 → 调工具 → 迭代 → 验证）
+  → 自带 CLAUDE.md / skills / hooks 体系
+```
+
+**具体例子**：CI 里加一个"自动审查 PR 安全问题"的步骤：
+
+```python
+# 方案一：裸 API（自己写一大堆）
+import anthropic, subprocess
+
+diff = subprocess.run(["git", "diff", ...], capture_output=True)
+files = parse_changed_files(diff)
+for f in files:
+    content = open(f).read()  # 怎么决定读哪些？自己写逻辑
+
+prompt = f"Review these changes:\n{diff}\n\nContext:\n{content}"
+response = client.messages.create(model="claude-sonnet-4-6", ...)
+# 但如果 Claude 说"我想看 auth.py 第 50 行"呢？
+# 你得自己实现 tool_use loop 让它继续追问...
+# 想让它跑测试？自己写 tool 定义 + 执行逻辑...
+```
+
+```bash
+# 方案二：claude -p（一行搞定）
+git diff origin/main HEAD | claude --bare -p \
+  "review for security issues, check related files, run tests if needed" \
+  --allowedTools "Read,Bash(npm test)" --output-format json
+```
+
+Claude Code 自己会去读相关文件、自己会跑测试、自己决定要不要追问——agentic loop 和全套工具都是现成的。
+
+### 15.3 选型决策树
+
+```mermaid
+flowchart TD
+    Q{"这个任务的核心能力是<br/>"像人一样操作代码/文件/终端"吗？"} -->|是| CC["claude -p<br/>Claude Code 已内置全套开发工具"]
+    Q -->|不是| SDK["自建 Agent<br/>Agent SDK / 裸 API<br/>你需要自定义工具和业务逻辑"]
+
+    style CC fill:#d4edda
+    style SDK fill:#cce5ff
+```
+
+### 15.4 场景速查表
+
+| 你想做的事 | 用什么 | 原因 |
+|---|---|---|
+| CI 里自动审查 PR | `claude -p` | 需要完整的文件读写 + 搜索 + Bash 工具链，自己写太累 |
+| Git hook 生成 commit message | `claude -p` | 轻量、一行命令、不需要自建基础设施 |
+| 定时扫描代码库找坏模式 | `claude -p` | 需要 agentic 搜索能力（grep → 读文件 → 判断 → 继续搜） |
+| 客服系统 | **Agent SDK / 裸 API** | 面向外部用户，需要自定义工具、对话管理、持久化 |
+| 内部数据抽取工具 | **Agent SDK / 裸 API** | 嵌入到现有服务里，需要和业务 API 深度集成 |
+| 长跑后台任务 | **Agent SDK** | 需要精细控制对话流、回调、错误处理 |
+| 批量代码重构 | `claude -p` | 核心能力就是"理解代码 + 修改代码 + 跑测试验证" |
+
+### 15.5 一句话总结
+
+**Claude Code headless 不是一个通用 Agent 框架，而是一个"自带全套开发工具的 Agent"的无头版本。** 它解决的是"在自动化流水线里需要代码级别 agentic 能力"这个特定问题。面向外部用户的业务 Agent，该自己写还是自己写，用 Agent SDK 或裸 API。
+
+> 关联: [从 Sub-Agent 到 Multi-Agent 的工程指南](<./从 Sub-Agent 到 Multi-Agent 的工程指南.md>) — 生产环境 Multi-Agent 系统的设计模式
+> 关联: [Harness Engineering：AI Agent 时代的工程范式](<./Harness Engineering：AI Agent 时代的工程范式.md>) — Agent SDK 构建产品时的 Harness 设计方法
+> 关联: [Agent 开发实战：选型、框架与思维转换](<../应用/Agent 开发实战：选型、框架与思维转换.md>) — 四大设计范式
