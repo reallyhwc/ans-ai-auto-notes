@@ -25,7 +25,7 @@
 
 #### Claude-Code (15 篇)
 
-- [Agent Teams 多会话协作架构](kb/技术/AI/Claude-Code/Agent Teams 多会话协作架构.md) — Claude Code Agent Teams 实验性特性：Lead+Teammates 架构、互相通信机制、四大协作设计模式（竞争假设/分层评审/模块化开发/规划-审批）、Sub-Agents vs Agent Teams 选型决策树、Token 成本考量、最佳实践
+- [Agent Teams 多会话协作架构](kb/技术/AI/Claude-Code/Agent Teams 多会话协作架构.md) — Claude Code Agent Teams 实验性特性：从 Sub-Agents 的树状委托到 Teams 的网状协作、四大设计模式的本质区分、选型决策的核心判据、成本与收益的权衡框架
 - [Claude Code 2026 上半年新特性与项目实践](kb/技术/AI/Claude-Code/Claude Code 2026 上半年新特性与项目实践.md) — 2026 年 1-6 月 Claude Code 新增的架构级能力（Agent View/Teams/Auto Mode/Dynamic Workflows）、模型升级（Opus 4.8）、工具增强（fallbackModel/Plugin 生态/Worktree 增强），及在 ans-ai-auto-notes 项目中的落地分析
 - [Claude Code 整体架构 & 工作流程](kb/技术/AI/Claude-Code/Claude Code 整体架构 & 工作流程.md) — 整体架构、REPL循环、工具链、Hooks、上下文管理、完整数据流
 - [Claude Code 进阶工作流：从能用到高效](kb/技术/AI/Claude-Code/Claude Code 进阶工作流：从能用到高效.md) — 四阶段成熟度模型（裸聊→文件化→自动化→生态化）、约束>文档>对话三层模型、hooks/memory/plan/manifest/dev-log实战配置
