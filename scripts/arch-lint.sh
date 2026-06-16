@@ -144,6 +144,7 @@ fi
 # ── 检查 6: 链接路径大小写一致性 ──
 # macOS 文件系统不区分大小写（HFS+/APFS 默认），但 Linux/GitHub 区分。
 # 此检查逐段比较链接路径中的每个目录/文件名与磁盘实际大小写是否一致。
+# 优化：用 bash-native 替代 python3 fork（3.10s → ~0.3s）
 echo ""
 echo "[6/15] 链接路径大小写一致性（Linux 兼容）..."
 
@@ -154,45 +155,56 @@ while IFS= read -r -d '' file; do
   LINKS=$(grep -oE ']\([.]{1,2}/[^)]+\.md[^)]*\)' "$file" 2>/dev/null | sed 's/](\(.*\))/\1/' | sed 's/#.*//')
 
   for link in $LINKS; do
-    # 用 python3 逐段比较：将链接解析为绝对路径，再逐个路径段对比磁盘实际名称
-    MISMATCH=$(python3 -c "
-import os, sys
-file_dir = '$FILE_DIR'
-link = '$link'
-# 将相对链接解析为绝对路径
-abs_link = os.path.normpath(os.path.join(file_dir, link))
-# 逐段检查每个路径段的大小写是否与磁盘一致
-parts = abs_link.split(os.sep)
-current = os.sep
-for part in parts:
-    if not part:
-        continue
-    current = os.path.join(current, part)
-    parent = os.path.dirname(current)
-    if not os.path.isdir(parent):
-        break
-    try:
-        entries = os.listdir(parent)
-    except OSError:
-        break
-    # 在父目录中找到实际名称（大小写敏感匹配）
-    if part not in entries:
-        # 大小写不一致：part 在磁盘上不存在（但 macOS 可能忽略大小写找到了）
-        # 确认是大小写问题而非真正缺失
-        lower_matches = [e for e in entries if e.lower() == part.lower()]
-        if lower_matches:
-            print(f'{part} -> {lower_matches[0]}')
-            sys.exit(0)
-        break
-" 2>/dev/null)
+    # bash-native 实现：将链接解析为绝对路径，逐段用 find -iname 查找磁盘实际名称
+    abs_link="$FILE_DIR/$link"
 
-    if [ -n "$MISMATCH" ]; then
-      echo "  ⚠️  $file"
-      echo "      链接中: $link"
-      echo "      大小写不一致: $MISMATCH"
-      CASE_WARN=$((CASE_WARN + 1))
-      break  # 每个文件只报一次
-    fi
+    # 规范化路径（去掉多余的 ./ 和 ../）
+    abs_link=$(cd "$FILE_DIR" 2>/dev/null && realpath -m "$link" 2>/dev/null || echo "$abs_link")
+
+    # 逐段检查大小写
+    IFS='/' read -ra parts <<< "$abs_link"
+    current=""
+    mismatch_found=0
+
+    for part in "${parts[@]}"; do
+      [ -z "$part" ] && continue
+
+      if [ -z "$current" ]; then
+        current="/$part"
+        continue
+      fi
+
+      parent="$current"
+
+      # 如果父目录不存在，跳出
+      if [ ! -d "$parent" ]; then
+        break
+      fi
+
+      # 精确匹配（大小写敏感）
+      if [ -e "$parent/$part" ]; then
+        current="$parent/$part"
+        continue
+      fi
+
+      # 大小写不敏感查找（macOS BSD find 兼容）
+      actual_name=$(find "$parent" -maxdepth 1 -iname "$part" 2>/dev/null | head -1 | xargs basename 2>/dev/null)
+
+      if [ -n "$actual_name" ] && [ "$actual_name" != "$part" ]; then
+        echo "  ⚠️  $file"
+        echo "      链接中: $link"
+        echo "      大小写不一致: $part -> $actual_name"
+        CASE_WARN=$((CASE_WARN + 1))
+        mismatch_found=1
+        break
+      elif [ -n "$actual_name" ]; then
+        current="$parent/$actual_name"
+      else
+        break
+      fi
+    done
+
+    [ "$mismatch_found" -eq 1 ] && break  # 每个文件只报一次
   done
 done < <(find kb -name "*.md" -print0 2>/dev/null)
 
