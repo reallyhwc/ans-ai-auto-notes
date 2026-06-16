@@ -30,7 +30,7 @@
 - [Claude Code 进阶工作流：从能用到高效](kb/技术/AI/Claude-Code/Claude Code 进阶工作流：从能用到高效.md) — 四阶段成熟度模型（裸聊→文件化→自动化→生态化）、约束>文档>对话三层模型、hooks/memory/plan/manifest/dev-log实战配置
 - [Claude Code 远程操控：Remote Control 与 cc-connect](kb/技术/AI/Claude-Code/Claude Code 远程操控：Remote Control 与 cc-connect.md) — Claude Code远程操控：官方Remote Control vs cc-connect消息桥接、手机编程工作流、微信/飞书接入
 - [Harness Engineering：AI Agent 时代的工程范式](kb/技术/AI/Claude-Code/Harness Engineering：AI Agent 时代的工程范式.md) — Harness Engineering(驾驭工程)：Agent=Model+Harness、六项核心能力、四阶段成长路径、双LLM交叉校验四种实现方式
-- [Headless 模式与 Agent SDK](kb/技术/AI/Claude-Code/Headless 模式与 Agent SDK.md) — Claude Code 非交互模式：-p 参数全清单、--bare 启动模式、output-format 结构化输出、stream-json 事件类型、CI 集成模式、Agent SDK 关系
+- [Headless 模式与 Agent SDK](kb/技术/AI/Claude-Code/Headless 模式与 Agent SDK.md) — Claude Code 非交互模式：-p 参数全清单、--bare 启动模式、output-format 结构化输出、stream-json 事件类型、CI 集成模式、Agent SDK 关系、headless vs 自建 Agent 选型
 - [Hooks 事件全景与拦截机制](kb/技术/AI/Claude-Code/Hooks 事件全景与拦截机制.md) — Claude Code 全部 30+ hook 事件按类别清单、阻断三档机制、配置层级合并、PreToolUse 完整示例、subagent/skill 内的 hook
 - [MCP 集成实战（含 Spring AI）](kb/技术/AI/Claude-Code/MCP 集成实战（含 Spring AI）.md) — MCP 协议在 Claude Code 中的接入：四种 transport 对比、三级 scope 优先级、配置命令、Spring AI MCP server 实战接入、OAuth、Tool Search 优化、调试与坑
 - [Plugins 插件体系](kb/技术/AI/Claude-Code/Plugins 插件体系.md) — Claude Code plugin 系统：与 standalone 配置的边界、目录结构、manifest schema、能打包的资源、安装方式、marketplace 机制、版本管理、迁移路径
