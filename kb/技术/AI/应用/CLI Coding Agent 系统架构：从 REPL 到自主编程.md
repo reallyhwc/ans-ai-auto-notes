@@ -5,6 +5,9 @@ description: "拆解 Claude Code / Aider / Codex CLI 等 CLI 编程 Agent 的分
 
 > 最后整理: 2026-06-05 | 来源: 对 Claude Code / Aider / OpenAI Codex CLI 源码的逆向分析 + 实践总结
 
+> 关联: [Claude Code 整体架构 & 工作流程](<../Claude-Code/Claude Code 整体架构 & 工作流程.md>) — Claude Code 单一产品的深度拆解
+> 关联: [AI 编程工具全景对比](<../AI-Coding/AI 编程工具：CLI Agent 与 GUI IDE 全景对比.md>) — CLI vs GUI 两种交互形态
+
 ## 1. 全景架构
 
 所有 CLI coding agent（Claude Code、Aider、Codex CLI、Cursor Agent）底层架构高度趋同——本质是 **LLM + Tool Use + REPL** 的 Agent Loop。

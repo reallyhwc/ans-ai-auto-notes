@@ -7,6 +7,8 @@ description: "Prompt工程、RAG、向量数据库/Milvus、Embedding、LangChai
 
 > 最后整理: 2026-05-04 | 来源: 多轮对话
 
+> 关联: [个人知识库接入 RAG 的规划](<../应用/个人知识库接入 RAG 的规划.md>) — 本项目接入 RAG 的渐进式实现路径
+
 ## 一句话定位
 
 Prompt 是怎么跟 LLM 说话，RAG 是给 LLM 外挂知识库。两者结合，让 LLM 从"只会背书的书呆子"变成"能查参考资料的助手"。

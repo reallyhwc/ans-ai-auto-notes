@@ -7,6 +7,8 @@ description: "AI 编程工具全景对比：终端 Agent (Claude Code / Codex CL
 
 > 最后整理: 2026-05-18 | 来源: 多轮对话
 
+> 关联: [Go 与 TypeScript 快速对比](<../../Go 与 TypeScript 对比.md>) — CLI Agent 两大主力语言选型
+
 ## 一句话定位
 
 AI 编程工具分两大形态——**终端 Agent**（Part A）和 **GUI IDE**（Part B），各自代表不同的人机协作哲学：

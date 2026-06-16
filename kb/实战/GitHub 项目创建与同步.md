@@ -7,6 +7,8 @@ description: "SSH key 配置、仓库初始化、CI 基础"
 
 > 最后整理: 2026-05-05 | 来源: 多轮对话实操踩坑
 
+> 关联: [overview.html 踩坑记录](<./overview.html 踩坑记录.md>) — 本项目可视化导览页维护踩坑
+
 ## 从零创建 GitHub 仓库并推送
 
 ### 1. 在 GitHub 创建空仓库

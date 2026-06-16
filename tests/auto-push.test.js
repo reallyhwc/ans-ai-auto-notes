@@ -27,7 +27,15 @@ test('exit-check.sh: push 失败时应调用 PushNotification', () => {
 });
 
 test('exit-check.sh: 应同时检查未 commit 文件数', () => {
-  // 查找 git status --short 或类似检查
   assert.match(content, /git status.*--short|git status.*-s/,
     '应检查未 commit 的文件数');
+});
+
+test('CLAUDE.md: 阈值描述应与 exit-check.sh 一致（≥3）', () => {
+  const claudeMdPath = path.join(__dirname, '..', 'CLAUDE.md');
+  const claudeMd = fs.readFileSync(claudeMdPath, 'utf8');
+  assert.doesNotMatch(claudeMd, /[≥>=]+\s*5.*自动\s*push/,
+    'CLAUDE.md 不应包含 "≥5 自动 push" 的旧描述');
+  assert.match(claudeMd, /≥3.*自动.*push|≥3.*push/,
+    'CLAUDE.md 应包含 "≥3" 阈值描述');
 });

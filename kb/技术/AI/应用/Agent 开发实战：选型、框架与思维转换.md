@@ -9,6 +9,7 @@ description: "四范式选型、Spring AI/LangChain/CrewAI 框架速查、学习
 
 > 关联: [agent-patterns](<./Agent 四大设计范式（深度展开）.md>) — 四范式深度展开（架构图 / Prompt 模板 / 典型案例）
 > 关联: [从 Sub-Agent 到 Multi-Agent 的工程指南](<../Claude-Code/从 Sub-Agent 到 Multi-Agent 的工程指南.md>) — Claude Code 视角的四种多智能体模式 + 生产部署
+> 关联: [跨语言 Agent + MCP 架构](<./跨语言 Agent + MCP 架构：Python Agent ↔ Java MCP 混合开发.md>) — Python 写 Agent + Java 写 MCP 的混合方案
 
 ## Agent 开发的四大设计范式
 

@@ -167,7 +167,7 @@ ans-ai-auto-notes/
 | 层级 | Hook | 配置来源 | 脚本 | 检查内容 |
 |------|------|---------|------|---------|
 | **约束层** | SessionStart | settings.local.json | `scripts/preflight.sh` → `scripts/arch-lint.sh` | 15 项机械检查（frontmatter、元信息头、交叉链接、重复标题、磁盘一致性、大小写、行数限制、memory 格式、零依赖、脚本引用、标题 ID 契约、章节编号、anchor 存活、内容具象度）+ memory 过期 + 遗留变更 + manifest 过期 + session 摘要 |
-| **约束层** | Stop | settings.local.json | `exit-check.sh` → `lint.sh` + `check-overview.js` + `session-log.sh` + `permission-audit.sh` + 未 push 检查 | 11 项退出检查：markdown 格式、git 状态、INDEX 一致性、overview 健康、session 日志、权限审计、未 push commit（≥5 自动 push）、沉淀声明审计、plans 状态、agent-log patch 合规、内容质量 fast-path |
+| **约束层** | Stop | settings.local.json | `exit-check.sh` → `lint.sh` + `check-overview.js` + `session-log.sh` + `permission-audit.sh` + 未 push 检查 | 11 项退出检查：markdown 格式、git 状态、INDEX 一致性、overview 健康、session 日志、权限审计、未 push commit（≥3 自动 push，含 pull --rebase 重试）、沉淀声明审计、plans 状态、agent-log patch 合规、内容质量 fast-path |
 | **约束层** | Stop | settings.json | `node scripts/agent-log-hook.js main` | 主 agent 工作日志记录（有实质工作时写入 `logs/agent-runs/` JSONL） |
 | **约束层** | PostToolUse（Write/Edit） | settings.local.json | `scripts/verify-claim.sh` | 每次 Write/Edit kb/ 或 memory/ 文件时验证文件确实存在，写入 `.claude/claim-ledger.log`（exit-check [8/11] 消费） |
 | **约束层** | SubagentStop | settings.json | `node scripts/agent-log-hook.js subagent` | subagent 工作日志记录（写入 `logs/agent-runs/` JSONL，后续由 AI patch title/summary/outcome） |
@@ -185,7 +185,7 @@ ans-ai-auto-notes/
 1. **文件格式检查**：运行 `./lint.sh` 做自动格式校验（heading、空行等），然后人工扫描本次变动的 md 文件，确认元信息头（`> 最后整理: YYYY-MM-DD | 来源: xxx`）符合规范。发现格式不一致的文件立即修正。
 2. **交叉链接检查**：确认新增/修改的文件有指向关联文件的双向链接（`[[./xxx]]` 或 `> 关联:` 格式）。
 3. **Memory 检查**：确认本次会话中用户的新偏好、新反馈、新项目上下文已写入 `memory/` 目录并更新 `MEMORY.md` 索引。
-4. **Git 检查**：确认所有变更已提交（AI 应在变更发生后立即 auto-commit，无需等退出），`git status` 显示 clean。同时检查是否有未 push 的 commit，如有则提醒用户 `git push`（≥5 时 Stop hook 会自动 push，pre-push 的 test + mermaid 守恒兜底）。
+4. **Git 检查**：确认所有变更已提交（AI 应在变更发生后立即 auto-commit，无需等退出），`git status` 显示 clean。同时检查是否有未 push 的 commit，如有则提醒用户 `git push`（≥3 时 Stop hook 会自动 push（含 pull --rebase 重试），pre-push 的 test + mermaid 守恒兜底）。
 5. **INDEX 一致性**：若新增/删除了 md 文件，确认 `node scripts/build-index.js` 已跑过，INDEX.md 条目数 = kb/ 实际 md 数（INDEX.md 自身不再包含动态日期，避免 git noise）。
 
 上述检查全部通过后，向用户报告检查结果，确认可以安全退出。

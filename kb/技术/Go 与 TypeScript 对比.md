@@ -5,6 +5,9 @@ description: Go 和 TypeScript 语言特性、生态、典型用例对比，含 
 
 > 最后整理: 2026-06-04 | 来源: 与 Claude Code 对话
 
+> 关联: [AI 编程工具：CLI Agent 与 GUI IDE 全景对比](<./AI/AI-Coding/AI 编程工具：CLI Agent 与 GUI IDE 全景对比.md>) — CLI Agent 工具选型（Go/TS 是两大主力语言）
+> 关联: [主流 Agent 产品技术栈解剖](<./AI/应用/主流 Agent 产品技术栈解剖：自研循环 vs 框架之争.md>) — Qoder CLI 从 Go 重构到 TypeScript 的背景
+
 ## 1. 快速入门
 
 ### Go（Golang）

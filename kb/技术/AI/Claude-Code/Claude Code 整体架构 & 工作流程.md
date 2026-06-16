@@ -6,6 +6,8 @@ description: "整体架构、REPL循环、工具链、Hooks、上下文管理、
 > 最后整理: 2026-06-08 | 来源: 对话 + 官方文档
 
 > 关联: [harness-engineering](<./Harness Engineering：AI Agent 时代的工程范式.md>) — Claude Code 是 Harness Engineering 的代表性产品 | [claude-code-advanced-workflow](<./Claude Code 进阶工作流：从能用到高效.md>) — 配置与工作流实战 | [llm-agent-mcp](<../大模型/Agent 与 MCP.md>) — Agent/MCP 协议原理
+> 关联: [CLI Coding Agent 系统架构](<../应用/CLI Coding Agent 系统架构：从 REPL 到自主编程.md>) — Claude Code/Aider/Codex CLI 分层架构横向对比
+> 关联: [Claude Code 工程化实战 黄佳](<../../../课程笔记/Claude Code 工程化实战 黄佳.md>) — 课程学习驾驶舱与机制专题索引
 
 ## 一图总览：Claude Code 架构全景图
 
