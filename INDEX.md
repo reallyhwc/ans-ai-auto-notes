@@ -9,11 +9,11 @@
 - [外部参考链接](kb/实战/外部参考链接.md) — 优质外部技术文章、博客、演讲的链接汇总，附带核心要点
 - [知识管理工具对比](kb/实战/知识管理工具对比.md) — Obsidian/Notion/本项目方案 对比分析
 
-## 技术 (57 篇)
+## 技术 (58 篇)
 
 - [Go 与 TypeScript 快速对比](kb/技术/Go 与 TypeScript 对比.md) — Go 和 TypeScript 语言特性、生态、典型用例对比，含 Qoder CLI 从 Go 重构到 TypeScript 的动机推测
 
-### AI (46 篇)
+### AI (47 篇)
 
 #### AI-Coding (5 篇)
 
@@ -23,7 +23,7 @@
 - [AI 编程的递进路径：从古法编程到多 Agent 协作](kb/技术/AI/AI-Coding/AI 编程的递进路径：从古法编程到多 Agent 协作.md) — 从古法编程到多Agent协作6个Level、程序员未来展望
 - [从 Vibe Coding 到 Spec-Driven 到驾驭工程](kb/技术/AI/AI-Coding/从 Vibe Coding 到 Spec-Driven 到驾驭工程.md) — AI 编程三阶段演进：Vibe Coding（放马跑，爽但危险）→ Spec-Driven Development（契约约束）→ 驾驭工程/Harness Engineering（系统级自动约束），附本项目 Harness 实践拆解
 
-#### Claude-Code (15 篇)
+#### Claude-Code (16 篇)
 
 - [Agent Teams 多会话协作架构](kb/技术/AI/Claude-Code/Agent Teams 多会话协作架构.md) — Claude Code Agent Teams 实验性特性：从 Sub-Agents 的树状委托到 Teams 的网状协作、四大设计模式的本质区分、选型决策的核心判据、成本与收益的权衡框架
 - [Claude Code 2026 上半年新特性与项目实践](kb/技术/AI/Claude-Code/Claude Code 2026 上半年新特性与项目实践.md) — 2026 年 1-6 月 Claude Code 新增的架构级能力（Agent View/Teams/Auto Mode/Dynamic Workflows）、模型升级（Opus 4.8）、工具增强（fallbackModel/Plugin 生态/Worktree 增强），及在 ans-ai-auto-notes 项目中的落地分析
@@ -38,6 +38,7 @@
 - [Skills 渐进式披露架构](kb/技术/AI/Claude-Code/Skills 渐进式披露架构.md) — Skills 的三层渐进式披露机制、token 经济学、frontmatter 全字段、生命周期、动态 context 注入、与 commands/subagent 的边界
 - [Superpowers TDD Skill 工作流拆解](kb/技术/AI/Claude-Code/Superpowers TDD Skill 工作流拆解.md) — TDD 是什么、Superpowers 在其中的角色、LLM 工具调用链详细拆解
 - [从 Sub-Agent 到 Multi-Agent 的工程指南](kb/技术/AI/Claude-Code/从 Sub-Agent 到 Multi-Agent 的工程指南.md) — Multi-Agent 四种设计模式（Sub-Agents/Skills/Handoffs/Router）、升级决策阶梯、Supervisor 模式详解、生产环境部署实例、Claude Code 本地 sub-agent 与生产 agent 的本质区别、知识库项目选型分析
+- [子代理专题总结与综合案例](kb/技术/AI/Claude-Code/子代理专题总结与综合案例.md) — 子代理六讲知识体系的两层能力模型（Sub-Agents 结构化分工 vs Agent Teams 认知协作）、四种子代理使用模式、电商大促支付超时五阶段综合案例、贯穿始终的工程方法论、假期思考题
 - [子智能体（subagents）机制与实战](kb/技术/AI/Claude-Code/子智能体（subagents）机制与实战.md) — subagent 的定位、与 skill/Agent SDK 的区分、四级 scope 优先级、frontmatter 全字段、三种调用方式、独立 context 机制、协作链路、fork/worktree/persistent memory 进阶、permissionMode 风险与降险配套、skills 预加载 vs 嵌套 spawn 取舍、常见 subagent 配方（数据库查询分析器/code-reviewer/test-runner）
 - [并行探索与流水线编排](kb/技术/AI/Claude-Code/并行探索与流水线编排.md) — 子代理的两种编排模式——并行探索（Fan-out/Fan-in）与流水线编排（Pipeline），含独立性判定、交接契约设计、失败回退策略、混合模式决策树、编排者四种介入形式
 

@@ -10,6 +10,7 @@ description: "Claude Code Agent Teams 实验性特性：从 Sub-Agents 的树状
 > 关联: [子智能体（subagents）机制与实战](./子智能体（subagents）机制与实战.md) — Sub-Agents 的底层机制
 > 关联: [并行探索与流水线编排](./并行探索与流水线编排.md) — Sub-Agents 的两种编排拓扑
 > 关联: [从 Sub-Agent 到 Multi-Agent 的工程指南](<./从 Sub-Agent 到 Multi-Agent 的工程指南.md>) — 多智能体系统的宏观选型
+> 关联: [子代理专题总结与综合案例](./子代理专题总结与综合案例.md) — 六讲知识体系总结 + 电商大促五阶段编排案例
 
 ---
 

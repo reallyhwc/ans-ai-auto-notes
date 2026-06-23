@@ -15,6 +15,7 @@ description: "subagent 的定位、与 skill/Agent SDK 的区分、四级 scope 
 > 关联: [从 Sub-Agent 到 Multi-Agent 的工程指南](<./从 Sub-Agent 到 Multi-Agent 的工程指南.md>) — 四种多智能体模式对比 + 升级决策 + 生产部署
 > 关联: [并行探索与流水线编排](./并行探索与流水线编排.md) — 并行/流水线两种编排拓扑 + 交接契约 + 混合模式
 > 关联: [Agent Teams 多会话协作架构](<./Agent Teams 多会话协作架构.md>) — Teammates 互相通信的实验性协作模式
+> 关联: [子代理专题总结与综合案例](./子代理专题总结与综合案例.md) — 六讲知识体系总结 + 电商大促五阶段编排案例
 
 ---
 

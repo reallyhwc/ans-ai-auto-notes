@@ -12,6 +12,7 @@ description: "Multi-Agent 四种设计模式（Sub-Agents/Skills/Handoffs/Router
 > 关联: [Headless 模式与 Agent SDK](<./Headless 模式与 Agent SDK.md>) — 生产 agent 的运行时入口
 > 关联: [Agent 开发实战：选型、框架与思维转换](<../应用/Agent 开发实战：选型、框架与思维转换.md>) — 更广义的 Agent 开发视角
 > 关联: [并行探索与流水线编排](./并行探索与流水线编排.md) — 并行/流水线两种编排的工程实现 + 交接契约设计
+> 关联: [子代理专题总结与综合案例](./子代理专题总结与综合案例.md) — 六讲知识体系总结 + 电商大促五阶段编排案例
 
 ---
 
