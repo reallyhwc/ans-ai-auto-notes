@@ -580,3 +580,203 @@ graph LR
 ```
 
 **一句话 takeaway**：Skill 在 Agent 时代的特殊地位在于——它是**把人类领域知识"灌"进模型认知框架**的机制，不是工具，不是封装，是本体论层面的认知注入。
+
+### §16.5 四层本体论模型：从工具到世界
+
+课程给出的四层结构不是并列组件，而是**四种不同层级的存在方式**：
+
+```mermaid
+graph BT
+    Tools["工具 Tools<br/>能做什么（行动原语）"] --> Skills["技能 Skills<br/>该怎么做（可操作知识）"]
+    Skills --> Agents["智能体 Agents<br/>谁来做、什么时候做（执行分工）"]
+    Agents --> Ontology["本体论 Enterprise Ontology<br/>在什么世界里做（语义结构）"]
+
+    style Tools fill:#ffcdd2
+    style Skills fill:#c8e6c9
+    style Agents fill:#bbdefb
+    style Ontology fill:#e1bee7
+```
+
+**Skills 的位置**：连接"行动能力"与"语义世界"的**中间层**。它将企业本体中的概念与规范，转译为可执行的行为模式。
+
+**可操作知识 vs 被动文档**：Wiki 上的 API 设计指南是静态文本——不包含触发条件、不定义执行流程、不规定输出结构。而 Skill 是具备语义入口的**标准操作程序**（SOP）：description 告诉模型何时加载，正文定义执行步骤，模板约束输出格式，allowed-tools 限制操作范围，hooks 完成后自动验证。
+
+**范式跃迁**：过去，调度权始终在人类手中——工程师写 Prompt、编排 Workflow、定义调用顺序。Skills 的真正突破在于把能力的"语义定义权"交给模型——人不再编排执行路径，而是定义能力的边界与含义。从**"人调度模型"走向"模型调度能力"**。
+
+**"在有限上下文窗口里，组织的做事方式第一次获得了结构化存在的形式"**——这是 Skills 的真正意义。
+
+---
+
+## §17 触发机制：Claude 怎么发现并加载 Skill
+
+### §17.1 双触发模式
+
+Skills 支持两种触发方式，调用的是同一个 Skill，执行同样的指令：
+
+| 触发方式 | 谁发起 | 怎么触发 | 场景 |
+|---------|--------|---------|------|
+| **斜杠命令** | 用户 | `/skill-name` | 用户明确知道要什么 |
+| **语义推理** | Claude | 读 description 自动判断 | 用户只是自然描述需求 |
+
+### §17.2 语义触发流程
+
+当用户发送消息时，Claude 的处理流程：
+
+```mermaid
+graph TD
+    Msg["用户发送消息"] --> Scan["扫描所有 Skill 的 description<br/>（Layer 1，已常驻上下文）"]
+    Scan --> Judge{"语义推理：<br/>哪个 Skill 与当前<br/>任务最相关？"}
+    Judge -->|"匹配"| Load["加载对应 SKILL.md body<br/>（Layer 2，一次性进主 context）"]
+    Judge -->|"不确定"| Ask["询问用户 / 通用处理"]
+    Judge -->|"不匹配"| Skip["不加载任何 Skill"]
+    Load --> Execute["按 Skill 指令执行"]
+    Execute --> Refs["按需读取 supporting files<br/>（Layer 3，按需 Read/Bash）"]
+
+    style Scan fill:#fff9c4
+    style Load fill:#c8e6c9
+    style Refs fill:#bbdefb
+```
+
+**关键细节**：触发靠 LLM 语义推理，**不是关键词精确匹配**。Claude 读取所有 description，通过语义理解判断是否匹配。
+
+### §17.3 Token 节省：渐进式披露的经济账
+
+假设 5 个 Skill，每个 SKILL.md 约 1000 tokens：
+
+| 加载方式 | 消耗 |
+|---------|------|
+| 一次性全加载 | 5000 tokens（每轮对话都消耗） |
+| 渐进式披露 | description 常驻 ≈ 100-200 × 5 = 500-1000 tokens；body 只在触发时加载一次 ≈ 1000 tokens |
+
+**节省比例：78% ~ 98%**。这就是为什么不用一次性加载。
+
+### §17.4 disable-model-invocation 的效果
+
+设了 `disable-model-invocation: true` 的 Skill，其 description **不会加载到上下文**——Claude 完全看不到它，只有用户 `/name` 才能触发。这意味着：
+
+- 这个 Skill 的 description 不占常驻 token
+- Claude 永远不可能"自动判断"要用它
+- 适合有风险边界的任务型操作（deploy、migrate 等）
+
+### §17.5 权限控制的三个层次
+
+```
+全局禁用：/permissions → deny Skill 工具
+精确控制：Skill(commit) 精确匹配 / Skill(deploy *) 前缀匹配
+逐个控制：frontmatter 加 disable-model-invocation: true
+```
+
+---
+
+## §18 Description 写作：给 Claude 看的触发器
+
+### §18.1 核心认知
+
+description **不是给人看的文档，而是给 Claude 看的触发器**。Claude 选择是否激活一个 Skill，完全依赖读 description 后的语义推理。
+
+### §18.2 写作公式
+
+```
+description = [做什么] + [怎么做] + [什么时候用]
+```
+
+**坏例子**：
+```yaml
+description: Handles PDFs
+```
+问题："handles" 太模糊。读取？转换？合并？Claude 不知道什么时候该用。
+
+**好例子**：
+```yaml
+description: Extract text and tables from PDF files, fill forms, merge documents. Use when working with PDF files or when the user mentions PDFs, forms, or document extraction.
+```
+为什么好：列出具体动作（extract/fill/merge）+ 包含用户可能的关键词（PDF/forms/extraction）+ 明确触发场景（Use when…）。
+
+### §18.3 多 Skill 时确保区分度
+
+```yaml
+# ❌ 容易冲突
+name: unit-testing
+description: Write tests for code
+name: integration-testing
+description: Write tests for code
+
+# ✅ 明确区分
+name: unit-testing
+description: Write and run unit tests for individual functions. Use for testing single functions or methods in isolation, mocking dependencies, and verifying function behavior.
+name: integration-testing
+description: Write and run integration tests for system components. Use when testing how multiple components work together, testing API endpoints end-to-end, or verifying database interactions.
+```
+
+### §18.4 总预算与溢出
+
+所有 Skill 的 description 总预算默认 **15,000 字符**。超出后被截断，关键词可能消失导致触发失败。运行 `/context` 查看警告，可通过环境变量 `SLASH_COMMAND_TOOL_CHAR_BUDGET` 调大。
+
+---
+
+## §19 两类 Skill：参考型 vs 任务型
+
+### §19.1 分类对比
+
+| 维度 | 参考型 | 任务型 |
+|------|--------|--------|
+| **影响** | "怎么做"（塑造行为方式） | "做什么"（定义一次行动） |
+| **本体论位置** | 世界规则（World Rules） | 世界事件（World Events） |
+| **类比** | 企业的行为规范层（API 标准、代码风格） | 企业的操作流程层（部署、发布、迁移） |
+| **触发方式** | Claude 自动语义触发 | 用户手动 `/name` 触发 |
+| **disable-model-invocation** | 不设（默认 false） | 通常设 `true` |
+| **执行步骤** | 无固定步骤——"遵循这些规范" | 有明确步骤——"先 A 再 B 再 C" |
+| **输出模板** | 无 | 通常有 |
+| **风险等级** | 低（只读/参考） | 高（有副作用） |
+
+### §19.2 frontmatter 差异
+
+```yaml
+# 参考型——Claude 自动选择是否使用
+name: api-conventions
+description: API design patterns for this codebase. Use when writing or reviewing API endpoints.
+allowed-tools:
+  - Read
+  - Grep
+  - Glob
+
+# 任务型——用户手动触发
+name: deploy
+description: Deploy the application to production
+disable-model-invocation: true
+```
+
+---
+
+## §20 决策框架：什么时候用什么
+
+### §20.1 CLAUDE.md vs Skill
+
+```mermaid
+graph TD
+    Q{"这条知识 Claude<br/>每次都需要吗？"}
+    Q -->|"是，每次对话都用"| ClaudeMD["放 CLAUDE.md<br/>（控制 < 100 行）"]
+    Q -->|"否，特定场景才用"| Skill["放 Skill<br/>（按需加载）"]
+    Skill --> Q2{"犹豫不决？"}
+    Q2 -->|"不确定"| Skill2["默认放 Skill<br/>在 CLAUDE.md 加一行引用"]
+
+    style ClaudeMD fill:#fff9c4
+    style Skill fill:#c8e6c9
+```
+
+**核心原则**：CLAUDE.md 放"Claude 每次都该知道的**少量**规则"（< 100 行）；Skill 放"特定场景下的详细指令和知识"（可以很长）。
+
+### §20.2 参考型 vs 任务型判断
+
+```mermaid
+graph TD
+    Q{"这个操作有<br/>副作用 / 风险吗？"}
+    Q -->|"无，只是查阅/参考"| Ref["参考型 Skill<br/>disable-model-invocation: false<br/>Claude 自动触发"]
+    Q -->|"有（写文件/部署/推送）"| Q2{"每次都需要人确认吗？"}
+    Q2 -->|"是，必须显式触发"| Task["任务型 Skill<br/>disable-model-invocation: true<br/>用户 /name 触发"]
+    Q2 -->|"否，Claude 判断即可"| Auto["任务型但不禁自动触发<br/>靠 allowed-tools + hooks 兜底"]
+
+    style Ref fill:#c8e6c9
+    style Task fill:#ffcdd2
+    style Auto fill:#fff9c4
+```

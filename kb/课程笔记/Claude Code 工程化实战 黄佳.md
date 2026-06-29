@@ -16,7 +16,7 @@ description: "极客时间黄佳《Claude Code 工程化实战》课程的学习
 
 | 日期 | 章节/主题 | 状态 | 关键收获 |
 |------|---------|------|---------|
-| 2026-06-29 | 触类旁通：SKILL.md 的结构与触发机制 | ✅ | Skills 的哲学底座——本体论、形而上学、企业本体论三层递进，Skill 作为"企业本体论在模型世界的映射"的本质定位 |
+| 2026-06-29 | 触类旁通：SKILL.md 的结构与触发机制 | ✅ | 四大支柱（Tools/SubAgents/Hooks/Skills）+ 四层本体论模型 + 可操作知识 vs 被动文档 + "人调度→模型调度"范式跃迁 + 触发机制全流程 + description 写作公式（做什么+怎么做+什么时候用）+ 参考型 vs 任务型 Skill + 决策框架（CLAUDE.md vs Skill） |
 | 2026-06-08 | 百舸争流：多任务并行探索与流水线编排 | ✅ | 并行探索 vs 流水线编排两种模式 + Handoff Contract 交接契约 + 混合模式 + 实践：给现有 subagent 加结构化契约 |
 | 2026-06-06 | 去芜存菁：高噪声任务处理——测试运行器与日志分析器 | ✅ | Sub-Agent 作为信息漏斗，三种配方（test-runner/log-analyzer/build-watcher）+ 输出契约 + 模型降级策略 |
 | 2026-06-06 | 量体裁衣：从 Sub-Agents 到 Multi-Agent 的工程指南 | ✅ | 四种模式（Skills/Sub-Agents/Handoffs/Router）+ Supervisor 详解 + 生产部署实例 + 当前项目选型验证 |
@@ -135,6 +135,98 @@ graph TB
 | `CLAUDE_CODE_FORK_SUBAGENT=1` fork 模式在哪些实际场景更优 | ⭐⭐ | 待试用 |
 | Channels 机制（`--channels` flag）怎么用 | ⭐ | 文档简略 |
 | `/btw` 命令——主对话内的"侧问"——和 skill 的边界 | ⭐ | 待实操对比 |
+
+---
+
+## §5.1 触类旁通章节：课后思考题解答
+
+### Q1：项目中哪些专业知识适合封装成参考型 Skill？
+
+**当前 3 个参考型 Skill**：kb-content-style（笔记格式）、kb-tdd-discipline（测试纪律）、auto-commit-discipline（commit 纪律）。
+
+**还可以封装**：
+- **arch-lint-fix-guide**：arch-lint.sh 15 项检查的修复指南。当前每次 preflight 输出警告时需要回忆怎么修，封装后 Claude 看到警告时自动加载。
+- **memory-writing-style**：memory/ 文件的 frontmatter 格式（name/description/type）和 MEMORY.md 索引规范。
+
+### Q2：两个 Skill 功能重叠时，如何设计 description 避免冲突？
+
+**核心**：让每个 description 的触发场景不重叠。
+
+1. **用具体动作区分**，而非抽象描述（unit-testing vs integration-testing 例子）
+2. **用"Use when..."限定触发边界**（kb-content-style 限定在 kb/，kb-tdd-discipline 限定在 scripts/tests/）
+3. **用独特关键词**避免语义碰撞，让 Claude 的语义推理能精确匹配
+
+### Q3：5000 行 Legacy 系统架构文档，如何用 Skills 组织？
+
+**策略：拆分 + 渐进式披露 + 导航 Skill**
+
+```
+.claude/skills/legacy-arch/
+├── SKILL.md                    # 系统全景 + 子系统索引（< 500 行）
+├── user-service.md             # 用户服务架构细节
+├── order-service.md            # 订单服务架构细节
+└── payment-service.md          # 支付服务架构细节
+```
+
+**关键设计**：
+- `allowed-tools: Read/Grep/Glob`（只读查阅）
+- `model: haiku`（只读不需要强推理，省 token）
+- description 公式：做什么（架构和依赖）+ 怎么做（Read 子系统文件）+ 什么时候用（改 src/legacy/、调试跨服务调用）
+
+### Q4：参考型 vs 任务型，判断标准是什么？
+
+**判断标准**：
+- 参考型 = "世界规则"（无副作用、塑造行为方式、Claude 自动触发）
+- 任务型 = "世界事件"（有副作用、定义一次行动、用户手动触发）
+
+**本项目分类**：
+
+| 需求 | 类型 | 理由 |
+|------|------|------|
+| kb-content-style | 参考型 ✅ | 无副作用，只是规范格式 |
+| kb-tdd-discipline | 参考型 ✅ | 无副作用，只是规范流程 |
+| auto-commit-discipline | 参考型 ⚠️ | 有副作用（写 git），但风险低且每次都需要 |
+| arch-lint-fix-guide（新） | 参考型 ✅ | 无副作用，只是修复指南 |
+| build-index（新） | 任务型 ✅ | 有副作用（生成 manifest.json + INDEX.md），需显式触发 |
+| fix-broken-links（新） | 任务型 ✅ | 有副作用（修改 md 文件的链接），需显式触发 |
+
+**边界模糊时**：auto-commit-discipline 有副作用但**每次都需要**且风险低（commit 可逆），放参考型。build-index 有副作用且**不是每次都需要**，放任务型 + `disable-model-invocation: true`。
+
+---
+
+## §5.2 项目 Skill 设计优化建议
+
+### 优化 1：kb-tdd-discipline description 改进
+
+**当前**：
+```yaml
+description: Use when modifying any file under scripts/ or tests/ in this ANS AI Auto Notes project. Also use when fixing any bug in markdown rendering, path resolution, frontmatter parsing, or static lint scripts. Enforces red-green-refactor cycle and bug-reproduction-test-first.
+```
+
+**问题**：开头是 "Use when..."（什么时候用），但**缺"做什么"**。
+
+**改进**：
+```yaml
+description: Enforce TDD discipline (red-green-refactor) and bug-reproduction-test-first workflow. Use when modifying scripts/ or tests/, or fixing bugs in markdown rendering, path resolution, frontmatter parsing, or lint scripts.
+```
+
+### 优化 2：新增 arch-lint-fix-guide Skill
+
+**理由**：arch-lint.sh 每次 preflight 跑 15 项检查，输出警告时需要回忆怎么修。封装后 Claude 看到警告时自动加载修复指南。
+
+### 优化 3：新增 build-index 任务型 Skill
+
+**理由**：当前每次新增/删除 md 文件后需手动跑 `node scripts/build-index.js`。封装成 `/build-index` 命令后体验更好。
+
+```yaml
+name: build-index
+description: Rebuild manifest.json and INDEX.md after adding or deleting kb/ files. Run this after creating new kb/*.md or removing existing ones.
+disable-model-invocation: true      # 任务型：用户手动 /build-index
+```
+
+### 优化 4：检查 description 总预算
+
+当前 3 个 Skill 的 description 总长约 600 字符，远低于 15,000 字符预算。即使新增 2 个 Skill 也不会溢出。
 
 ---
 

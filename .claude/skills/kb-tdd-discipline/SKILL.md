@@ -1,6 +1,6 @@
 ---
 name: kb-tdd-discipline
-description: Use when modifying any file under scripts/ or tests/ in this ANS AI Auto Notes project. Also use when fixing any bug in markdown rendering, path resolution, frontmatter parsing, or static lint scripts. Enforces red-green-refactor cycle and bug-reproduction-test-first.
+description: Enforce TDD discipline (red-green-refactor) and bug-reproduction-test-first workflow. Use when modifying scripts/ or tests/, or fixing bugs in markdown rendering, path resolution, frontmatter parsing, or lint scripts.
 ---
 
 # KB TDD Discipline (ANS AI Auto Notes 项目)
