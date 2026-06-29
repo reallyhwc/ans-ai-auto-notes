@@ -151,6 +151,26 @@ ans-ai-auto-notes/
 - 测试入口：`bash test.sh`
 - pre-push hook 兜底：`bash scripts/install-hooks.sh` 安装
 
+### Skill 开发纪律（SDD）
+
+Skill 开发遵循 **SDD（Skill Development Discipline）**——本质是把 TDD 应用到文档领域。完整方法论由 superpowers 插件的 `writing-skills` skill 提供，核心要点：
+
+- **RED-GREEN-REFACTOR 循环**：先用 subagent 跑压力场景观察基线行为（RED），再写最小 Skill 解决特定合理化借口（GREEN），最后堵新漏洞（REFACTOR）
+- **Iron Law**：`NO SKILL WITHOUT A FAILING TEST FIRST`——写 Skill 前没观察过 agent 失败行为，说明你不知道该教什么
+- **Description 写作**：只写触发条件（Use when...），不总结 workflow（否则 Claude 会走捷径跳过读 body）
+- **Token 效率**：频繁加载的 skill 控制在 200 words 以内，其他 <500 words
+- **Rationalization Table**：每个纪律型 Skill 必须包含"借口 vs 现实"对照表
+
+**Skill 类型定位**：
+
+| 类型 | 特征 | 本项目示例 |
+|------|------|-----------|
+| **参考型**（Reference） | Claude 自动触发，塑造行为方式 | kb-content-style、arch-lint-fix-guide |
+| **任务型**（Task） | 用户手动 `/name` 触发，有副作用 | build-index |
+| **纪律型**（Discipline） | 每次对话都加载，约束行为 | kb-tdd-discipline、auto-commit-discipline |
+
+详见黄佳课程[§19 两类 Skill](kb/技术/AI/Claude-Code/Skills%20渐进式披露架构.md)和 superpowers `writing-skills` skill。
+
 ### Git 规则
 
 详见 [.claude/skills/auto-commit-discipline/SKILL.md](.claude/skills/auto-commit-discipline/SKILL.md) —— AI 助手会按 skill 触发条件自动加载完整规则。核心要点：

@@ -163,6 +163,30 @@ node scripts/check-overview.js # 12 项健康检查
 bash scripts/arch-lint.sh     # 8 项 KB 架构检查
 ```
 
+## Skill 体系（AI 能力包）
+
+项目采用 **Skill 渐进式披露架构**——把领域知识封装为可被语义触发的能力单元，按需加载到 Claude 的认知空间。详见 [Skills 渐进式披露架构](kb/技术/AI/Claude-Code/Skills%20渐进式披露架构.md)。
+
+### 当前 5 个 Skill
+
+| Skill | 类型 | 触发方式 | 作用 |
+|-------|------|---------|------|
+| **kb-content-style** | 参考型 | Claude 自动触发 | 写 kb/ 笔记时强制 Mermaid 优先、章节编号连续、中文文件名 = title |
+| **kb-tdd-discipline** | 纪律型 | Claude 自动触发 | 改 scripts/tests 时强制红绿重构 + bug 复现测试 |
+| **auto-commit-discipline** | 纪律型 | Claude 自动触发 | 完成一批变更立即 commit，≥3 未 push 自动 push |
+| **arch-lint-fix-guide** | 参考型 | Claude 自动触发 | arch-lint.sh 15 项检查的修复指南 |
+| **build-index** | 任务型 | `/build-index` | 新增/删除 kb 文件后重建 manifest.json + INDEX.md |
+
+### Skill 开发纪律（SDD）
+
+Skill 开发遵循 **SDD（Skill Development Discipline）**——把 TDD 应用到文档领域：
+
+1. **RED**：先用 subagent 跑压力场景，观察没有 Skill 时的基线行为
+2. **GREEN**：写最小 Skill 解决观察到的特定问题
+3. **REFACTOR**：堵新漏洞，完善 Rationalization Table
+
+详见 [CLAUDE.md](CLAUDE.md) 的 "Skill 开发纪律" 章节和 superpowers `writing-skills` skill。
+
 ## 定制
 
 详细规则、目录组织、文件拆分阈值、笔记风格规则均在 [CLAUDE.md](CLAUDE.md)。
