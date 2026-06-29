@@ -658,13 +658,9 @@ graph TD
 - Claude 永远不可能"自动判断"要用它
 - 适合有风险边界的任务型操作（deploy、migrate 等）
 
-### §17.5 权限控制的三个层次
+### §17.5 权限控制
 
-```
-全局禁用：/permissions → deny Skill 工具
-精确控制：Skill(commit) 精确匹配 / Skill(deploy *) 前缀匹配
-逐个控制：frontmatter 加 disable-model-invocation: true
-```
+详见 [§15 与 hook、permission 的协同](#15-与-hookpermission-的协同)。
 
 ---
 
@@ -694,6 +690,8 @@ description: Extract text and tables from PDF files, fill forms, merge documents
 
 ### §18.3 多 Skill 时确保区分度
 
+多个 Skill 共存时，description 必须有明确区分，避免 Claude 语义推理时混淆。常见反模式详见 [§14 常见坑](#14-常见坑)。
+
 ```yaml
 # ❌ 容易冲突
 name: unit-testing
@@ -710,7 +708,16 @@ description: Write and run integration tests for system components. Use when tes
 
 ### §18.4 总预算与溢出
 
-所有 Skill 的 description 总预算默认 **15,000 字符**。超出后被截断，关键词可能消失导致触发失败。运行 `/context` 查看警告，可通过环境变量 `SLASH_COMMAND_TOOL_CHAR_BUDGET` 调大。
+**预算公式**：总预算 = `context window × skillListingBudgetFraction`（默认 1%，可调）。200K window 下约 2K 字符，1.5M window 下约 15K 字符。课程原文提到的 **15,000 字符**是较大窗口下的典型值，实际取决于当前会话的窗口大小。
+
+**两个独立预算维度**：
+
+| 维度 | 数值 | 作用域 |
+|------|------|--------|
+| 总 listing 预算 | context × 1% | 所有 Skill 的 description 共享 |
+| 单 skill 上限 | 1536 字符 | description + when_to_use |
+
+超出后被截断，关键词可能消失导致触发失败。运行 `/context` 查看警告，可通过环境变量 `SLASH_COMMAND_TOOL_CHAR_BUDGET` 或 `skillListingBudgetFraction: 0.02` 调大。
 
 ---
 
