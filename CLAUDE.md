@@ -97,12 +97,35 @@ ans-ai-auto-notes/
 ```
 对话产生了技术内容？
   ├── 否 → 不沉淀，正常回复
-  └── 是 → 涉及文件拆分/合并/目录变更？
-              ├── 是 → 提案后执行（询问用户）
-              └── 否 → 直接写入 kb/（不询问）
+  └── 是 → 用户贴入了长文 / URL / 大段文本？
+              ├── 是 → 先 spawn idea-extractor 识别候选，再按建议写入
+              └── 否 → 涉及文件拆分/合并/目录变更？
+                          ├── 是 → 提案后执行（询问用户）
+                          └── 否 → 直接写入 kb/（不询问）
 ```
 
 **存疑时的默认行为是写入，不是询问。** 宁可写了一篇不需要的笔记，也不要问一句"要不要沉淀"。
+
+#### 长文 / URL 输入走 idea-extractor
+
+当用户**贴入长文章、URL、课程笔记全文**时，先 spawn `idea-extractor` subagent 识别沉淀候选，再按 `EXTRACT-VERDICT` 的 candidates 逐项处理。**不要**跳过 extractor 直接写——长文里可能有多个独立知识点，extractor 帮你查重、分段、排优先级。
+
+### Subagent 调度纪律
+
+项目已注册 3 个 subagent（定义在 `.claude/agents/`），使用时遵循以下调度规则：
+
+| Subagent | 触发条件 | 关键约束 |
+|---|---|---|
+| **kb-auditor** | 写完深度笔记（≥300 行新内容）或单文件 ≥800 行后主动 spawn | spawn 时**必须把 `kb-content-style` 核心规则摘要传入 prompt**（Mermaid-first、§N 连续、demo 优先、文件名=标题），否则审计标准与写作标准脱节 |
+| **idea-extractor** | 用户贴入长文/URL/大段文本 | 识别候选后由主 agent 按建议写入，extractor 自己不写 kb/ |
+| **plan-executor** | 用户说 "run plan X" / "执行 plan X" | 端到端跑 plan，task-by-task 嵌套 implementer |
+
+**通用纪律**：
+- dispatch 后**立即 patch agent-log**（`feedback-agent-log-patch`）：补 title/summary/outcome
+- **不要**把 subagent 返回的完整报告复制到主对话，引用 `logs/` 路径即可
+- kb-auditor 同一文件 24h 内不重复 spawn
+
+详见 [`.claude/agents/README.md`](.claude/agents/README.md) 的完整调度手册。
 
 ### 跨文件关联规则
 
