@@ -4,9 +4,17 @@ const fs = require('fs');
 const { execSync } = require('child_process');
 
 test('arch-lint.sh: 检查 6（链接路径大小写）应在 2 秒内完成', () => {
+  // 从 arch-lint.sh 动态提取检查 6 代码段，不依赖预生成文件
+  const content = fs.readFileSync('scripts/arch-lint.sh', 'utf8');
+  const match = content.match(/# ── 检查 6.*?(?=# ── 检查 7)/s);
+  assert.ok(match, '应找到检查 6 的代码段');
+
+  const tmpFile = '/tmp/check6-only.sh';
+  fs.writeFileSync(tmpFile, '#!/bin/bash\nset -uo pipefail\n' + match[0]);
+
   const start = Date.now();
   const output = execSync(
-    'bash /tmp/check6-only.sh 2>&1',
+    `bash ${tmpFile} 2>&1`,
     { encoding: 'utf8', timeout: 30000 }
   );
   const elapsed = (Date.now() - start) / 1000;

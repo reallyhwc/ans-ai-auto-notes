@@ -20,10 +20,10 @@ test('exit-check.sh: push 失败时应有 pull --rebase 重试逻辑', () => {
     '应有重试机制');
 });
 
-test('exit-check.sh: push 失败时应调用 PushNotification', () => {
-  // 查找 PushNotification 调用
-  assert.match(content, /PushNotification/,
-    'push 失败时应使用 PushNotification 强提醒');
+test('exit-check.sh: push 失败时应发送桌面通知', () => {
+  // 查找 notify 函数调用（macOS 原生 osascript 通知，替代不可用的 PushNotification 模型工具）
+  assert.match(content, /notify\s+".*push/,
+    'push 失败时应使用 notify 发送桌面通知');
 });
 
 test('exit-check.sh: 应同时检查未 commit 文件数', () => {

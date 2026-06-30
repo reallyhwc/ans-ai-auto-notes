@@ -5,6 +5,13 @@
 set -uo pipefail
 cd "$(dirname "$0")"
 
+# macOS 原生桌面通知（替代不可用的 PushNotification 模型工具）
+notify() {
+  if [ "$(uname)" = "Darwin" ]; then
+    osascript -e "display notification \"$1\" with title \"ans-ai-auto-notes\"" 2>/dev/null &
+  fi
+}
+
 echo ""
 echo "========== 退出检查 =========="
 
@@ -92,41 +99,34 @@ elif [ "$UNPUSHED_COUNT" -ge 3 ]; then
     PUSH_EXIT=$?
     if [ $PUSH_EXIT -eq 0 ]; then
       echo "  ✅ 自动 push 成功"
+      notify "✅ 自动 push 成功 ($UNPUSHED_COUNT commits)"
     elif echo "$PUSH_OUTPUT" | grep -q "rejected\|fetch first"; then
       # 远程有新 commit，尝试 pull --rebase 后重试
       echo "  ⚠️  远程有新 commit，尝试 pull --rebase..."
       if git pull --rebase origin "$BRANCH" 2>&1; then
         if git push origin "$BRANCH" 2>&1; then
           echo "  ✅ pull --rebase 后重试 push 成功"
+          notify "✅ pull --rebase 后 push 成功"
         else
           echo "  ❌ 重试 push 仍失败，请手动: git push origin $BRANCH"
-          # 强提醒：使用 PushNotification（如果可用）
-          if command -v PushNotification >/dev/null 2>&1; then
-            PushNotification "push 失败：远程冲突，需手动解决"
-          fi
+          notify "❌ push 失败：远程冲突，需手动解决"
         fi
       else
         echo "  ❌ pull --rebase 失败（可能有冲突），请手动解决"
         echo "  详情: git pull --rebase origin $BRANCH"
-        if command -v PushNotification >/dev/null 2>&1; then
-          PushNotification "push 失败：rebase 冲突，需手动解决"
-        fi
+        notify "❌ push 失败：rebase 冲突，需手动解决"
       fi
     else
       echo "  ❌ 自动 push 失败：$PUSH_OUTPUT"
       echo "  请手动: git push origin $BRANCH"
-      if command -v PushNotification >/dev/null 2>&1; then
-        PushNotification "push 失败：$PUSH_OUTPUT"
-      fi
+      notify "❌ push 失败：请手动 git push"
     fi
   else
     echo "  ❌ 测试失败，已阻断自动 push"
     echo "  详情: cat /tmp/exit-check-test.log"
     tail -10 /tmp/exit-check-test.log
     echo "  修复后手动: git push origin $BRANCH"
-    if command -v PushNotification >/dev/null 2>&1; then
-      PushNotification "push 阻断：测试失败，需修复"
-    fi
+    notify "❌ 自动 push 阻断：测试失败"
   fi
 elif [ "$UNPUSHED_COUNT" -gt 0 ]; then
   echo ""

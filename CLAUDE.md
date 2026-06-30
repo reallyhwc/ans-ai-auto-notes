@@ -217,13 +217,13 @@ Skill 开发遵循 **SDD（Skill Development Discipline）**——本质是把 T
 | **文档层** | — | — | `.claude/session-logs/` | 每日 session 日志存档（同日多次 Stop 累加 append） |
 | **文档层** | — | — | `memory/*.md` | 记忆文件优先用 frontmatter 内 `lastUpdated`（任意缩进），无此字段时 fallback 到文件 mtime，>14 天告警 |
 
-> 注：Stop hook 来自两个配置文件叠加（settings.local.json 跑 exit-check.sh，settings.json 跑 agent-log-hook.js），两者都会执行。
+> 注：Stop hook 来自两个配置文件叠加（settings.local.json 跑 exit-check.sh，settings.json 跑 agent-log-hook.js），两者都会执行。**Stop hook 在每次模型回复结束后触发**（不仅是用户退出时），所以自动 push 检查在每轮对话后都会运行。但 hook 输出只回传给模型，用户终端看不到——模型应在回复中主动报告 push 结果。
 
 > 注：UserPromptSubmit hook 已移除（commit-reminder.sh 已淘汰）——由 AI 主动 auto-commit 替代机械提醒。AI 每完成一批文件变更后立即 `git add -A && git commit`，不等用户提醒。
 
 > 所有 settings.local.json 中的 hook 通过 `scripts/hook-logger.sh` 包装执行，执行结果（耗时、exit code）记录到 `logs/hook-runs.jsonl`（.gitignore 中）。
 
-当用户说"准备退出"、"不聊了"、"下次再继续"或类似结束语时，Stop hook 会自动执行上述检查并输出建议的 commit 命令。除此之外，AI 还需主动完成：
+当用户说"准备退出"、"不聊了"、"下次再继续"或类似结束语时，**除了 Stop hook 已经在跑的自动化检查**，AI 还需主动完成：
 
 1. **文件格式检查**：运行 `./lint.sh` 做自动格式校验（heading、空行等），然后人工扫描本次变动的 md 文件，确认元信息头（`> 最后整理: YYYY-MM-DD | 来源: xxx`）符合规范。发现格式不一致的文件立即修正。
 2. **交叉链接检查**：确认新增/修改的文件有指向关联文件的双向链接（`[[./xxx]]` 或 `> 关联:` 格式）。
