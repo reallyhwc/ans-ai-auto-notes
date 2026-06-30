@@ -1,12 +1,13 @@
 ---
 name: build-index
-description: Rebuild manifest.json and INDEX.md after adding or deleting kb/ files. Use this after creating new kb/*.md or removing existing ones. Task-type skill with side effects (writes INDEX.md).
+description: Use when adding or deleting kb/*.md files and the index needs rebuilding. Use after creating new kb/ markdown files or removing existing ones.
 disable-model-invocation: true
 allowed-tools:
   - Bash(node scripts/build-index.js)
-  - Bash(wc -l INDEX.md)
-  - Bash(find kb -name "*.md")
-  - Read
+  - Bash(grep -c * INDEX.md)
+  - Bash(find kb -name *.md -print | wc -l)
+  - Bash(git add INDEX.md)
+  - Bash(git commit -m *)
 ---
 
 # Build Index (ANS AI Auto Notes 项目)
@@ -20,6 +21,14 @@ allowed-tools:
 **MUST NOT invoke when**:
 - 只是修改了 kb/ 文件内容（不需要重建索引，刷新浏览器即可）
 - 修改了 `timeline/` 或 `memory/`（这些不在索引范围内）
+
+## Current Context (Auto-detected)
+
+INDEX.md entries: !`grep -c '^\- \[' INDEX.md 2>/dev/null || echo "INDEX.md not found"`
+
+kb/ markdown files: !`find kb -name '*.md' -print | wc -l | tr -d ' '`
+
+Status: !`idx=$(grep -c '^\- \[' INDEX.md 2>/dev/null || echo 0); kb=$(find kb -name '*.md' -print | wc -l | tr -d ' '); if [ "$idx" = "$kb" ]; then echo "IN SYNC ($idx entries)"; else echo "DRIFT: INDEX=$idx vs kb/=$kb"; fi`
 
 ## 执行步骤
 
