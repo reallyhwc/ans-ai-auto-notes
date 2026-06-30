@@ -187,6 +187,20 @@ Skill 开发遵循 **SDD（Skill Development Discipline）**——把 TDD 应用
 
 详见 [CLAUDE.md](CLAUDE.md) 的 "Skill 开发纪律" 章节和 superpowers `writing-skills` skill。
 
+## Subagent 体系（AI 协作团队）
+
+项目注册了 3 个项目级 Subagent（定义在 `.claude/agents/`），与 Skill 互补：
+
+| Subagent | 职责 | 触发方式 | 产物 |
+|----------|------|---------|------|
+| **kb-auditor** | 审 long-form kb 笔记的深度/章节/链接/视觉化 | 写完 ≥300 行新内容或单文件 ≥800 行后主动 spawn | `logs/audits/*.md` + 结构化 VERDICT |
+| **idea-extractor** | 从长文/URL 识别 KB 沉淀候选（不写盘） | 用户贴入长文章/URL 时主动 spawn | 结构化 EXTRACT-VERDICT + candidates |
+| **plan-executor** | 端到端跑 plan 文件的所有 task | 用户说 "run plan X" | `logs/plan-runs/*.md` + VERDICT |
+
+**与 Skill 的关系**：Skill 提供"怎么写"的规范（参考型）和"跑什么动作"的快捷方式（任务型）；Subagent 处理"需要独立跑一阵"的长任务——三者共存互补。
+
+详见 [`.claude/agents/README.md`](.claude/agents/README.md) 和 [Subagent 机制与实战](kb/技术/AI/Claude-Code/子智能体（subagents）机制与实战.md)。
+
 ## 定制
 
 详细规则、目录组织、文件拆分阈值、笔记风格规则均在 [CLAUDE.md](CLAUDE.md)。
