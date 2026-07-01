@@ -149,7 +149,8 @@ LEDGER=".claude/claim-ledger.log"
 if [ ! -f "$LEDGER" ]; then
   echo "  ✓ 无沉淀声明记录"
 else
-  MISSING_COUNT=$(grep -c " | MISSING$" "$LEDGER" 2>/dev/null || echo 0)
+  MISSING_COUNT=$(grep -c " | MISSING$" "$LEDGER" 2>/dev/null)
+  MISSING_COUNT=${MISSING_COUNT:-0}
   if [ "$MISSING_COUNT" -gt 0 ]; then
     echo "  ❌ $MISSING_COUNT 次沉淀声明文件不存在："
     grep " | MISSING$" "$LEDGER" | tail -10

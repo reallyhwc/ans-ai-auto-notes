@@ -14,21 +14,21 @@ allowed-tools:
 
 ## 触发条件
 
-**MUST invoke when**:
+**必须触发**：
 - 用户手动输入 `/build-index`
 - 新增或删除了 `kb/**/*.md` 文件后需要重建索引
 
-**MUST NOT invoke when**:
+**禁止触发**：
 - 只是修改了 kb/ 文件内容（不需要重建索引，刷新浏览器即可）
 - 修改了 `timeline/` 或 `memory/`（这些不在索引范围内）
 
-## Current Context (Auto-detected)
+## 当前上下文（自动检测）
 
-INDEX.md entries: !`grep -c '^\- \[' INDEX.md 2>/dev/null || echo "INDEX.md not found"`
+INDEX.md 条目数: !`grep -c '^\- \[' INDEX.md 2>/dev/null || echo "INDEX.md 不存在"`
 
-kb/ markdown files: !`find kb -name '*.md' -print | wc -l | tr -d ' '`
+kb/ 实际 md 数: !`find kb -name '*.md' -print | wc -l | tr -d ' '`
 
-Status: !`idx=$(grep -c '^\- \[' INDEX.md 2>/dev/null || echo 0); kb=$(find kb -name '*.md' -print | wc -l | tr -d ' '); if [ "$idx" = "$kb" ]; then echo "IN SYNC ($idx entries)"; else echo "DRIFT: INDEX=$idx vs kb/=$kb"; fi`
+同步状态: !`idx=$(grep -c '^\- \[' INDEX.md 2>/dev/null || echo 0); kb=$(find kb -name '*.md' -print | wc -l | tr -d ' '); if [ "$idx" = "$kb" ]; then echo "已同步 ($idx 条)"; else echo "漂移: INDEX=$idx vs kb/=$kb，需要重建"; fi`
 
 ## 执行步骤
 
