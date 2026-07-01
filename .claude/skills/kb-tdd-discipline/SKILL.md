@@ -72,7 +72,7 @@ tests/
 ## Push 前自动跑测试（双层 gate）
 
 1. **`scripts/git-hooks/pre-push`** — git 层硬拦截
-2. **`exit-check.sh` 的 auto-push 块** — Stop 时 ≥5 commits 未 push 时先跑 test 通过才 push
+2. **`exit-check.sh` 的 auto-push 块** — Stop 时 ≥3 commits 未 push 时先跑 test 通过才 push
 
 **首次安装 hook**：`bash scripts/install-hooks.sh`（新机器克隆后跑一次）。
 
