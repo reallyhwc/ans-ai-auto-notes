@@ -213,6 +213,62 @@ flowchart TD
 - 范围查询 / 排名 → 跳表 O(log N + M)，M 为返回元素数
 - 查排名 → 跳表每个节点维护 span（跨度），累加得到 O(log N)
 
+## 2026-07-01 - 跳表实现细节补充
+
+### zskiplistNode 结构（Redis 源码）
+
+```c
+// server.h
+typedef struct zskiplistNode {
+    sds ele;                          // member 字符串
+    double score;                     // 分值
+    struct zskiplistNode *backward;   // 后退指针（仅 Level 0 层有效）
+    struct zskiplistLevel {
+        struct zskiplistNode *forward;  // 前进指针
+        unsigned long span;             // 跨度（Redis 独有的关键设计！）
+    } level[];                        // 柔性数组，每节点层数不同
+} zskiplistNode;
+
+typedef struct zskiplist {
+    struct zskiplistNode *header, *tail;
+    unsigned long length;    // 节点总数
+    int level;               // 当前最大层数
+} zskiplist;
+```
+
+### span 的作用：O(log N) 获取排名
+
+`span` 是 Redis 跳表 vs 通用跳表最大的区别。它记录从当前节点到下一个节点"跳过了多少个 Level 0 的节点"。
+
+```
+Level 2:  [1]──── span=3 ────→[9]── span=1 →NULL
+Level 1:  [1]── span=1 →[5]── span=2 →[9]── span=1 →NULL
+Level 0:  [1]→[3]→[5]→[7]→[8]→[9]→[12]→NULL
+
+查 9 的排名（ZRANK）:
+  Level 2: 从 1 到 9, span=3 → 累计 rank=0+3=3
+  降到 Level 0: 从 9 往前走到具体节点
+
+排名 = 沿途 span 累加。不需要遍历计数，O(log N)。
+```
+
+### 层数随机生成算法
+
+```c
+// t_zset.c
+#define ZSKIPLIST_P 0.25      // Redis 选 0.25，不是标准的 0.5
+#define ZSKIPLIST_MAXLEVEL 32 // 最多 32 层（足够支撑 2^32 个节点）
+
+int zslRandomLevel(void) {
+    int level = 1;
+    while ((random() & 0xFFFF) < (ZSKIPLIST_P * 0xFFFF))
+        level += 1;
+    return (level < ZSKIPLIST_MAXLEVEL) ? level : ZSKIPLIST_MAXLEVEL;
+}
+```
+
+**为什么 P=0.25？** 期望层数 = 1/(1-0.25) ≈ 1.33。大多数节点只有 1-2 层，内存效率高。P=0.5 时期望 2 层，每层多存一倍指针，但查询只快一点点。antirez 选了更省内存的 0.25。
+
 ### 跳表 vs B+ 树（MySQL InnoDB 索引）
 
 **一句话结论：B+ 树为磁盘设计，跳表为内存设计。** 两者都是 O(log N)，但优化方向完全不同。

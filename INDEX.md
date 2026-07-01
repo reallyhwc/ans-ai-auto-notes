@@ -9,11 +9,11 @@
 - [外部参考链接](kb/实战/外部参考链接.md) — 优质外部技术文章、博客、演讲的链接汇总，附带核心要点
 - [知识管理工具对比](kb/实战/知识管理工具对比.md) — Obsidian/Notion/本项目方案 对比分析
 
-## 技术 (59 篇)
+## 技术 (60 篇)
 
 - [Go 与 TypeScript 快速对比](kb/技术/Go 与 TypeScript 对比.md) — Go 和 TypeScript 语言特性、生态、典型用例对比，含 Qoder CLI 从 Go 重构到 TypeScript 的动机推测
 
-### AI (48 篇)
+### AI (45 篇)
 
 #### AI-Coding (5 篇)
 
@@ -23,23 +23,20 @@
 - [AI 编程的递进路径：从古法编程到多 Agent 协作](kb/技术/AI/AI-Coding/AI 编程的递进路径：从古法编程到多 Agent 协作.md) — 从古法编程到多Agent协作6个Level、程序员未来展望
 - [从 Vibe Coding 到 Spec-Driven 到驾驭工程](kb/技术/AI/AI-Coding/从 Vibe Coding 到 Spec-Driven 到驾驭工程.md) — AI 编程三阶段演进：Vibe Coding（放马跑，爽但危险）→ Spec-Driven Development（契约约束）→ 驾驭工程/Harness Engineering（系统级自动约束），附本项目 Harness 实践拆解
 
-#### Claude-Code (17 篇)
+#### Claude-Code (14 篇)
 
-- [Agent Teams 多会话协作架构](kb/技术/AI/Claude-Code/Agent Teams 多会话协作架构.md) — Claude Code Agent Teams 实验性特性：从 Sub-Agents 的树状委托到 Teams 的网状协作、四大设计模式的本质区分、选型决策的核心判据、成本与收益的权衡框架
 - [Claude Code 2026 上半年新特性与项目实践](kb/技术/AI/Claude-Code/Claude Code 2026 上半年新特性与项目实践.md) — 2026 年 1-6 月 Claude Code 新增的架构级能力（Agent View/Teams/Auto Mode/Dynamic Workflows）、模型升级（Opus 4.8）、工具增强（fallbackModel/Plugin 生态/Worktree 增强），及在 ans-ai-auto-notes 项目中的落地分析
 - [Claude Code 整体架构 & 工作流程](kb/技术/AI/Claude-Code/Claude Code 整体架构 & 工作流程.md) — 整体架构、REPL循环、工具链、Hooks、上下文管理、完整数据流
 - [Claude Code 进阶工作流：从能用到高效](kb/技术/AI/Claude-Code/Claude Code 进阶工作流：从能用到高效.md) — 四阶段成熟度模型（裸聊→文件化→自动化→生态化）、约束>文档>对话三层模型、hooks/memory/plan/manifest/dev-log实战配置
 - [Claude Code 远程操控：Remote Control 与 cc-connect](kb/技术/AI/Claude-Code/Claude Code 远程操控：Remote Control 与 cc-connect.md) — Claude Code远程操控：官方Remote Control vs cc-connect消息桥接、手机编程工作流、微信/飞书接入
 - [Harness Engineering：AI Agent 时代的工程范式](kb/技术/AI/Claude-Code/Harness Engineering：AI Agent 时代的工程范式.md) — Harness Engineering(驾驭工程)：Agent=Model+Harness、六项核心能力、四阶段成长路径、双LLM交叉校验四种实现方式
-- [Headless 模式与 Agent SDK](kb/技术/AI/Claude-Code/Headless 模式与 Agent SDK.md) — Claude Code 非交互模式：-p 参数全清单、--bare 启动模式、output-format 结构化输出、stream-json 事件类型、CI 集成模式、Agent SDK 关系、headless vs 自建 Agent 选型
+- [Headless 模式与 Agent SDK](kb/技术/AI/Claude-Code/Headless 模式与 Agent SDK.md) — Claude Code 非交互模式：-p 参数全清单、--bare 启动模式、output-format 结构化输出、stream-json 事件类型、CI 集成模式、Agent SDK 关系
 - [Hooks 事件全景与拦截机制](kb/技术/AI/Claude-Code/Hooks 事件全景与拦截机制.md) — Claude Code 全部 30+ hook 事件按类别清单、阻断三档机制、配置层级合并、PreToolUse 完整示例、subagent/skill 内的 hook
 - [MCP 集成实战（含 Spring AI）](kb/技术/AI/Claude-Code/MCP 集成实战（含 Spring AI）.md) — MCP 协议在 Claude Code 中的接入：四种 transport 对比、三级 scope 优先级、配置命令、Spring AI MCP server 实战接入、OAuth、Tool Search 优化、调试与坑
 - [Plugins 插件体系](kb/技术/AI/Claude-Code/Plugins 插件体系.md) — Claude Code plugin 系统：与 standalone 配置的边界、目录结构、manifest schema、能打包的资源、安装方式、marketplace 机制、版本管理、迁移路径
 - [Skills 渐进式披露架构](kb/技术/AI/Claude-Code/Skills 渐进式披露架构.md) — Skills 的三层渐进式披露机制、token 经济学、frontmatter 全字段、生命周期、动态 context 注入、与 commands/subagent 的边界
 - [Superpowers TDD Skill 工作流拆解](kb/技术/AI/Claude-Code/Superpowers TDD Skill 工作流拆解.md) — TDD 是什么、Superpowers 在其中的角色、LLM 工具调用链详细拆解
 - [从 Sub-Agent 到 Multi-Agent 的工程指南](kb/技术/AI/Claude-Code/从 Sub-Agent 到 Multi-Agent 的工程指南.md) — Multi-Agent 四种设计模式（Sub-Agents/Skills/Handoffs/Router）、升级决策阶梯、Supervisor 模式详解、生产环境部署实例、Claude Code 本地 sub-agent 与生产 agent 的本质区别、知识库项目选型分析
-- [任务型 Skills（斜杠命令）实战](kb/技术/AI/Claude-Code/任务型 Skills（斜杠命令）实战.md) — 任务型 Skill 的核心机制、参数传递、!command 动态注入、Skill 内 Hooks、七步设计清单、命名空间组织，以及与参考型/SubAgent 的边界
-- [子代理专题总结与综合案例](kb/技术/AI/Claude-Code/子代理专题总结与综合案例.md) — 子代理六讲知识体系的两层能力模型（Sub-Agents 结构化分工 vs Agent Teams 认知协作）、四种子代理使用模式、电商大促支付超时五阶段综合案例、贯穿始终的工程方法论、假期思考题
 - [子智能体（subagents）机制与实战](kb/技术/AI/Claude-Code/子智能体（subagents）机制与实战.md) — subagent 的定位、与 skill/Agent SDK 的区分、四级 scope 优先级、frontmatter 全字段、三种调用方式、独立 context 机制、协作链路、fork/worktree/persistent memory 进阶、permissionMode 风险与降险配套、skills 预加载 vs 嵌套 spawn 取舍、常见 subagent 配方（数据库查询分析器/code-reviewer/test-runner）
 - [并行探索与流水线编排](kb/技术/AI/Claude-Code/并行探索与流水线编排.md) — 子代理的两种编排模式——并行探索（Fan-out/Fan-in）与流水线编排（Pipeline），含独立性判定、交接契约设计、失败回退策略、混合模式决策树、编排者四种介入形式
 
@@ -78,20 +75,24 @@
 - [主流 Agent 产品技术栈解剖：自研循环 vs 框架之争](kb/技术/AI/应用/主流 Agent 产品技术栈解剖：自研循环 vs 框架之争.md) — Claude Code/OpenClaw/Hermes Agent 技术栈拆解，为什么顶级 Agent 产品都不用 LangChain/Spring AI，Agent 循环对比（TAOR/Hub-and-Spoke/run_conversation）
 - [跨语言 Agent + MCP 架构：Python Agent ↔ Java MCP 混合开发](kb/技术/AI/应用/跨语言 Agent + MCP 架构：Python Agent ↔ Java MCP 混合开发.md) — LangChain 双语言支持(Python/JS)、Python写Agent+Java写MCP的正反两种方案、MCP协议抹平语言差异的配置示例、推荐架构
 
-### Java (8 篇)
+### Java (11 篇)
 
 - [Dubbo 与 RPC 框架横评](kb/技术/Java/Dubbo 与 RPC 框架横评.md) — Dubbo 核心架构、调用链路、3.x 新特性，以及 gRPC/OpenFeign/Thrift/Kitex 等主流 RPC 框架对比选型
+- [MySQL B+树索引实现原理](kb/技术/Java/MySQL B+树索引实现原理.md) — InnoDB B+树索引的底层实现：页结构、聚簇索引 vs 二级索引、页分裂、树高估算、为什么不用二叉/哈希/跳表
+- [MySQL 索引失效场景全解](kb/技术/Java/MySQL 索引失效场景全解.md) — MySQL 索引失效的经典场景：函数/运算、隐式转换、LIKE %开头、最左前缀、OR、选择性低、!= / NOT IN 等，含 EXPLAIN 验证方法
 - [Redis 常用数据类型与使用场景](kb/技术/Java/Redis 常用数据类型与使用场景.md) — Redis 五大基本类型（String/List/Set/Hash/ZSet）的底层实现、使用场景、常用命令，ZSet 跳表原理及双结构设计，含 Bitmap/HyperLogLog/GEO/Stream 简表
 - [RocketMQ 底层实现原理](kb/技术/Java/RocketMQ 底层实现原理.md) — 从 Producer 到 Broker 存储到 Consumer 的全链路底层机制
 - [Spring AI](kb/技术/Java/Spring AI.md) — Spring 生态 LLM 集成，流式/非流式调用
 - [Spring IOC、DI 与 AOP 核心原理](kb/技术/Java/Spring IOC、DI 与 AOP 核心原理.md) — Spring 核心机制详解：IoC（控制反转）设计思想、DI（依赖注入）三种方式、Bean 生命周期、AOP（面向切面编程）动态代理原理，含完整代码 Demo 和 Mermaid 图
 - [主流消息队列对比与选型](kb/技术/Java/主流消息队列对比与选型.md) — Kafka / RocketMQ / RabbitMQ 三大 MQ 的架构原理、存储机制、HA 策略深度对比与选型决策
 - [分布式事务全景](kb/技术/Java/分布式事务全景.md) — Java 后端程序员视角下的分布式事务方案对比与选型实践
+- [点赞Top排行榜设计方案](kb/技术/Java/点赞Top排行榜设计方案.md) — 点赞/热度排行榜的系统设计：Redis ZSet 直写 → 定时批量计算 → 分桶分片，海量数据下的分层架构与反作弊考量
 - [热点账户高并发记账方案](kb/技术/Java/热点账户高并发记账方案.md) — 单账户高并发写入场景下的 7 种解决方案对比、选型及异步一致性设计
 
-### 计算机基础 (2 篇)
+### 计算机基础 (3 篇)
 
 - [图灵机与冯诺依曼结构](kb/技术/计算机基础/图灵机与冯诺依曼结构.md) — 计算机科学两大基石：图灵机（可计算性理论）vs 冯诺依曼结构（工程实现蓝图），以及两者的关系
+- [满二叉树判定算法](kb/技术/计算机基础/满二叉树判定算法.md) — 满二叉树（Full/Perfect Binary Tree）的判定方法、算法实现与复杂度分析
 - [贝叶斯统计与AI的关系](kb/技术/计算机基础/贝叶斯统计与AI的关系.md) — 贝叶斯定理直觉理解、先验/后验/证据、HIV检测经典例子、与AI的四处交集（朴素贝叶斯/贝叶斯深度学习/概率图模型/生成模型）
 
 ## 读书笔记 (2 篇)
