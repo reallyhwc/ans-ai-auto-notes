@@ -5,9 +5,82 @@ description: "从 Producer 到 Broker 存储到 Consumer 的全链路底层机�
 
 # RocketMQ 底层实现原理
 
-> 最后整理: 2026-06-08 | 来源: 对话讲解
+> 最后整理: 2026-07-03 | 来源: 对话讲解
 
 > 关联: [spring-ai](<./Spring AI.md>) — Java 技术栈
+
+---
+
+## 2026-07-03 - Producer 投递目标：NameServer 还是 Broker？
+
+### 核心结论
+
+**Producer 直接把消息发给 Broker Master，不经过 NameServer。** 一条消息只发给一个 Broker（选中的 Queue 所在的那台），不是广播到所有 Broker。
+
+NameServer 只做**路由发现**——Producer 启动时问 NameServer "这个 Topic 有哪些 Queue 在哪些 Broker 上"，拿到路由表后本地缓存，之后发消息根本不经过 NameServer。
+
+### 完整流程
+
+```mermaid
+sequenceDiagram
+    participant P as Producer
+    participant NS as NameServer
+    participant BA as Broker-A Master
+    participant BB as Broker-B Master
+
+    Note over P: === 启动阶段：路由发现 ===
+    P->>NS: GET_ROUTE_INFO_BY_TOPIC("OrderTopic")
+    NS-->>P: {BrokerA:[Q0,Q1,Q2,Q3], BrokerB:[Q0,Q1,Q2,Q3]}
+
+    Note over P: === 发送阶段：选 Queue → 直连 Broker ===
+    Note over P: 轮询选 Queue → 假设选中 BrokerA-Q1
+
+    P->>BA: 发送消息 (Topic, Body, QueueId=1)
+    Note over BA: 写入 CommitLog → 返回 ACK
+    BA-->>P: SendResult(SEND_OK, msgId, offset=1024)
+
+    Note over P: 下一条 → 轮询到 BrokerB-Q0
+    P->>BB: 发送消息 (Topic, Body, QueueId=0)
+    BB-->>P: SendResult(SEND_OK, msgId, offset=512)
+```
+
+### 路由表缓存
+
+Producer 本地缓存的路由表长这样：
+
+```
+Topic: OrderTopic
+  MessageQueue [BrokerName=broker-a, QueueId=0]
+  MessageQueue [BrokerName=broker-a, QueueId=1]
+  MessageQueue [BrokerName=broker-a, QueueId=2]
+  MessageQueue [BrokerName=broker-a, QueueId=3]
+  MessageQueue [BrokerName=broker-b, QueueId=0]
+  MessageQueue [BrokerName=broker-b, QueueId=1]
+  MessageQueue [BrokerName=broker-b, QueueId=2]
+  MessageQueue [BrokerName=broker-b, QueueId=3]
+```
+
+- `defaultTopicQueueNums=4`，两个 Broker → 8 个 Queue
+- Producer 轮询这 8 个 Queue → 效果上均匀分布到两个 Broker
+- 路由表每 30s 从 NameServer 刷新一次
+
+### 与 Kafka 对比
+
+| | RocketMQ | Kafka |
+|---|---|---|
+| Producer 发给谁 | 直接发 Broker Master | 直接发 Broker（Partition Leader） |
+| 路由从哪来 | NameServer（无状态，互不通信） | 任何 Broker 都能返回 Metadata |
+| 发送粒度 | 选 Queue → 发到对应 Broker | 选 Partition → 发到对应 Broker |
+| 一条消息去几个 Broker | **1 个** | **1 个** |
+
+两者结论一样：**一条消息只发给一个 Broker，消息队列不是广播系统。**
+
+### Queue 选择策略
+
+详见 [§2.3](#23-队列选择策略)：
+- **默认**：轮询（Round-Robin），`sendWhichQueue.getAndIncrement() % queueSize`
+- **故障规避**：某 Broker 超时/失败 → 短时间内跳过该 Broker 的所有 Queue（latencyFaultTolerance）
+- **顺序消息**：自定义 MessageQueueSelector → 同一 businessKey hash 到同一 Queue
 
 ---
 
