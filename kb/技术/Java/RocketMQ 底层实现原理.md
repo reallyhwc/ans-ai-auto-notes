@@ -191,6 +191,128 @@ graph TB
 | **异步刷盘 + 同步复制** | **高** | **~2-5ms** | **主从同时断电才丢** | **99% 业务场景** |
 | 同步刷盘 + 同步复制 | 低 | ~10-50ms | 几乎不丢 | 金融清结算 |
 
+### 回查机制深度拆解：时间线、丢弃判定与兜底策略
+
+> 关联：详见 [§5.2](#52-事务消息half-message) 事务消息完整流程
+
+#### 回查四步完整链路
+
+```mermaid
+sequenceDiagram
+    participant Half as Half Topic Queue
+    participant Op as Op Topic Queue
+    participant CS as CheckService
+    participant P as Producer
+    participant C as Consumer
+
+    loop 每 30s 扫描一次
+        Note over CS: == ① 对比 Half 和 Op ==
+        CS->>Half: 按 offset 顺序读半消息
+        CS->>Op: 按 offset 顺序读 Op Message
+        Note over CS: Half offset=1024 存在<br/>但 Op 中没有 offset=1024 → 未决消息
+
+        Note over CS: == ② 判断存活时间 ==
+        alt 存活 > 6s (transactionTimeout)
+            Note over CS: == ③ 发起回查 ==
+            CS->>P: CHECK_TRANSACTION_STATE(txId, offset)
+            P-->>CS: COMMIT / ROLLBACK / UNKNOW
+        else 存活 < 6s
+            Note over CS: 跳过，等下次（给 Producer 执行时间）
+        end
+    end
+
+    Note over CS: == ④ 根据结果处理 ==
+    alt COMMIT
+        Note over CS: 恢复真实 Topic → 重写 CommitLog → 写 Op
+    else ROLLBACK
+        Note over CS: 写 Op（标记处理）
+    else UNKNOW
+        Note over CS: 不写 Op → 下次扫描再来
+        Note over CS: 重复 15 次后仍 UNKNOW → 强制写 Op + WARN 日志
+        Note over C: ❌ 消息永久丢弃
+    end
+```
+
+#### 精确时间线推演
+
+```
+T+0s:     半消息发送成功，开始执行本地事务
+T+0~6s:   本地事务执行中（< 6s 不会触发回查）
+T+6s:     首次满足回查条件（但需等下一次扫描窗口）
+T+30s:    第 1 次扫描 → 命中 → 回查 → Producer 返回 UNKNOW
+T+60s:    第 2 次回查 → UNKNOW
+T+90s:    第 3 次回查 → UNKNOW
+...
+T+450s:   第 15 次回查 → UNKNOW
+          → Broker: "不等了" → 强制写 Op → 打印 WARN → 丢弃
+
+T+480s:   本地事务终于执行完了！（成功/失败已不重要）
+          → Producer 尝试 Commit → 发现 Op 已存在 → 请求被忽略
+          → Consumer 永远收不到这条消息 ← 消息丢失
+```
+
+实际丢弃时间 ≈ **6s + 30s × 15 ≈ 456s（7-8 分钟）**。不是精确的 30s×15，因为首次回查不是 T+0 触发（需要满足 >6s + 落在扫描窗口内）。
+
+#### 你的场景：业务还在跑，消息已丢弃
+
+**消息确实丢了——确切说是"在 RocketMQ 层面被标记为已处理而不再投递"。** 核心问题：Broker 没有"延长等待"机制，它用固定上限（15 次）防无限期的悬挂消息。
+
+```
+为什么会丢？
+  Broker 的视角: "我给了你 15 次机会问结果，你都说不确定 → 异常，放弃"
+  业务的视角: "我还在执行中，怎么就放弃了？"
+
+根本原因: RocketMQ 的事务消息不是工作流引擎
+  → 不跟踪你的业务进度
+  → 不知道"执行到 90% 了再等一会儿就行"
+  → 只用一个固定的超时上限（15 × transactionCheckInterval）
+```
+
+#### 兜底策略：T+1 对账
+
+```mermaid
+flowchart TD
+    Main["主链路: 事务消息"] --> Success["正常 Commit → Consumer 消费"]
+    Main --> Fail["回查 15 次 → 消息丢弃"]
+
+    Fail --> Backup["补偿链路: T+1 对账"]
+    Backup --> Scan["扫描本地 DB<br/>已成功但 publish_status=0 的记录"]
+    Scan --> Resend["构造消息 → 直发真实 Topic<br/>（不走事务消息，直接 send）"]
+    Resend --> Mark["更新 publish_status=1"]
+    Mark --> Consumer["Consumer 消费<br/>（必须幂等！）"]
+```
+
+```java
+// T+1 对账任务
+@Scheduled(cron = "0 0 2 * * ?")
+void reconcileLostMessages() {
+    List<Order> lost = orderMapper.selectSuccessfulButUnpublished(
+        LocalDateTime.now().minusDays(1)
+    );
+    for (Order order : lost) {
+        try {
+            Message msg = new Message("orderTopic", buildOrderPayload(order));
+            producer.send(msg);  // 直接发，不走事务消息
+            orderMapper.markPublished(order.getId());
+        } catch (Exception e) {
+            log.error("T+1 对账补偿失败: orderId={}", order.getId(), e);
+        }
+    }
+}
+```
+
+**关键前提**：Consumer 端必须**幂等**。对账重发的消息可能与正常投递的消息重复——比如正常回查在第 14 次成功了，但对账任务因为时间边界也覆盖了这条记录。
+
+#### 降低丢弃概率的配置调优
+
+| 参数 | 默认值 | 建议值 | 调整影响 |
+|------|--------|--------|---------|
+| `transactionCheckMax` | 15 | 30-60 | 容忍更长的执行时间，但悬挂消息积压时间也更长 |
+| `transactionCheckInterval` | 30s | 10-15s | 更频繁回查 → 更快得到答案，但增加 Broker 和 Producer 的 CPU 开销 |
+| `transactionTimeout` | 6s | 适当增大 | 减少不必要的首次回查（业务通常在 6s 内就完了） |
+
+但配置调优只是**降低概率**，不能根除。根治方案只有**对账兜底**——这是分布式系统的终极保障手段。
+
 ---
 
 ---
