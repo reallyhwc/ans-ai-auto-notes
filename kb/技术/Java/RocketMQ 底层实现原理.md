@@ -113,6 +113,47 @@ public class TopicRouteData {
 
 **连接数也不会爆炸**：Producer 只给它发消息的 Topic 涉及的 Broker 建连接。实际生产一个 Producer 发 1-3 个 Topic，每个 Topic 部署在 2-8 台 Broker → 通常只维护 2-8 个长连接。
 
+### NameServer 是集群模式吗？
+
+**不是。NameServer 之间互相独立、互不通信，没有 Leader、没有共识协议。** 它们是"多实例独立部署"，不是传统意义上的集群。
+
+```mermaid
+graph TB
+    subgraph NS["NameServer（无集群，彼此不通信）"]
+        NS1["NameServer-1<br/>全量路由"]
+        NS2["NameServer-2<br/>全量路由"]
+    end
+
+    Broker["Broker Master"] -->|"每 30s 心跳<br/>推给每一个 NS"| NS1
+    Broker -->|"每 30s 心跳"| NS2
+
+    NS1 -..-|"互不通信"| NS2
+```
+
+**数据同步方式**：不是 NS 之间同步，而是 **Broker 主动把路由信息推给每一个 NameServer**。Broker 启动时向所有 NS 注册，之后每 30s 给每一个发心跳。
+
+**为什么这么设计？** NameServer 只需回答一个问题——"这个 Topic 有哪些 Queue 在哪些 Broker 上"。10s 内的路由不准 → 最坏是发到宕机 Broker → 重试 → 不丢消息。不需要 ZooKeeper 那种共识机制。
+
+| 特性 | NameServer | ZooKeeper |
+|------|-----------|-----------|
+| 实例间通信 | **互不通信** | ZAB 协议通信 |
+| 数据同步 | Broker 推给每个 NS | Leader → Follower |
+| 有无 Leader | **无**，完全对等 | 有选举 |
+| 宕机影响 | 挂一个不影响其他的 | 挂 Leader 触发选举 |
+| CAP 偏向 | **AP** | **CP** |
+
+**Producer 用法**：
+
+```java
+// 配置多台 NameServer，逗号分隔
+producer.setNamesrvAddr("10.0.1.10:9876;10.0.1.11:9876;10.0.1.12:9876");
+// 内部: 随机连一台 → 请求失败自动重试下一台
+```
+
+**一句话**：NameServer 是"无状态的多个独立节点"，部署多份只是防单点，彼此之间没有任何协作。
+
+---
+
 ---
 
 ## §1 整体架构
