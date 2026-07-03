@@ -82,6 +82,37 @@ Topic: OrderTopic
 - **故障规避**：某 Broker 超时/失败 → 短时间内跳过该 Broker 的所有 Queue（latencyFaultTolerance）
 - **顺序消息**：自定义 MessageQueueSelector → 同一 businessKey hash 到同一 Queue
 
+### 大规模集群下的 Broker 寻址（两级 O(1) lookup）
+
+> 问题：集群有 100 台 Broker，Producer 怎么知道消息该发到哪一台？
+
+**答案：路由表自带物理地址。** NameServer 返回的 `TopicRouteData` 中不仅包含 Queue 分布，还包含每台 Broker 的 IP:Port。Producer 本地维护三层 Map，全部 O(1) 查表：
+
+```
+Step 1: 选 Queue → 得 BrokerName
+  MessageQueue [Topic="OrderTopic", BrokerName="broker-b", QueueId=3]
+
+Step 2: BrokerName → 物理地址 (Map, O(1))
+  brokerAddrTable: {"broker-b" → "10.0.1.6:10911"}
+
+Step 3: 物理地址 → TCP 连接 (Map, O(1))
+  channelTable: {"10.0.1.6:10911" → Netty Channel}
+```
+
+```java
+// TopicRouteData 关键结构
+public class TopicRouteData {
+    private List<QueueData> queueDatas;     // Queue → BrokerName
+    private List<BrokerData> brokerDatas;   // BrokerName → IP:Port
+}
+// QueueData { brokerName, readQueueNums, writeQueueNums, ... }
+// BrokerData { brokerName, brokerAddrs: {0→"10.0.1.6:10911"} }
+```
+
+**集群规模多大都不是瓶颈**——三层 Map，全部 O(1)。路由表大小 = 几百条 Queue 记录 + 几十条 Broker 地址 ≈ 几十 KB。
+
+**连接数也不会爆炸**：Producer 只给它发消息的 Topic 涉及的 Broker 建连接。实际生产一个 Producer 发 1-3 个 Topic，每个 Topic 部署在 2-8 台 Broker → 通常只维护 2-8 个长连接。
+
 ---
 
 ## §1 整体架构
