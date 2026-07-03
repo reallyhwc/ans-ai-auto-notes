@@ -313,6 +313,80 @@ void reconcileLostMessages() {
 
 但配置调优只是**降低概率**，不能根除。根治方案只有**对账兜底**——这是分布式系统的终极保障手段。
 
+### 消费确认机制：offset 提交 ≠ ACK
+
+RocketMQ **没有传统意义上的 ACK 回执**，消费确认本质是**提交 offset**——Consumer 告诉 Broker "我消费到 Queue 的第 N 条了，下次从 N+1 开始发"。
+
+#### 完整链路
+
+```mermaid
+sequenceDiagram
+    participant C as Consumer
+    participant B as Broker
+    participant Biz as 业务逻辑
+
+    loop 消费循环
+        C->>B: PullMessage(topic, queueId, offset=100)
+        B-->>C: 返回 32 条消息 (offset 100-131)
+
+        C->>Biz: offset=100 → 成功
+        C->>Biz: offset=101 → 成功
+        C->>Biz: offset=102 → 异常！
+
+        C->>B: updateConsumerOffset(offset=103)
+        Note over B: 持久化到 consumerOffset.json
+        Note over C: offset=102 未成功 → 下次还会拉到
+    end
+```
+
+#### 关键细节
+
+**1. offset 存在哪？**
+
+```
+集群模式（默认，99% 场景）:
+  offset → Broker 内存 Map<ConsumerGroup@Topic@QueueId, offset>
+  → 定期持久化到 store/config/consumerOffset.json
+
+广播模式:
+  offset 存在 Consumer 本地文件
+```
+
+**2. 不是每条都提交，是批量提交**
+
+```java
+// 拉一批（pullBatchSize=32）→ 逐条消费 → 全部成功后提交最后一条的 offset
+// 不是消费一条 ACK 一条（那会 32 次网络往返）
+```
+
+**3. 消费失败后的处理差异**
+
+| | 并发消费 | 顺序消费 |
+|---|---|---|
+| 失败处理 | 发回 `%RETRY%` Topic，换 Queue 重试 | 本地重试，不提交 offset，阻塞 Queue |
+| offset 提交 | 跳过失败消息，提交后续 offset | 不提交，等重试成功 |
+| 重试次数 | 16 次，延迟递增（10s→30s→1m→2h） | `Integer.MAX_VALUE`（需手动设上限） |
+
+**4. 重试消息去哪了？**
+
+```
+不是"重新拉同一条消息"，而是发到一个专门的 Topic:
+
+原消息: OrderTopic, Queue 3, offset 102
+消费失败 → 发回 Broker → Topic 变为 %RETRY%order-consumer-group
+→ Consumer 从 %RETRY% Topic 消费到重试消息
+→ 成功 → 从原 Queue 正常 offset 继续
+→ 16 次全失败 → 进入 %DLQ%order-consumer-group → 人工介入
+```
+
+**为什么做专门的 RETRY Topic？** 避免一条失败消息阻塞整个 Queue——原 Queue 的其他消息照常消费，失败的那条单独走重试通道。
+
+**5. 宕机时消息不丢**
+
+Consumer 没提交 offset → Broker 认为消息未消费 → Rebalance 后该 Queue 分给其他 Consumer → 从旧 offset 重新拉 → 可能重复消费。
+
+**核心语义：至少一次（at-least-once）。** Consumer 挂了不会丢消息，但可能重复。业务层必须幂等。
+
 ---
 
 ---
