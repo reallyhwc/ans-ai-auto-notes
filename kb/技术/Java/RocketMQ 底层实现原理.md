@@ -387,6 +387,85 @@ Consumer 没提交 offset → Broker 认为消息未消费 → Rebalance 后该 
 
 **核心语义：至少一次（at-least-once）。** Consumer 挂了不会丢消息，但可能重复。业务层必须幂等。
 
+### Push vs Pull 与消费点位重置
+
+**名义 Push，底层 Pull（长轮询）。** Consumer 发 Pull 请求，Broker hold 住最长 15s，有消息立刻返回。
+
+```mermaid
+sequenceDiagram
+    participant C as Consumer
+    participant B as Broker
+
+    C->>B: PullMessage(queueId=0, offset=100)
+    alt 有新消息
+        B-->>C: 立刻返回 32 条
+    else 暂无新消息
+        Note over B: hold 住请求（最多 15s）
+        Note over B: 有新消息 → 立即唤醒返回
+        B-->>C: 超时 15s → 返回空
+    end
+```
+
+**消费点位重置原理**：不是 Consumer 改自己的行为，而是**直接改 Broker 上的 offset 记录**。
+
+```
+Broker 存储: consumerOffset.json
+  {"order-consumer-group@OrderTopic@0": 105}
+重置: Admin API → RESET_CONSUMER_OFFSET → Broker 改写为 50
+Consumer 下次 Pull 自然从 50 开始 → 无需 Consumer 感知
+```
+
+```java
+// 按时间重置
+admin.resetOffsetByTimestamp("OrderTopic", "order-consumer-group",
+    System.currentTimeMillis() - 3600_000);
+
+// 按 offset 重置
+Map<MessageQueue, Long> offsetTable = Map.of(
+    new MessageQueue("OrderTopic", "broker-a", 0), 50L
+);
+admin.resetOffsetByOffset("OrderTopic", "order-consumer-group", offsetTable);
+```
+
+**注意**：重置后 Consumer 重新消费历史消息，必须保证幂等。
+
+### 并发消费失败时的 offset 提交
+
+> 问题：拉 32 条（offset 100~131），第 16 条（offset 115）失败，提交的 offset 是多少？
+
+**答案是 132（跳过失败的那条）。**
+
+```
+offset 100~114 → ✅ 成功
+offset 115     → ❌ 失败 → 发回 %RETRY% Topic → 从 ProcessQueue 移除
+offset 116~131 → ✅ 成功
+
+提交: updateConsumerOffset(132)
+      ↑ 跳过 115，因为 115 已走重试通道，不依赖原始 Queue 的 offset
+```
+
+**为什么可以跳过？** 并发模式下失败消息不是"重新拉取同一条"，而是进 `%RETRY%` Topic 走独立延迟重试。跳过不影响可靠性。
+
+> 顺序消费则不同：失败后不提交 offset，本地重试，阻塞当前 Queue。
+
+### RETRY Topic 自动订阅，消费者无感知
+
+**Consumer 不需要订阅 RETRY Topic，RocketMQ 自动处理。**
+
+```
+你写的代码:
+  consumer.subscribe("OrderTopic", "*");
+  consumer.registerMessageListener(myListener);
+
+RocketMQ 内部:
+  ① 自动订阅 OrderTopic
+  ② 自动订阅 %RETRY%order-consumer-group  ← 同一个 Listener 处理
+  ③ 自动订阅 %DLQ%order-consumer-group     ← 同一个 Listener 处理
+
+Listener 不做任何区分，收到的 MessageExt.topic 不同但无需关心。
+唯一感知方式: msg.getReconsumeTimes() 判断重试次数
+```
+
 ---
 
 ---
