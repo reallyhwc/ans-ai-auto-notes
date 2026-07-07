@@ -1,0 +1,49 @@
+{
+  "hooks": {
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node $CLAUDE_PROJECT_DIR/scripts/agent-log-hook.js subagent",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node $CLAUDE_PROJECT_DIR/scripts/agent-log-hook.js main",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /Users/xuhu/workspace/ans-ai-auto-notes && bash exit-check.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash scripts/permission-audit.sh"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash scripts/preflight.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

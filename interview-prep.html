@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>面试强化学习 — 6 道高频题拆解</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+  :root {
+    --bg: #f8f9fa;
+    --card-bg: #ffffff;
+    --text: #2c3e50;
+    --text-secondary: #5a6c7d;
+    --border: #e2e8f0;
+    --accent: #2563eb;
+    --accent-light: #eff6ff;
+    --code-bg: #1e293b;
+    --code-text: #e2e8f0;
+    --tag-bg: #f1f5f9;
+    --tag-text: #475569;
+    --success: #16a34a;
+    --warning: #d97706;
+    --danger: #dc2626;
+    --sidebar-w: 260px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    display: flex;
+  }
+
+  /* Sidebar */
+  nav {
+    position: fixed;
+    top: 0; left: 0;
+    width: var(--sidebar-w);
+    height: 100vh;
+    background: var(--card-bg);
+    border-right: 1px solid var(--border);
+    padding: 24px 20px;
+    overflow-y: auto;
+    z-index: 10;
+  }
+
+  nav h1 {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: var(--text);
+  }
+
+  nav .subtitle {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 24px;
+  }
+
+  nav a {
+    display: block;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    margin-bottom: 2px;
+    transition: all 0.15s;
+  }
+
+  nav a:hover, nav a.active {
+    background: var(--accent-light);
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  nav .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--tag-text);
+    margin: 20px 0 6px 12px;
+  }
+
+  /* Main */
+  main {
+    margin-left: var(--sidebar-w);
+    padding: 40px 48px;
+    max-width: 960px;
+    width: 100%;
+  }
+
+  section {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 32px 36px;
+    margin-bottom: 24px;
+    scroll-margin-top: 24px;
+  }
+
+  h2 {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  h2 .num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  h3 {
+    font-size: 17px;
+    font-weight: 600;
+    margin: 28px 0 10px;
+    color: var(--text);
+  }
+
+  h4 {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 20px 0 6px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  p { margin-bottom: 12px; font-size: 15px; }
+
+  .one-liner {
+    background: var(--accent-light);
+    border-left: 3px solid var(--accent);
+    padding: 12px 16px;
+    border-radius: 0 6px 6px 0;
+    margin-bottom: 20px;
+    font-weight: 500;
+    font-size: 14px;
+  }
+
+  /* Code */
+  pre {
+    background: var(--code-bg);
+    color: var(--code-text);
+    border-radius: 8px;
+    padding: 16px 20px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.6;
+    margin-bottom: 16px;
+  }
+
+  pre code { font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", Menlo, monospace; }
+
+  code:not(pre code) {
+    background: var(--tag-bg);
+    color: var(--accent);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-family: "JetBrains Mono", "Fira Code", Menlo, monospace;
+  }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 16px;
+    font-size: 14px;
+  }
+
+  th, td {
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  th {
+    background: var(--tag-bg);
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: var(--tag-text);
+  }
+
+  tr:last-child td { border-bottom: none; }
+
+  /* Tags */
+  .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-right: 4px;
+  }
+  .tag-ok { background: #dcfce7; color: #16a34a; }
+  .tag-warn { background: #fef3c7; color: #d97706; }
+  .tag-bad { background: #fee2e2; color: #dc2626; }
+
+  /* Lists */
+  ul, ol { margin-bottom: 12px; padding-left: 20px; }
+  li { margin-bottom: 4px; font-size: 14px; }
+
+  /* Mermaid */
+  .mermaid {
+    background: #fafbfc;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 16px;
+    text-align: center;
+    overflow-x: auto;
+  }
+
+  /* Flowchart ASCII fallback */
+  .ascii-chart {
+    background: #fafbfc;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+    font-family: "JetBrains Mono", "Fira Code", Menlo, monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: pre;
+    overflow-x: auto;
+  }
+
+  /* Print */
+  @media print {
+    nav { display: none; }
+    main { margin-left: 0; padding: 20px; }
+    section { break-inside: avoid; border: 1px solid #ccc; }
+  }
+
+  @media (max-width: 768px) {
+    nav { display: none; }
+    main { margin-left: 0; padding: 16px; }
+    section { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <h1>面试强化学习</h1>
+  <p class="subtitle">6 道高频题 · 2026-07-01</p>
+
+  <span class="section-label">算法与数据结构</span>
+  <a href="#q1">判定满二叉树</a>
+
+  <span class="section-label">中间件与存储</span>
+  <a href="#q2">RocketMQ 消息可靠性</a>
+  <a href="#q3">MySQL B+树索引原理</a>
+  <a href="#q4">Redis 跳表实现原理</a>
+
+  <span class="section-label">系统设计与实战</span>
+  <a href="#q5">点赞 Top 排行榜设计</a>
+  <a href="#q6">MySQL 索引失效场景</a>
+</nav>
+
+<main>
+
+<!-- ========== Q1 ========== -->
+<section id="q1">
+<h2><span class="num">1</span> 如何判定一棵二叉树是不是满二叉树</h2>
+
+<div class="one-liner">核心：递归判断 — 左右子树都是满二叉树 + 左右子树高度相等。</div>
+
+<h3>定义澄清（面试第一件事）</h3>
+<table>
+  <tr><th>术语</th><th>中文</th><th>定义</th><th>节点数</th></tr>
+  <tr><td>Full Binary Tree</td><td>完满二叉树</td><td>每个节点有 0 或 2 个孩子</td><td>无固定公式</td></tr>
+  <tr><td><strong>Perfect Binary Tree</strong></td><td><strong>满/完美二叉树</strong></td><td><strong>每层全满，叶子同层</strong></td><td><strong>2^h − 1</strong></td></tr>
+  <tr><td>Complete Binary Tree</td><td>完全二叉树</td><td>除最后一层外全满 + 左对齐</td><td>无固定公式</td></tr>
+</table>
+
+<h3>解法一：递归（推荐）</h3>
+
+<pre><code>// Go — 返回 (高度, 是否满二叉树)
+func checkFull(node *TreeNode) (int, bool) {
+    if node == nil {
+        return 0, true
+    }
+    leftH, leftFull := checkFull(node.Left)
+    rightH, rightFull := checkFull(node.Right)
+    return max(leftH, rightH) + 1,
+           leftFull && rightFull && leftH == rightH
+}
+
+func isFullTree(root *TreeNode) bool {
+    _, ok := checkFull(root)
+    return ok
+}</code></pre>
+
+<pre><code>// Java 版本
+class Result {
+    int height; boolean isFull;
+    Result(int h, boolean f) { height = h; isFull = f; }
+}
+
+Result checkFull(TreeNode node) {
+    if (node == null) return new Result(0, true);
+    Result left = checkFull(node.left);
+    Result right = checkFull(node.right);
+    return new Result(
+        Math.max(left.height, right.height) + 1,
+        left.isFull && right.isFull && left.height == right.height
+    );
+}</code></pre>
+
+<h3>解法二：计数法（有坑！）</h3>
+
+<pre><code>// ⚠️ 节点数 = 2^h - 1 只是必要条件，不是充分条件！
+// 反例：
+//     1
+//    / \
+//   2   3
+//  / \   \
+// 4   5   7
+// 节点数 7 = 2³-1 ✓  但节点3只有右孩子 → 不是满二叉树 ✗</code></pre>
+
+<h3>复杂度</h3>
+<table>
+  <tr><th>解法</th><th>时间</th><th>空间</th><th>可靠性</th></tr>
+  <tr><td>递归</td><td>O(n)</td><td>O(h)</td><td><span class="tag tag-ok">最可靠</span></td></tr>
+  <tr><td>BFS + 计数验证</td><td>O(n)</td><td>O(n)</td><td><span class="tag tag-warn">需额外验证</span></td></tr>
+  <tr><td>纯计数</td><td>O(n)</td><td>O(h)</td><td><span class="tag tag-bad">有反例</span></td></tr>
+</table>
+</section>
+
+<!-- ========== Q2 ========== -->
+<section id="q2">
+<h2><span class="num">2</span> RocketMQ 如何保障消息可靠性</h2>
+
+<div class="one-liner">核心：多环节"防丢链"组合拳 — 生产端同步发送 → Broker 同步刷盘+主从复制 → 消费端确认+重试+死信。</div>
+
+<div class="mermaid">
+flowchart LR
+    subgraph P["Producer 端"]
+        A1["同步发送<br/>等 Broker ACK"]
+        A2["重试 2 次"]
+    end
+    subgraph B["Broker 端"]
+        B1["CommitLog 顺序写<br/>崩溃恢复可回放"]
+        B2["同步刷盘<br/>每条 force()"]
+        B3["主从同步复制<br/>等 Slave ACK"]
+    end
+    subgraph C["Consumer 端"]
+        C1["消费确认<br/>offset 提交"]
+        C2["重试 16 次→死信"]
+        C3["至少一次语义"]
+    end
+    P --> B --> C
+</div>
+
+<h3>各环节防丢机制</h3>
+<table>
+  <tr><th>环节</th><th>丢消息场景</th><th>防护机制</th></tr>
+  <tr><td><strong>生产端</strong></td><td>网络超时消息未到 Broker</td><td>同步发送 + 自动重试 2 次</td></tr>
+  <tr><td><strong>存储端-刷盘</strong></td><td>机器断电 Page Cache 丢数据</td><td>同步刷盘：每条 <code>force()</code> 到磁盘才回 ACK</td></tr>
+  <tr><td><strong>存储端-复制</strong></td><td>Master 宕机 Slave 数据不全</td><td>同步复制：等 Slave 确认写入后才回 Producer ACK</td></tr>
+  <tr><td><strong>消费端</strong></td><td>Consumer 宕机没处理完</td><td>消费确认 + 16 次递增重试 → 死信队列兜底</td></tr>
+  <tr><td><strong>分布式事务</strong></td><td>本地事务成功但消息未投递</td><td>Half Message + 回查机制 + 事务记录表</td></tr>
+</table>
+
+<h3>生产环境推荐配置</h3>
+<pre><code>异步刷盘 + 同步复制 (SYNC_MASTER)
+→ 兼顾吞吐和安全
+→ 同步刷盘太慢（受限于磁盘 IOPS）
+→ 但有 Slave 实时同步兜底，Master 宕了 Slave 有全量数据</code></pre>
+
+<h3>面试应答要点</h3>
+<ul>
+  <li>不要只说"同步刷盘"一个点 — 可靠性是<strong>多环节组合</strong></li>
+  <li>提<strong>事务消息</strong>是亮点（Half Message + 回查，解决"本地事务和消息发送的原子性"）</li>
+  <li>消费端重试 + 死信队列体现了<strong>最终一致性</strong>思想</li>
+</ul>
+</section>
+
+<!-- ========== Q3 ========== -->
+<section id="q3">
+<h2><span class="num">3</span> MySQL B+ 树的实现原理</h2>
+
+<div class="one-liner">核心：B+ 树是为磁盘 I/O 优化的多路平衡搜索树 — 一个节点 16KB 存 ~1170 个 key，3 层能管 2000 万行，数据只在叶子 + 叶子双向链表。</div>
+
+<h3>为什么是 B+ 树？递进推演</h3>
+<table>
+  <tr><th>数据结构</th><th>单次 I/O 读什么</th><th>问题</th></tr>
+  <tr><td>二叉搜索树</td><td>一个 key + 两个指针 ≈ 16B</td><td>一次 16KB I/O 只用 16B → 浪费 99.9%；千万行 ~23 层 → 23 次 I/O</td></tr>
+  <tr><td>哈希索引</td><td>一个 bucket</td><td>O(1) 等值完美，但<strong>不支持范围查询</strong></td></tr>
+  <tr><td>跳表</td><td>一个节点一个值</td><td>为内存设计，磁盘上跨页 = 大量随机 I/O</td></tr>
+  <tr><td><strong>B+ 树</strong></td><td><strong>一页 16KB 塞满 key</strong></td><td><strong>一次 I/O 过滤几百倍候选 → 3 层够用</strong></td></tr>
+</table>
+
+<h3>核心结构</h3>
+<div class="mermaid">
+graph TB
+    Root["根节点 1 页 16KB<br/>含约 1170 个 key + 子页指针"]
+    L1["内部节点层 ~1170 页"]
+    L2["叶子节点层（双向链表）<br/>存完整行数据"]
+    Root --> L1 --> L2
+</div>
+
+<h3>关键设计点</h3>
+<table>
+  <tr><th>设计</th><th>为什么</th></tr>
+  <tr><td><strong>节点 = 一页 16KB</strong></td><td>一次 I/O 读整页，批量过滤</td></tr>
+  <tr><td><strong>数据只在叶子</strong></td><td>非叶节点更紧凑 → 树更矮</td></tr>
+  <tr><td><strong>叶子双向链表</strong></td><td>范围查询直接顺序扫，不需回树</td></tr>
+  <tr><td><strong>页内二分 + Page Directory</strong></td><td>槽数组加速页内定位</td></tr>
+</table>
+
+<h3>树高估算</h3>
+<pre><code>假设 bigint 主键 (8B) + 指针 (6B)，每页 16KB:
+
+非叶节点每页 key 数: 15000B ÷ 14B ≈ 1071 个
+叶子每页行数 (行 ~1KB): 15 行
+
+1 层: 15 行
+2 层: 1071 × 15 ≈ 1.6 万
+3 层: 1071² × 15 ≈ 1700 万  ← 千万级表高度 = 3
+4 层: 1071³ × 15 ≈ 184 亿</code></pre>
+
+<h3>聚簇索引 vs 二级索引</h3>
+<table>
+  <tr><th></th><th>聚簇索引（主键）</th><th>二级索引（普通索引）</th></tr>
+  <tr><td>叶子存什么</td><td><strong>完整行数据</strong></td><td>索引列 + 主键值</td></tr>
+  <tr><td>一个表几个</td><td>1 个</td><td>多个</td></tr>
+  <tr><td>查完整行</td><td>直接返回</td><td>需<strong>回表</strong>（用主键再查聚簇索引）</td></tr>
+</table>
+
+<h3>页分裂 — 为什么用自增主键</h3>
+<pre><code>INSERT 自增主键: 总是在"最后一页"追加 → 只有最后一页满了才分裂
+INSERT UUID: 插入位置随机 → 频繁在中间页分裂
+→ 自增主键 ≈ 93% 页填充率 vs UUID ≈ 65%</code></pre>
+</section>
+
+<!-- ========== Q4 ========== -->
+<section id="q4">
+<h2><span class="num">4</span> Redis 跳表的实现原理</h2>
+
+<div class="one-liner">核心：多层有序链表，每层按概率 25% 抽节点建"高速公路"，查询 O(log N)；Redis 独创 span 字段实现 O(log N) 排名。</div>
+
+<h3>跳表结构</h3>
+<div class="mermaid">
+graph LR
+    subgraph "Level 2"
+        A2["1"] --> B2["9"] --> N2["NULL"]
+    end
+    subgraph "Level 1"
+        A1["1"] --> B1["5"] --> C1["9"] --> N1["NULL"]
+    end
+    subgraph "Level 0 (完整链表)"
+        A0["1"] --> B0["3"] --> C0["5"] --> D0["7"] --> E0["8"] --> F0["9"] --> G0["12"]
+    end
+</div>
+
+<h3>查 7 的过程</h3>
+<div class="ascii-chart">Level 2: 1 → 9 (过了! >7) → 退回 1 → 降层
+Level 1: 1 → 5 (≤7) → 9 (过了!) → 退回 5 → 降层
+Level 0: 5 → 7 ✓ 找到！
+
+4 次比较 vs 原始链表 5 次。数据量上亿时受益指数级放大。</div>
+
+<h3>zskiplistNode 结构（Redis 源码）</h3>
+<pre><code>typedef struct zskiplistNode {
+    sds ele;                          // member 字符串
+    double score;                     // 分值
+    struct zskiplistNode *backward;   // 后退指针
+    struct zskiplistLevel {
+        struct zskiplistNode *forward;  // 前进指针
+        unsigned long span;             // 跨度 ← Redis 独有！
+    } level[];
+} zskiplistNode;</code></pre>
+
+<h3>span：O(log N) 获取排名的秘密</h3>
+<div class="ascii-chart">Level 2:  [1]──── span=3 ────→[9]── span=1 →NULL
+Level 1:  [1]── span=1 →[5]── span=2 →[9]── span=1 →NULL
+Level 0:  [1]→[3]→[5]→[7]→[8]→[9]→[12]→NULL
+
+查 ZRANK(9):
+  Level 2: 1→9, span=3 → rank = 3 (跳过了 3 个元素)
+  Level 0: 定位到具体节点
+  → rank = 沿途 span 累加，O(log N)</div>
+
+<h3>层数随机生成</h3>
+<pre><code>#define ZSKIPLIST_P 0.25      // Redis 选 0.25，不是标准的 0.5
+#define ZSKIPLIST_MAXLEVEL 32
+
+int zslRandomLevel(void) {
+    int level = 1;
+    while ((random() & 0xFFFF) < (ZSKIPLIST_P * 0xFFFF))
+        level += 1;
+    return min(level, ZSKIPLIST_MAXLEVEL);
+}
+// P=0.25 → 期望层数 = 1/(1-0.25) ≈ 1.33
+// 大多数节点只有 1-2 层，内存效率高</code></pre>
+
+<h3>ZSet 双结构设计</h3>
+<table>
+  <tr><th>结构</th><th>作用</th><th>复杂度</th></tr>
+  <tr><td>skiplist（跳表）</td><td>按 score 排序，范围查询 ZRANGE/ZRANGEBYSCORE</td><td>O(log N + M)</td></tr>
+  <tr><td>hashtable（字典）</td><td>按 member 查 score ZSCORE</td><td>O(1)</td></tr>
+</table>
+<p>两者指向<strong>同一个节点对象</strong>，不浪费额外内存。</p>
+
+<h3>为什么不用红黑树？</h3>
+<p>antirez："跳表实现简单（几百行 C），易调试，天然支持范围查询。" 红黑树几千行 C，平衡旋转逻辑复杂。在内存场景下没有性能优势。</p>
+</section>
+
+<!-- ========== Q5 ========== -->
+<section id="q5">
+<h2><span class="num">5</span> 如何设计一个点赞 Top 排行榜</h2>
+
+<div class="one-liner">核心：小规模 ZSet 直写 → 中规模定时批量计算 → 大规模 Kafka + Flink 流式计算。递进式架构演进 + 反作弊 + 热度衰减是加分项。</div>
+
+<h3>方案递进</h3>
+
+<h4>方案一：Redis ZSet 直写（&lt; 1 万篇文章）</h4>
+<pre><code>// 点赞
+redis.zincrby("hot:articles", 1, "article:42");
+
+// 取 Top 100
+Set&lt;ZSetOperations.TypedTuple&lt;String&gt;&gt; top =
+    redis.zrevrangeWithScores("hot:articles", 0, 99);</code></pre>
+<p>优点：实时、代码少。缺点：大 key（几十万文章的 ZSet = 上百 MB）；<code>zincrby</code> 热点 key 瓶颈。</p>
+
+<h4>方案二：Redis 计数 + 定时批量计算（&lt; 100 万）</h4>
+<div class="mermaid">
+flowchart TD
+    Like["用户点赞"] --> Counter["INCR article:42:likes"]
+    Timer["每 5 分钟定时任务"] --> Scan["SCAN 所有 article:*:likes"]
+    Scan --> Sort["内存排序 → Top 100"]
+    Sort --> Cache["ZADD hot:ranking:cache<br/>覆盖式写入"]
+    Client["客户端"] --> Read["API 读 hot:ranking:cache<br/>O(1) 返回"]
+</div>
+<p>优点：读路径 O(1)。缺点：排行榜有 5 分钟延迟。</p>
+
+<h4>方案三：热度公式 + 时间衰减</h4>
+<pre><code>// Hacker News 算法简化版
+double score = likes / Math.pow((now - publishTime)/3600.0 + 2, 1.5);
+// 新文章少赞也能排名靠前 ← 新鲜度被体现</code></pre>
+
+<h4>方案四：大规模架构（千万~亿级）</h4>
+<div class="mermaid">
+flowchart TD
+    subgraph Write["写入"]
+        API["点赞 API"] --> MQ["Kafka 削峰"]
+    end
+    subgraph Compute["计算"]
+        MQ --> Flink["Flink 流式计算<br/>窗口聚合 + 热度公式"]
+    end
+    subgraph Read["读取"]
+        Flink --> Redis["Redis ZSet<br/>Top 100-1000 预热"]
+        Redis --> Client["客户端"]
+    end
+</div>
+
+<h3>边界 Case 自检（加分项）</h3>
+<table>
+  <tr><th>场景</th><th>解法</th></tr>
+  <tr><td>文章被删除</td><td>删除事件 → ZREM 移除</td></tr>
+  <tr><td>大 V 瞬间万赞</td><td>MQ 削峰 + 异步批量聚合</td></tr>
+  <tr><td>刷赞脚本</td><td>频率限制 + 设备指纹 + 风控规则</td></tr>
+  <tr><td>Redis 内存满</td><td>冷热分离，只缓存 Top 1000</td></tr>
+  <tr><td>定时任务执行超时</td><td>双 Buffer 交替写入，无锁切换</td></tr>
+</table>
+</section>
+
+<!-- ========== Q6 ========== -->
+<section id="q6">
+<h2><span class="num">6</span> 什么情况下 MySQL 索引会失效</h2>
+
+<div class="one-liner">核心原则：索引 = B+ 树有序结构 → 一旦 MySQL 无法利用有序性定位数据区间，就是全表扫描。</div>
+
+<h3>8 类经典失效场景</h3>
+
+<h4>1. 对索引列做函数/运算</h4>
+<pre><code>-- ❌ 失效：WHERE 左边是计算结果
+SELECT * FROM orders WHERE YEAR(created_at) = 2026;
+SELECT * FROM users WHERE age + 1 = 19;
+
+-- ✅ 正确：让索引列保持"干净"
+SELECT * FROM orders WHERE created_at >= '2026-01-01'
+                       AND created_at < '2027-01-01';</code></pre>
+
+<h4>2. 隐式类型转换</h4>
+<pre><code>-- phone 是 VARCHAR，有索引
+-- ❌ 失效：数字 → MySQL 对每行做 CAST(phone AS UNSIGNED)
+SELECT * FROM users WHERE phone = 13800138000;
+
+-- ✅ 正确
+SELECT * FROM users WHERE phone = '13800138000';</code></pre>
+
+<h4>3. LIKE 以 % 开头</h4>
+<pre><code>-- ❌ 失效：B+ 树按前缀有序，% 在开头无法定位起点
+SELECT * FROM articles WHERE title LIKE '%Claude Code%';
+
+-- ✅ 前缀固定可定位
+SELECT * FROM articles WHERE title LIKE 'Claude Code%';</code></pre>
+
+<h4>4. 联合索引不满足最左前缀</h4>
+<pre><code>-- 索引: (a, b, c)
+-- ✅ 生效: WHERE a=1 / WHERE a=1 AND b=2 / WHERE b=2 AND a=1 (优化器调序)
+-- ❌ 失效: WHERE b=2 (跳过 a) / WHERE c=3 (跳过 a,b)
+-- ⚠️ 部分: WHERE a>1 AND b=2 (a 范围查询后 b 只用于排序不过滤)</code></pre>
+
+<h4>5. OR 中有非索引列</h4>
+<pre><code>-- ❌ name 有索引，age 没有
+SELECT * FROM users WHERE name = '张三' OR age = 25;
+
+-- ✅ UNION 分别走各自索引
+SELECT * FROM users WHERE name = '张三'
+UNION
+SELECT * FROM users WHERE age = 25;</code></pre>
+
+<h4>6. 扫描比例过高 → 优化器放弃索引</h4>
+<pre><code>-- 表中 99% 行 gender='男'
+-- MySQL 估算回表代价 > 全表扫描代价 → 不走索引
+SELECT * FROM users WHERE gender = '男';
+-- 阈值经验值：扫描比例 > ~15-25%</code></pre>
+
+<h4>7. != / NOT IN / NOT EXISTS</h4>
+<pre><code>-- ❌ 否定条件无法利用有序性定位区间
+SELECT * FROM users WHERE status != 'deleted';
+SELECT * FROM orders WHERE id NOT IN (1, 2, 3);</code></pre>
+
+<h4>8. IS NULL / IS NOT NULL</h4>
+<pre><code>-- 老版本 MySQL：索引不存 NULL → 不走
+-- 5.7+ 部分支持，取决于优化器
+-- 覆盖索引 + IS NULL 通常可以走</code></pre>
+
+<h3>EXPLAIN 验证</h3>
+<table>
+  <tr><th>字段</th><th>关注值</th></tr>
+  <tr><td><strong>type</strong></td><td><span class="tag tag-bad">ALL</span> = 全表扫描 → <span class="tag tag-ok">const</span> = 最佳</td></tr>
+  <tr><td><strong>key</strong></td><td><span class="tag tag-bad">NULL</span> = 没走索引</td></tr>
+  <tr><td><strong>rows</strong></td><td>越大越差</td></tr>
+  <tr><td><strong>Extra</strong></td><td><span class="tag tag-bad">Using filesort</span>（额外排序）、<span class="tag tag-ok">Using index</span>（覆盖索引）</td></tr>
+</table>
+
+<h3>面试应答模板</h3>
+<div class="one-liner">
+"索引失效的核心是 B+ 树无法利用有序性定位数据区间。八类场景：(1)函数/运算 (2)隐式转换 (3)LIKE %开头 (4)联合索引缺最左列 (5)OR 混入非索引列 (6)扫描比例过高 (7)!= / NOT IN 否定条件 (8)IS NULL。可以用 EXPLAIN 的 type 和 key 字段验证。"
+</div>
+</section>
+
+</main>
+
+<script>
+  mermaid.initialize({ startOnLoad: true, theme: 'default' });
+
+  // Simple scroll spy for sidebar
+  const navLinks = document.querySelectorAll('nav a');
+  const sections = document.querySelectorAll('section');
+  window.addEventListener('scroll', () => {
+    let current = '';
+    sections.forEach(s => {
+      if (window.scrollY >= s.offsetTop - 60) current = s.id;
+    });
+    navLinks.forEach(a => {
+      a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+    });
+  });
+</script>
+
+</body>
+</html>
