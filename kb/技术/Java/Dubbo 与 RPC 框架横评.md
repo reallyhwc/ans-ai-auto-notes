@@ -352,4 +352,190 @@ Netty Boss Group(接受连接) → Worker Group(读写+编解码)
 // 高并发可加连接：<dubbo:reference connections="3" />
 ```
 
-> 关联: ./distributed-transaction.md | ./rocketmq-internals.md
+> 关联: ./distributed-transaction.md | ./rocketmq-internals.md | [[./Spring IOC、DI 与 AOP 核心原理.md]]
+
+---
+
+## 2026-07-08 - 面试高频话题补充
+
+### 容错策略（6 种 Cluster）
+
+| 策略 | 行为 | 适用场景 |
+|------|------|---------|
+| **Failover**（默认） | 失败自动切换其他节点，默认重试 2 次 | 读操作（幂等） |
+| **Failfast** | 快速失败，只调一次，失败立即报错 | 写操作（非幂等，如转账） |
+| **Failsafe** | 失败安全，出错也忽略 | 日志记录（丢了没关系） |
+| **Failback** | 失败自动恢复，定时重发 | 消息通知 |
+| **Forking** | 并行调多个节点，一个成功就返回 | 实时性要求极高的读操作 |
+| **Broadcast** | 广播调所有节点，任一失败则失败 | 通知所有节点更新缓存 |
+
+**为什么写操作不能用 Failover**：
+
+```
+转账场景：Consumer → Provider A（超时）→ 重试 Provider B
+  → A 可能已经执行成功了（只是响应超时）
+  → B 又执行一次 → 转了两次！
+
+解决：写操作必须用 Failfast + 业务幂等
+```
+
+### 服务治理——降级、限流、熔断
+
+#### 降级（mock）
+
+```java
+// 配置 mock 实现
+@DubboReference(mock = "com.example.OrderServiceMock")
+private OrderService orderService;
+
+public class OrderServiceMock implements OrderService {
+    @Override
+    public Order getOrder(Long id) {
+        return new Order(id, "默认数据");  // 返回兜底数据
+    }
+}
+```
+
+#### 熔断（Circuit Breaker）
+
+```
+熔断器三种状态：
+├── Closed（关闭）→ 正常调用
+├── Open（打开）→ 快速失败，不调下游
+└── Half-Open（半开）→ 放一个请求试探，成功→关闭，失败→打开
+
+Dubbo 3.x 内置熔断配置：
+dubbo:
+  provider:
+    circuit-breaker:
+      enabled: true
+      error-ratio-percentage: 50    # 错误率 50% 触发
+      slow-request-threshold-ms: 1000  # 慢请求阈值 1s
+```
+
+### 优雅停机
+
+```
+Provider 停机流程：
+├── 1. 从注册中心注销（其他 Consumer 不再发新请求）
+├── 2. 等待存量请求处理完（默认 10s）
+├── 3. 关闭网络连接
+└── 4. 释放资源
+
+Consumer 停机：
+├── 1. 取消订阅（不再监听 Provider 变更）
+├── 2. 等待正在进行的调用完成
+└── 3. 关闭连接
+```
+
+配置：`dubbo.shutdown.wait: 10000`
+
+### 序列化对比
+
+| 序列化 | 性能 | 跨语言 | 兼容性 | 适用 |
+|--------|------|--------|--------|------|
+| **Hessian2**（Dubbo 默认） | 中 | Java 为主 | 字段增删兼容 | Dubbo 2.x 默认 |
+| **Protobuf** | 高 | 全平台 | 字段增删兼容 | gRPC / Dubbo 3.x Triple |
+| **Kryo** | 最高 | Java only | 字段增删不兼容 | 极致性能场景 |
+| **JSON** | 低 | 全平台 | 字段增删兼容 | 调试 / HTTP 接口 |
+
+**为什么 Dubbo 默认用 Hessian2**：历史原因（2011 年），Protobuf 需要写 .proto 文件生成代码，开发体验差。Dubbo 3.x Triple 协议已切换到 Protobuf。
+
+### 服务版本控制
+
+```java
+// Provider 暴露两个版本
+@DubboService(version = "1.0.0")
+public class OrderServiceImpl implements OrderService { ... }
+
+@DubboService(version = "2.0.0")
+public class OrderServiceV2Impl implements OrderServiceV2 { ... }
+
+// Consumer 指定版本
+@DubboReference(version = "1.0.0")
+private OrderService orderService;
+```
+
+灰度发布：Provider 同时暴露 v1 和 v2 → Consumer 逐步切换流量 → 验证无误后下线 v1。
+
+### Dubbo vs Spring Cloud 架构对比
+
+| 维度 | Dubbo | Spring Cloud |
+|------|-------|--------------|
+| **定位** | RPC 框架（底层通信） | 微服务全家桶（端到端） |
+| **协议** | dubbo/triple（TCP） | HTTP/REST |
+| **性能** | 高（私有协议 + 二进制） | 中（HTTP + JSON） |
+| **学习成本** | 高（SPI、协议、序列化） | 低（注解驱动） |
+
+选型：Dubbo 适合大厂/高性能/复杂治理；Spring Cloud 适合中小团队/Spring 全家桶。
+
+### 超时陷阱——Consumer 超时但 Provider 还在执行
+
+```
+场景：Consumer timeout=3s，Provider 执行了 5s
+
+时间线：
+  T+0s:  Consumer 发起调用
+  T+3s:  Consumer 超时，抛 TimeoutException
+  T+5s:  Provider 执行完成（Consumer 已断开，结果丢弃）
+
+问题：
+  - Consumer 以为失败 → 触发重试（Failover）
+  - Provider 其实成功了 → 重复执行 → 数据不一致！
+
+解决：
+  1. 写操作必须幂等（唯一键 / 状态机 / Token）
+  2. Consumer timeout ≥ Provider 执行时间
+  3. 写操作用 Failfast（不重试）
+```
+
+### Filter 链扩展
+
+```java
+// 自定义 Filter（类似 Servlet Filter）
+@Activate(group = {CommonConstants.CONSUMER})
+public class TraceFilter implements Filter {
+
+    @Override
+    public Result invoke(Invoker<?> invoker, Invocation invocation) throws RpcException {
+        String traceId = UUID.randomUUID().toString();
+        RpcContext.getContext().setAttachment("traceId", traceId);
+        
+        long start = System.currentTimeMillis();
+        Result result = invoker.invoke(invocation);  // 继续调用链
+        long elapsed = System.currentTimeMillis() - start;
+        
+        log.info("traceId={} method={} elapsed={}ms", 
+                 traceId, invocation.getMethodName(), elapsed);
+        return result;
+    }
+}
+```
+
+注册：`META-INF/dubbo/org.apache.dubbo.rpc.Filter` 加 `traceFilter=com.example.filter.TraceFilter`
+
+常见用途：链路追踪、限流、权限校验、访问日志、指标采集。
+
+### 服务暴露流程
+
+```
+Provider 启动：
+├── 1. 解析 @DubboService → ServiceConfig
+├── 2. 导出服务
+│   ├── 本地暴露（InjvmProtocol，同 JVM 调用）
+│   └── 远程暴露（DubboProtocol / TripleProtocol）
+│       ├── 创建 Invoker（包装 ServiceImpl）
+│       ├── 创建 Exporter（暴露端口）
+│       └── 注册到注册中心
+├── 3. 启动 Netty Server
+└── 4. 等待调用
+
+Consumer 启动：
+├── 1. 解析 @DubboReference → ReferenceConfig
+├── 2. 订阅服务
+│   ├── 拉取 Provider 列表
+│   ├── 监听变更
+│   └── 创建 Invoker
+├── 3. 创建代理（JDK/Javassist）
+└── 4. 注入 Spring 容器
+```
