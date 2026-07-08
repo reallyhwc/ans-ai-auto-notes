@@ -3,7 +3,9 @@ title: "Dubbo 与 RPC 框架横评"
 description: "Dubbo 核心架构、调用链路、3.x 新特性，以及 gRPC/OpenFeign/Thrift/Kitex 等主流 RPC 框架对比选型"
 ---
 
-> 最后整理: 2026-05-21 | 来源: AI 对话自动沉淀
+> 最后整理: 2026-07-08 | 来源: AI 对话自动沉淀
+
+> 关联: [[./Spring IOC、DI 与 AOP 核心原理.md]] — §6.6 对比 Spring AOP 代理与 Dubbo RPC 代理（同源 JDK 动态代理，invoke 内部行为不同）
 
 ## 2026-05-21 - RPC 本质与 Dubbo 深度解析
 

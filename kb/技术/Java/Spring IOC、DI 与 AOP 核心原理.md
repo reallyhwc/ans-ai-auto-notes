@@ -5,7 +5,7 @@ description: Spring 核心机制详解：IoC（控制反转）设计思想、DI�
 
 > 最后整理: 2026-07-08 | 来源: 对话讲解
 
-> 关联: [[./JVM 内存模型与垃圾回收.md]] — Bean 的创建/销毁依赖 JVM 堆内存管理
+> 关联: [[./JVM 内存模型与垃圾回收.md]] — Bean 的创建/销毁依赖 JVM 堆内存管理 | [[./Dubbo 与 RPC 框架横评.md]] — §6.6 对比 Spring AOP 代理与 Dubbo RPC 代理
 
 ## 1. IOC、DI、AOP 关系概览
 
@@ -251,7 +251,7 @@ sequenceDiagram
 - **第 7 步**：此时 Bean 才算真正可用
 - 第 5-6-7 步是面试最爱问的三个扩展点
 
-### 实践 Demo：自定义 BeanPostProcessor
+### 5.1 实践 Demo：自定义 BeanPostProcessor
 
 ```java
 @Component
@@ -573,6 +573,8 @@ public BService(AService aService) { }  // 构造器就要 A
 ## 8. 一句话总结
 
 **IoC 是思想（别自己 new），DI 是手段（容器注入），容器是载体（管理 Bean 生命周期），AOP 是容器之上的高级玩法（不碰源码做增强）。**
+
+> 以下为 Spring 进阶机制专题，建立在上述 IoC/DI/AOP 基础之上。
 
 相关：
 - [[热点账户高并发记账方案.md]] — Spring 事务管理在高并发场景的应用
