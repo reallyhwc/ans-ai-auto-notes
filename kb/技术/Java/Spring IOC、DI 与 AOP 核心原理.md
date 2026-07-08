@@ -5,6 +5,8 @@ description: Spring 核心机制详解：IoC（控制反转）设计思想、DI�
 
 > 最后整理: 2026-06-07 | 来源: 与 Claude Code 对话
 
+> 关联: [[./JVM 内存模型与垃圾回收.md]] — Bean 的创建/销毁依赖 JVM 堆内存管理
+
 ## 1. IOC、DI、AOP 关系概览
 
 三者不是一个层面的东西：

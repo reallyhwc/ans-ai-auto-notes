@@ -168,6 +168,26 @@ graph TB
 | **弱引用** | 下次 GC 就回收 | 防止内存泄漏（如 `WeakHashMap`） | `WeakReference` |
 | **虚引用** | 随时回收，无法获取对象 | 跟踪 GC 活动 | `PhantomReference` |
 
+**代码 Demo**：
+
+```java
+// 软引用做缓存 — 内存充足时保留，不足时自动回收
+SoftReference<byte[]> cacheRef = new SoftReference<>(new byte[10 * 1024 * 1024]);
+byte[] data = cacheRef.get();  // 可能返回 null（已被 GC 回收）
+if (data == null) {
+    data = loadFromDisk();  // 兜底：重新加载
+}
+
+// 弱引用防内存泄漏 — 配合 WeakHashMap
+WeakHashMap<Object, String> map = new WeakHashMap<>();
+Object key = new Object();
+map.put(key, "value");
+key = null;  // 断开强引用
+System.gc();
+// 下次 GC 后 key 被回收，map 中对应 entry 自动移除
+// 对比普通 HashMap：key 被 map 强引用，永远不会被 GC → 内存泄漏
+```
+
 ---
 
 ## §3 垃圾回收算法
@@ -422,6 +442,48 @@ sequenceDiagram
 | **染色指针（Colored Pointers）** | 在 64 位指针中嵌入标记位（Marked0/Marked1/Remapped/Finalizable），不需要 STW 就能标记 |
 | **读屏障（Load Barrier）** | 读对象引用时拦截检查：如果对象正在被转移 → 自动修正指针 |
 | **多重映射（Multi-Mapping）** | 同一物理内存映射到多个虚拟地址，减少染色指针的内存开销 |
+
+### 5.6 Shenandoah — Red Hat 的亚毫秒收集器
+
+Shenandoah 和 ZGC 目标一致（亚毫秒停顿），但技术路线不同。
+
+```mermaid
+sequenceDiagram
+    participant App as 应用线程
+    participant Shen as Shenandoah
+
+    Note over Shen: ① 初始标记（STW）
+    Shen->>Shen: 标记 GC Roots 直接关联对象
+
+    Note over Shen: ② 并发标记
+    Shen->>Shen: 遍历引用链
+    Shen->>App: 用户线程同时运行
+
+    Note over Shen: ③ 最终标记（STW）
+    Shen->>Shen: 处理引用变更
+
+    Note over Shen: ④ 并发转移
+    Shen->>Shen: 复制存活对象（并发！）
+    Shen->>App: 用户线程同时运行
+    Note over Shen: Brooks 指针<br/>对象头中存转发指针<br/>读对象时自动跳转
+```
+
+**ZGC vs Shenandoah 对比**：
+
+| | ZGC（Oracle） | Shenandoah（Red Hat） |
+|---|---|---|
+| **并发转移实现** | 染色指针 + 读屏障 | Brooks 指针（对象头转发） |
+| **读屏障开销** | 每次读引用都拦截 | 只在实际转移时跳转 |
+| **对象头开销** | 无（标记在指针中） | 每个对象多 8 字节（转发指针） |
+| **压缩指针兼容** | JDK 17+ 才支持 | 天然兼容 |
+| **停顿时间** | < 1ms | < 10ms |
+| **JDK 版本** | JDK 11+ | JDK 12+（OpenJDK 主线） |
+| **生产成熟度** | JDK 17+ 推荐 | JDK 17+ 可用 |
+
+**选型建议**：
+- JDK 17+ 且追求极致低延迟 → ZGC
+- 需要压缩普通对象指针（CompressedOops）→ Shenandoah
+- JDK 11/12/13 → 都不推荐生产使用，用 G1
 
 ---
 
