@@ -3,7 +3,7 @@ title: Spring IOC、DI 与 AOP 核心原理
 description: Spring 核心机制详解：IoC（控制反转）设计思想、DI（依赖注入）三种方式、Bean 生命周期、AOP（面向切面编程）动态代理原理，含完整代码 Demo 和 Mermaid 图
 ---
 
-> 最后整理: 2026-06-07 | 来源: 与 Claude Code 对话
+> 最后整理: 2026-07-08 | 来源: 对话讲解
 
 > 关联: [[./JVM 内存模型与垃圾回收.md]] — Bean 的创建/销毁依赖 JVM 堆内存管理
 
@@ -576,3 +576,265 @@ public BService(AService aService) { }  // 构造器就要 A
 
 相关：
 - [[热点账户高并发记账方案.md]] — Spring 事务管理在高并发场景的应用
+- [[./JVM 内存模型与垃圾回收.md]] — Bean 的创建/销毁依赖 JVM 堆内存管理
+
+---
+
+## 9. @Transactional 失效的 8 种场景
+
+`@Transactional` 本质是 AOP 代理 → 代理失效 = 事务失效。
+
+| # | 失效场景 | 原因 | 解法 |
+|---|---------|------|------|
+| 1 | **同类内部调用** | `this.method()` 不经过代理 | 注入自己 / 拆到另一个 Bean |
+| 2 | **方法非 public** | CGLIB 只拦截 public | 改 public |
+| 3 | **异常被 try-catch 吞了** | 代理感知不到异常，不回滚 | 抛出异常 / 手动 `setRollbackOnly()` |
+| 4 | **异常类型不对** | 默认只回滚 RuntimeException，checked exception 不回滚 | `rollbackFor = Exception.class` |
+| 5 | **数据库引擎不支持** | MyISAM 不支持事务 | 改 InnoDB |
+| 6 | **没被 Spring 管理** | 类没加 `@Service` | 加注解 |
+| 7 | **传播行为设置不当** | `NOT_SUPPORTED` 以非事务方式执行 | 检查传播行为 |
+| 8 | **多线程** | 新线程不在同一事务上下文 | 手动传事务上下文（复杂） |
+
+### 9.1 同类调用失效 Demo
+
+```java
+@Service
+public class OrderService {
+    public void createOrder(Order order) {
+        saveOrder(order);
+        this.notifyUser();  // ❌ 直接 this 调用，不走代理，@Transactional 不生效
+    }
+
+    @Transactional
+    public void notifyUser() { ... }
+}
+
+// 解法：注入自己
+@Autowired private OrderService self;
+self.notifyUser();  // ✅ 走代理
+```
+
+### 9.2 异常类型失效 Demo
+
+```java
+@Transactional  // 默认只回滚 RuntimeException
+public void importData() throws IOException {
+    throw new IOException("文件读取失败");  // ❌ 不回滚！IOException 是 checked
+}
+
+// 解法
+@Transactional(rollbackFor = Exception.class)
+public void importData() throws IOException { ... }
+```
+
+---
+
+## 10. Spring Boot 自动配置原理
+
+```mermaid
+graph TD
+    A["@SpringBootApplication"] --> B["@SpringBootConfiguration<br/>（= @Configuration）"]
+    A --> C["@EnableAutoConfiguration<br/>（核心！）"]
+    A --> D["@ComponentScan<br/>（扫描当前包及子包）"]
+
+    C --> E["@Import AutoConfigurationImportSelector"]
+    E --> F["读取 META-INF/.../AutoConfiguration.imports"]
+    F --> G["加载 100+ 自动配置类"]
+    G --> H{"@Conditional 条件判断"}
+    H -->|"满足"| I["✅ 加载配置类"]
+    H -->|"不满足"| J["❌ 跳过"]
+
+    H --> H1["@ConditionalOnClass<br/>classpath 有某个类"]
+    H --> H2["@ConditionalOnMissingBean<br/>容器里没有才创建"]
+    H --> H3["@ConditionalOnProperty<br/>配置文件有某个值"]
+```
+
+### 10.1 核心机制：@Conditional
+
+```java
+// DataSourceAutoConfiguration（简化）
+@Configuration
+@ConditionalOnClass(DataSource.class)        // classpath 有 DataSource 才加载
+@EnableConfigurationProperties(DataSourceProperties.class)
+public class DataSourceAutoConfiguration {
+
+    @Bean
+    @ConditionalOnMissingBean                 // 用户没自己定义才创建
+    public DataSource dataSource(DataSourceProperties props) {
+        return props.initializeDataSourceBuilder().build();
+    }
+}
+```
+
+### 10.2 面试应答
+
+> `@SpringBootApplication` 包含 `@EnableAutoConfiguration`，它通过 `AutoConfigurationImportSelector` 读取 META-INF 下的自动配置清单。每个配置类上有 `@Conditional` 条件注解——只有 classpath 有对应类、容器中没有用户自定义 Bean 时才自动创建。这就是"约定优于配置"：引入 starter → classpath 有相关类 → 自动配置生效。
+
+---
+
+## 11. Spring 事务传播行为
+
+### 11.1 七种传播行为
+
+| 传播行为 | 含义 | 考频 |
+|---------|------|------|
+| **REQUIRED**（默认） | 有事务就加入，没有就新建 | ⭐⭐⭐⭐⭐ |
+| **REQUIRES_NEW** | 不管有没有，都新建（挂起外层） | ⭐⭐⭐⭐⭐ |
+| **NESTED** | 有事务就嵌套（savepoint），没有就新建 | ⭐⭐⭐ |
+| SUPPORTS | 有就加入，没有就非事务执行 | ⭐ |
+| MANDATORY | 必须在事务中，否则抛异常 | ⭐ |
+| NOT_SUPPORTED | 以非事务方式执行，挂起外层 | 罕见 |
+| NEVER | 以非事务方式执行，外层有事务就抛异常 | 罕见 |
+
+### 11.2 REQUIRED vs REQUIRES_NEW vs NESTED
+
+```java
+@Service
+public class OrderService {
+    @Autowired private LogService logService;
+
+    @Transactional  // 外层事务
+    public void createOrder() {
+        logService.saveLog();  // 内层调用
+        throw new RuntimeException("下单失败");
+    }
+}
+```
+
+| | 内层异常→外层回滚？ | 外层异常→内层回滚？ |
+|---|---|---|
+| **REQUIRED** | ✅（同一事务） | ✅（同一事务） |
+| **REQUIRES_NEW** | ❌（独立事务） | ❌（独立事务） |
+| **NESTED** | ❌（回到 savepoint） | ✅（嵌套关系） |
+
+**典型用法**：操作日志必须用 `REQUIRES_NEW`——业务回滚了但日志要保留。
+
+---
+
+## 12. @Configuration vs @Component
+
+`@Configuration` 类会被 **CGLIB 代理**，代理拦截 `@Bean` 方法调用——先查容器，有就返回已有实例，没有才执行方法体。
+
+```java
+@Configuration  // Full 模式：CGLIB 代理
+public class AppConfig {
+    @Bean
+    public ServiceA serviceA() {
+        return new ServiceA(serviceB());  // serviceB() 不会创建新对象
+    }
+
+    @Bean
+    public ServiceB serviceB() {
+        return new ServiceB();
+    }
+}
+// → serviceA 和所有依赖都拿到同一个 serviceB 单例 ✅
+```
+
+| 模式 | 注解 | 代理 | @Bean 方法互调 |
+|------|------|------|--------------|
+| Full | `@Configuration` | CGLIB | 返回容器单例 ✅ |
+| Lite | `@Component` 等 | 无 | 每次 new 新对象 ❌ |
+
+---
+
+## 13. Bean 作用域
+
+| 作用域 | 说明 | 生命周期 |
+|--------|------|---------|
+| **singleton**（默认） | 整个容器只有一个实例 | 随容器 |
+| **prototype** | 每次 getBean 创建新实例 | 用完即弃 |
+| request | 每个 HTTP 请求一个实例 | 请求结束销毁 |
+| session | 每个 HTTP Session 一个实例 | Session 过期销毁 |
+
+### 13.1 singleton 注入 prototype 的陷阱
+
+```java
+@Component  // singleton
+public class OrderService {
+    @Autowired
+    private OrderContext context;  // @Scope("prototype")
+}
+// ❌ OrderService 只创建一次 → context 也只注入一次 → prototype 失效
+```
+
+解法：
+
+```java
+// 方案 1：@Lookup
+@Lookup
+public OrderContext getContext() { return null; }
+
+// 方案 2：ObjectFactory
+@Autowired private ObjectFactory<OrderContext> contextFactory;
+// 使用：contextFactory.getObject() → 每次新实例
+
+// 方案 3：@Scope + scoped-proxy
+@Scope(value = "prototype", proxyMode = ScopedProxyMode.TARGET_CLASS)
+```
+
+---
+
+## 14. Spring 启动流程
+
+```mermaid
+sequenceDiagram
+    participant App as SpringApplication
+    participant Ctx as ApplicationContext
+    participant BF as BeanFactory
+
+    App->>App: 1. 推断应用类型（SERVLET/REACTIVE）
+    App->>App: 2. 准备 Environment（读 application.yml）
+    App->>Ctx: 3. 创建 ApplicationContext
+
+    Note over Ctx: 4. refresh()（核心）
+    Ctx->>BF: obtainFreshBeanFactory()
+    Ctx->>BF: invokeBeanFactoryPostProcessors()<br/>解析 @Configuration
+    Ctx->>BF: registerBeanPostProcessors()
+    Ctx->>Ctx: onRefresh()<br/>创建内嵌 Tomcat/Netty
+    Ctx->>BF: ⭐ finishBeanFactoryInitialization()<br/>实例化所有非懒加载单例 Bean
+
+    App->>App: 5. 启动 Web 服务器（监听端口）
+    App->>App: 6. 调用 ApplicationRunner / CommandLineRunner
+```
+
+`finishBeanFactoryInitialization()` 是启动最慢的一步——实例化所有单例 Bean + 依赖注入 + AOP 代理。Spring Boot 启动优化主要就是优化这里。
+
+---
+
+## 15. @Async 的坑
+
+```java
+@Service
+public class OrderService {
+    @Autowired private NotificationService notificationService;
+
+    @Transactional
+    public void createOrder() {
+        // ... 业务逻辑
+        notificationService.sendEmail("user@example.com");
+        // ⚠️ 邮件在线程池里异步执行
+        // 但事务还没提交！收件人查订单可能查不到
+    }
+}
+```
+
+解法：事务提交后再执行异步操作。
+
+```java
+// 方案 1：@TransactionalEventListener
+@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+public void onOrderCreated(OrderCreatedEvent event) {
+    notificationService.sendEmail(event.getUserEmail());
+}
+
+// 方案 2：TransactionSynchronizationManager
+TransactionSynchronizationManager.registerSynchronization(
+    new TransactionSynchronization() {
+        @Override
+        public void afterCommit() {
+            notificationService.sendEmail("user@example.com");
+        }
+    }
+);
+```
