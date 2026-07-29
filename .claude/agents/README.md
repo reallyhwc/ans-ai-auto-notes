@@ -36,6 +36,8 @@ description: "ans-ai-auto-notes 三个项目级 subagent（kb-auditor / plan-exe
   └─ 普通 Task tool subagent_type: general-purpose / Explore
 ```
 
+> **注意：以上分支不互斥，常见连续触发**——典型链路是"用户贴长文 → idea-extractor 识别候选 → 主 agent 按建议写入 kb → 若单次新增 ≥300 行则接着触发 kb-auditor"。决策树描述的是"此刻该 spawn 谁"，不是"只能 spawn 一个"。
+
 ## Dispatch 模板
 
 ### kb-auditor（最常用）
@@ -85,7 +87,7 @@ Task tool:
 ## 拿到返回后必做的 3 件事
 
 1. **解析 VERDICT 行** (`VERDICT: pass|minor|major (N)` / `EXTRACT-VERDICT: N 个候选 (...)` / `VERDICT: completed|partial|blocked`)
-2. **patch agent-log**（[[feedback-agent-log-patch]] 强制）：
+2. **（可选）patch agent-log 覆盖自动摘要**：`agent-log-hook.js` 已在 SubagentStop 时自动从 subagent 最后一条文本消息派生 title/summary/outcome（见 `scripts/lib-agent-log.js:deriveAutoFields`）。多数情况下不需要手动操作；如果自动摘要不够精准，或 subagent 最后一条消息没有文本（只有工具调用），用：
    ```bash
    node scripts/agent-log.js patch \
      --id last \
@@ -110,7 +112,7 @@ Task tool:
 
 ## 常见坑
 
-- **忘记 patch agent-log** → 月底 `agent-report.js` 报告里 run 记录 `outcome=unknown`，价值归零。每次 dispatch 后立即 patch（[[feedback-agent-log-patch]]）。
+- **subagent 最后一条消息只有工具调用没有文本收尾** → 自动摘要拿不到 `final_text`，title/summary 仍为 null，`check-agent-log-compliance.js` 会标记。此时手动 patch 补一句摘要即可。
 - **复制 audit 报告全文进主对话** → 浪费 context。已落 `logs/audits/`，引用路径即可。
 - **kb-auditor 同一文件 24h 内重复 spawn** → 没新增内容，跳过。
 - **plan-executor 不验证 reviewer 通过就推进** → 违反 spec §3.2 设计；reviewer 报问题 → 派 fix → 重 review，循环 ≤3 次。
