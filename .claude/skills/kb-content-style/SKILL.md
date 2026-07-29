@@ -1,6 +1,6 @@
 ---
 name: kb-content-style
-description: Use when writing or editing any markdown file under kb/ in this ANS AI Auto Notes project. Enforces Mermaid-first visuals, demo retention over abstraction, file splitting when >1000 lines, continuous chapter numbering, and Chinese filename = frontmatter title rule.
+description: Use when writing or editing any markdown file under kb/ in this ANS AI Auto Notes project.
 ---
 
 # KB Content Style (ANS AI Auto Notes 项目)
@@ -70,6 +70,8 @@ ASCII 框图仅在 Mermaid 不适用时使用。范例参考 `kb/技术/AI/Claud
 - 使用 `## N.` 样式时，h2 编号必须从 1（或 0）连续递增 —— 由 `arch-lint.sh` 章节编号连续性检查自动兜底
 - 内联代码不影响 slugify：`buildToc` 在 slugify 前必须 `stripInline` —— 由 `arch-lint.sh` 标题 ID 契约检查 + `tests/lib.test.js` 双保险
 - 修改 lib.js slugify 或 heading renderer 时，必须同步更新 lib.js + app.js
+
+> lint 检查逻辑见 [arch-lint-fix-guide skill](../arch-lint-fix-guide/SKILL.md)（第 12/13 项）。
 
 ## 跨文件关联
 

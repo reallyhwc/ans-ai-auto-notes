@@ -1,6 +1,6 @@
 ---
 name: arch-lint-fix-guide
-description: Use when arch-lint.sh outputs warnings or errors. Covers fixes for all 15 checks (frontmatter, dead links, line count, chapter numbering, anchor validation, etc.). Auto-triggered by preflight.sh output.
+description: Use when arch-lint.sh or preflight.sh outputs warnings or errors on kb/ files.
 allowed-tools:
   - Read
   - Grep
@@ -95,6 +95,8 @@ bash scripts/arch-lint.sh 2>&1 | grep "大小写"
 2. 拆出新文件（带完整 frontmatter）
 3. 原文件加 `> 关联: ./新文件`
 4. 新文件加 `> 关联: ./原文件`
+
+> 阈值与判断方法的权威定义见 [kb-content-style skill](../kb-content-style/SKILL.md)（文件拆分规则一节），本节只覆盖"lint 报错后怎么改"。
 
 ### 8. Memory 文件 frontmatter 格式
 

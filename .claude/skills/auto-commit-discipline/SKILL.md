@@ -42,12 +42,14 @@ EOF
 - [ ] 未跳过 hooks
 - [ ] 未 amend 已 push 的 commit
 
-## 反面案例
+## Rationalization Table（借口 vs 现实）
 
-- ❌ "我打包完成多件事后一起 commit" → 应该每个逻辑主题完成立即 commit
-- ❌ "用户没催 commit，我先继续干别的" → 主动性在 AI 这边
-- ❌ `git commit --amend` 修改已 push 的 commit → 永不
-- ❌ `git add -A` 全量加 → 明确 `git add <具体文件>` 避免误提交
+| 借口 | 现实 |
+|---|---|
+| "我打包完成多件事后一起 commit" | 应该每个逻辑主题完成立即 commit，不攒批 |
+| "用户没催 commit，我先继续干别的" | 主动性在 AI 这边，不等提醒 |
+| `git commit --amend` 改已 push 的 commit | 永不——会破坏远端历史 |
+| `git add -A` 全量加 | 明确 `git add <具体文件>`，避免误提交敏感文件 |
 
 ## 与其他 hook 的关系
 
