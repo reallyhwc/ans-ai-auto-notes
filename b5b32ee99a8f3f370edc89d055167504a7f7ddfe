@@ -1,0 +1,46 @@
+CLAUDE.md
+  faf0f41ac5e6978b 23
+INDEX.md
+  faf0f41ac5e6978b 94-96
+"kb/技术/AI/AI-Coding/AI 编程工具：CLI Agent 与 GUI IDE 全景对比.md"
+  faf0f41ac5e6978b 10
+"kb/技术/编程语言/Go 与 TypeScript 对比.md"
+  faf0f41ac5e6978b 8-9,445
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.9",
+  "base_commit_sha": "b5b32ee99a8f3f370edc89d055167504a7f7ddfe",
+  "prompts": {
+    "faf0f41ac5e6978b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e6385508-9b6a-4052-8c40-5cd828a4f78e",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "xuhu",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 462,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "kb/技术/AI/AI-Coding/AI 编程工具：CLI Agent 与 GUI IDE 全景对比.md": {
+          "accepted_lines": 1
+        },
+        "CLAUDE.md": {
+          "accepted_lines": 2
+        },
+        "logs/agent-runs/2026-07.jsonl": {
+          "accepted_lines": 8
+        },
+        "INDEX.md": {
+          "accepted_lines": 6
+        },
+        "kb/技术/编程语言/Go 与 TypeScript 对比.md": {
+          "accepted_lines": 445
+        }
+      }
+    }
+  }
+}
