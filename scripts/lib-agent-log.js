@@ -89,7 +89,7 @@ function parseTranscript(transcriptPath) {
   // 过滤无 timestamp 的 meta 行（Claude Code 头部的 last-prompt / permission-mode）
   const withTime = messages.filter(m => m.timestamp);
   if (withTime.length === 0) {
-    return { duration_ms: 0, tools_used: [], files_changed: [], model: null, has_substantive_work: false };
+    return { duration_ms: 0, tools_used: [], files_changed: [], model: null, has_substantive_work: false, final_text: null, has_error: false };
   }
 
   const firstTime = new Date(withTime[0].timestamp).getTime();
@@ -100,13 +100,24 @@ function parseTranscript(transcriptPath) {
   const filesSet = new Set();
   let model = null;
   let hasSubstantive = false;
+  let finalText = null;
+  let hasError = false;
 
   for (const m of withTime) {
     // 框架 transcript: message 嵌套。测试 fixture: 字段平铺。
     const msg = m.message || m;
+
+    if (Array.isArray(msg.content)) {
+      for (const block of msg.content) {
+        if (block.type === 'tool_result' && block.is_error) hasError = true;
+      }
+    }
+
     if (msg.role === 'assistant') {
       if (msg.model && !model) model = msg.model;
       if (Array.isArray(msg.content)) {
+        const textBlocks = msg.content.filter(b => b.type === 'text' && typeof b.text === 'string');
+        finalText = textBlocks.length ? textBlocks.map(b => b.text).join('\n').trim() : null;
         for (const block of msg.content) {
           if (block.type === 'tool_use') {
             toolsSet.add(block.name);
@@ -130,7 +141,27 @@ function parseTranscript(transcriptPath) {
     files_changed: Array.from(filesSet),
     model,
     has_substantive_work: hasSubstantive,
+    final_text: finalText,
+    has_error: hasError,
   };
 }
 
-module.exports = { generateId, appendEvent, foldEvents, parseTranscript, WRITE_TOOLS, FILE_WRITE_TOOLS };
+function truncate(text, max) {
+  return text.length > max ? text.slice(0, max) + '…' : text;
+}
+
+// 从 parseTranscript 结果派生 title/summary/outcome，供 SubagentStop hook 自动填充
+// （不再依赖 AI 记得手动调用 agent-log.js patch）
+function deriveAutoFields(parsed) {
+  const outcome = parsed.has_error ? 'partial' : 'success';
+  if (!parsed.final_text) return { title: null, summary: null, outcome };
+  const text = parsed.final_text.trim();
+  const firstLine = text.split('\n')[0].trim();
+  return {
+    title: truncate(firstLine, 60),
+    summary: truncate(text, 200),
+    outcome,
+  };
+}
+
+module.exports = { generateId, appendEvent, foldEvents, parseTranscript, deriveAutoFields, WRITE_TOOLS, FILE_WRITE_TOOLS };

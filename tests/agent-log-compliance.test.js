@@ -28,17 +28,16 @@ function runCheck(dir) {
 
 test('compliance: 所有 run 已 patch → 输出 ✓ + exit 0', () => {
   withTempLog([
-    { event: 'start', id: 'r-2026-06-08-10-00-ab12', time: '2026-06-08T10:00:00+08:00', agent: 'kb-auditor', outcome: 'unknown' },
-    { event: 'patch', id: 'r-2026-06-08-10-00-ab12', time: '2026-06-08T10:05:00+08:00', outcome: 'success', title: 'T', summary: 'S' },
+    { event: 'start', id: 'r-2026-06-08-10-00-ab12', time: '2026-06-08T10:00:00+08:00', agent: 'kb-auditor', outcome: 'success', title: 'T' },
   ], (dir) => {
     const out = runCheck(dir);
     assert.match(out, /✓/);
   });
 });
 
-test('compliance: 有 outcome=unknown 未 patch → 输出 ⚠️ + 列出 id', () => {
+test('compliance: title 缺失（自动填充也拿不到）→ 输出 ⚠️ + 列出 id', () => {
   withTempLog([
-    { event: 'start', id: 'r-2026-06-08-10-00-ab12', time: '2026-06-08T10:00:00+08:00', agent: 'kb-auditor', outcome: 'unknown' },
+    { event: 'start', id: 'r-2026-06-08-10-00-ab12', time: '2026-06-08T10:00:00+08:00', agent: 'kb-auditor', outcome: 'success', title: null },
   ], (dir) => {
     const out = runCheck(dir);
     assert.match(out, /⚠️/);
@@ -59,9 +58,9 @@ test('compliance: 无日志文件 → 输出 ✓ + exit 0', () => {
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
 
-test('compliance: main agent outcome=unknown → 不报（仅检查 subagent）', () => {
+test('compliance: main agent title 缺失 → 不报（仅检查 subagent）', () => {
   withTempLog([
-    { event: 'start', id: 'r-2026-06-08-10-00-ab12', time: '2026-06-08T10:00:00+08:00', agent: 'main', outcome: 'unknown' },
+    { event: 'start', id: 'r-2026-06-08-10-00-ab12', time: '2026-06-08T10:00:00+08:00', agent: 'main', outcome: 'unknown', title: null },
   ], (dir) => {
     const out = runCheck(dir);
     assert.match(out, /✓/);

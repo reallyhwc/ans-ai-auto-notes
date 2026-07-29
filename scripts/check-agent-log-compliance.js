@@ -20,7 +20,7 @@ const events = content.split('\n').filter(l => l.trim()).flatMap(l => {
 });
 
 const records = foldEvents(events);
-const unpatched = records.filter(r => r.agent !== 'main' && r.outcome === 'unknown');
+const unpatched = records.filter(r => r.agent !== 'main' && (r.title === null || r.title === undefined));
 
 if (unpatched.length === 0) {
   console.log('  ✓ 所有 subagent run 均已 patch');

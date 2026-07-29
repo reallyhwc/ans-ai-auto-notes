@@ -15,7 +15,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const { generateId, appendEvent, parseTranscript } = require('./lib-agent-log.js');
+const { generateId, appendEvent, parseTranscript, deriveAutoFields } = require('./lib-agent-log.js');
 
 const ROOT = path.resolve(__dirname, '..');
 
@@ -63,6 +63,9 @@ function main() {
     ? (stdin.agent_type || stdin.subagent_name || 'unknown')
     : 'main';
   const time = new Date().toISOString();
+  const auto = mode === 'subagent'
+    ? deriveAutoFields(parsed)
+    : { title: null, summary: null, outcome: 'unknown' };
 
   const event = {
     event: 'start',
@@ -73,10 +76,10 @@ function main() {
     tools_used: parsed.tools_used,
     files_changed: parsed.files_changed,
     duration_ms: parsed.duration_ms,
-    outcome: 'unknown',
+    outcome: auto.outcome,
     model: parsed.model,
-    title: null,
-    summary: null,
+    title: auto.title,
+    summary: auto.summary,
   };
 
   const logFile = process.env.AGENT_LOG_FILE || defaultLogFile();
