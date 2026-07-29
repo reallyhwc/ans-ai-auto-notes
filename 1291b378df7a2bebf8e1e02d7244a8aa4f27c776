@@ -1,0 +1,45 @@
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.9",
+  "base_commit_sha": "1291b378df7a2bebf8e1e02d7244a8aa4f27c776",
+  "prompts": {
+    "faf0f41ac5e6978b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e6385508-9b6a-4052-8c40-5cd828a4f78e",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "xuhu",
+      "messages": [],
+      "total_additions": 454,
+      "total_deletions": 6,
+      "accepted_lines": 459,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "CLAUDE.md": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "kb/技术/AI/AI-Coding/AI 编程工具：CLI Agent 与 GUI IDE 全景对比.md": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "kb/技术/编程语言/Go 与 TypeScript 对比.md": {
+          "additions": 448,
+          "deletions": 3,
+          "accepted_lines": 445
+        },
+        "INDEX.md": {
+          "additions": 4,
+          "deletions": 2,
+          "accepted_lines": 4
+        },
+        "logs/agent-runs/2026-07.jsonl": {
+          "accepted_lines": 8
+        }
+      }
+    }
+  }
+}
