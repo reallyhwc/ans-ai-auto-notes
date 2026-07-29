@@ -144,35 +144,84 @@ fi
 # ── 检查 6: 链接路径大小写一致性 ──
 # macOS 文件系统不区分大小写（HFS+/APFS 默认），但 Linux/GitHub 区分。
 # 此检查逐段比较链接路径中的每个目录/文件名与磁盘实际大小写是否一致。
-# 优化：用 bash-native 替代 python3 fork（3.10s → ~0.3s）
+#
+# 实现说明（2026-07-29 重写，修复真实检测盲区 + 性能）：
+#   - 路径规范化改用纯 bash 数组折叠 ./ 和 ../：此前用 `realpath -m` 折叠路径，
+#     但 macOS 自带的 BSD realpath 不支持 -m 选项会静默失败（stderr 被吞掉），
+#     导致所有含 "../" 的链接（kb/ 里最常见的写法）路径规范化直接失效，
+#     进而使后面的逐段比较从未真正对齐过路径——这个检查对"../"链接从未真正生效过。
+#   - 大小写比较改用"目录列表缓存 + bash 字符串比较"，不再用 `[ -e ]` 判断是否
+#     精确匹配：`[ -e ]` 走文件系统语义，在大小写不敏感的磁盘上对 "Foo" 和 "foo"
+#     都返回真，这个检查的核心前提（用文件系统操作分辨大小写）在 macOS 上本身就
+#     不成立，无论 realpath 那个 bug 修不修都测不出来。改为读一次目录内容到数组，
+#     用 bash 字符串比较（大小写敏感）做精确匹配，nocasematch 只在兜底查找时临时开。
+#   - 目录列表按路径缓存，同一目录被多个链接引用时只 `ls` 一次，避免每个路径段
+#     fork 一次 find/grep。缓存用两个并行数组实现（而非 `declare -A`）：
+#     macOS 自带 /bin/bash 是 3.2（GPLv2 授权，Apple 多年未升级），不支持 bash 4+
+#     的关联数组，之前用 declare -A 在这台机器上会静默出错导致缓存整个失效。
 echo ""
 echo "[6/15] 链接路径大小写一致性（Linux 兼容）..."
 
 CASE_WARN=0
+CACHE_DIRS=()
+CACHE_LISTS=()
+SCRIPT_CWD="$(pwd)"
+
+get_dir_entries() {
+  # 不能写成 entries=$(get_dir_entries ...) 调用——那样会把函数塞进命令替换的
+  # 子 shell，CACHE_DIRS/CACHE_LISTS 的追加在子 shell 退出后就丢了，缓存等于
+  # 从没生效。改用全局变量 DIR_ENTRIES_RESULT 传结果，调用处不包 $(...)。
+  local dir="$1"
+  local i
+  for i in "${!CACHE_DIRS[@]}"; do
+    if [ "${CACHE_DIRS[$i]}" = "$dir" ]; then
+      DIR_ENTRIES_RESULT="${CACHE_LISTS[$i]}"
+      return
+    fi
+  done
+  local listing
+  listing=$(ls -1A "$dir" 2>/dev/null)
+  CACHE_DIRS+=("$dir")
+  CACHE_LISTS+=("$listing")
+  DIR_ENTRIES_RESULT="$listing"
+}
+
+# 纯 bash 折叠路径中的 ./ 和 ../（macOS BSD realpath 无 -m 选项，不能用 realpath -m）
+normalize_path() {
+  local input="$1"
+  local -a segs=() stack=()
+  local part
+  IFS='/' read -ra segs <<< "$input"
+  for part in "${segs[@]}"; do
+    case "$part" in
+      ''|'.') continue ;;
+      '..') [ ${#stack[@]} -gt 0 ] && stack=("${stack[@]:0:${#stack[@]}-1}") ;;
+      *) stack+=("$part") ;;
+    esac
+  done
+  printf '/%s' "${stack[@]}"
+}
+
 while IFS= read -r -d '' file; do
-  FILE_DIR=$(dirname "$file")
+  FILE_DIR="${file%/*}"
   # 提取所有相对路径的 md 链接：](../xxx.md) 和 ](./xxx.md) 格式，去掉锚点
-  LINKS=$(grep -oE ']\([.]{1,2}/[^)]+\.md[^)]*\)' "$file" 2>/dev/null | sed 's/](\(.*\))/\1/' | sed 's/#.*//')
+  LINKS=$(grep -oE ']\([.]{1,2}/[^)]+\.md[^)]*\)' "$file" 2>/dev/null | sed 's/](\(.*\))/\1/;s/#.*//')
 
   for link in $LINKS; do
-    # bash-native 实现：将链接解析为绝对路径，逐段用 find -iname 查找磁盘实际名称
-    abs_link="$FILE_DIR/$link"
+    abs_link=$(normalize_path "$SCRIPT_CWD/$FILE_DIR/$link")
 
-    # 规范化路径（去掉多余的 ./ 和 ../）
-    abs_link=$(cd "$FILE_DIR" 2>/dev/null && realpath -m "$link" 2>/dev/null || echo "$abs_link")
+    # SCRIPT_CWD 这段前缀来自 pwd，天然大小写正确，不需要逐段验证——
+    # 去掉这段前缀，只检查链接本身涉及的那几段，链接一般 3-6 段，
+    # 不去掉的话每个链接都要多验证 5-8 段固定不变的前缀，纯浪费。
+    rel_link="${abs_link#"$SCRIPT_CWD"/}"
 
-    # 逐段检查大小写
-    IFS='/' read -ra parts <<< "$abs_link"
-    current=""
+    # 逐段检查大小写（从 SCRIPT_CWD 开始，不必重新验证前缀本身）
+    IFS='/' read -ra parts <<< "$rel_link"
+    current="$SCRIPT_CWD"
     mismatch_found=0
 
     for part in "${parts[@]}"; do
       [ -z "$part" ] && continue
-
-      if [ -z "$current" ]; then
-        current="/$part"
-        continue
-      fi
 
       parent="$current"
 
@@ -181,14 +230,27 @@ while IFS= read -r -d '' file; do
         break
       fi
 
-      # 精确匹配（大小写敏感）
-      if [ -e "$parent/$part" ]; then
+      get_dir_entries "$parent"
+      entries="$DIR_ENTRIES_RESULT"
+
+      # 精确匹配：用一次 grep -F 做（编译好的二进制字符串匹配，比纯 bash 循环快得多，
+      # 常见情况——链接大小写本来就对——只多花这一次 fork）
+      if printf '%s\n' "$entries" | grep -qxF "$part"; then
         current="$parent/$part"
         continue
       fi
 
-      # 大小写不敏感查找（macOS BSD find 兼容）
-      actual_name=$(find "$parent" -maxdepth 1 -iname "$part" 2>/dev/null | head -1 | xargs basename 2>/dev/null)
+      # 大小写不敏感兜底查找：只有真正大小写不匹配时才会走到这里（少数情况），
+      # 这里再上纯 bash 循环换 nocasematch 也不算浪费
+      shopt -s nocasematch
+      actual_name=""
+      while IFS= read -r entry; do
+        if [[ "$entry" == "$part" ]]; then
+          actual_name="$entry"
+          break
+        fi
+      done <<< "$entries"
+      shopt -u nocasematch
 
       if [ -n "$actual_name" ] && [ "$actual_name" != "$part" ]; then
         echo "  ⚠️  $file"
