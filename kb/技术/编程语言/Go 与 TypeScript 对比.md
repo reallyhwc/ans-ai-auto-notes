@@ -5,8 +5,8 @@ description: Go 和 TypeScript 语言特性、生态、典型用例对比，含 
 
 > 最后整理: 2026-06-04 | 来源: 与 Claude Code 对话
 
-> 关联: [AI 编程工具：CLI Agent 与 GUI IDE 全景对比](<./AI/AI-Coding/AI 编程工具：CLI Agent 与 GUI IDE 全景对比.md>) — CLI Agent 工具选型（Go/TS 是两大主力语言）
-> 关联: [主流 Agent 产品技术栈解剖](<./AI/应用/主流 Agent 产品技术栈解剖：自研循环 vs 框架之争.md>) — Qoder CLI 从 Go 重构到 TypeScript 的背景
+> 关联: [AI 编程工具：CLI Agent 与 GUI IDE 全景对比](<../AI/AI-Coding/AI 编程工具：CLI Agent 与 GUI IDE 全景对比.md>) — CLI Agent 工具选型（Go/TS 是两大主力语言）
+> 关联: [主流 Agent 产品技术栈解剖](<../AI/应用/主流 Agent 产品技术栈解剖：自研循环 vs 框架之争.md>) — Qoder CLI 从 Go 重构到 TypeScript 的背景
 
 ## 1. 快速入门
 
@@ -442,4 +442,4 @@ async function fetchAll(urls: string[]): Promise<Record<string, string>> {
 
 > Go 版本需要手动管 WaitGroup、Mutex、闭包传参。TS 版本 `Promise.all` + `Object.fromEntries` 两行收工。这就是为什么应用层工具选 TS——并发模型虽然不如 goroutine 底层高效，但写起来简单太多了。
 
-相关: [[../技术/AI/Claude-Code/从 Claude Code 看 AI 编程工具生态.md]] [[../技术/AI/应用/AI 工作流平台：Dify、Coze 与 Claude Code 的组合.md]] [[../技术/AI/应用/AI 工作流平台：Dify、Coze 与 Claude Code 的组合.md]]
+相关: [[../AI/Claude-Code/从 Claude Code 看 AI 编程工具生态.md]] [[../AI/应用/AI 工作流平台：Dify、Coze 与 Claude Code 的组合.md]] [[../AI/应用/AI 工作流平台：Dify、Coze 与 Claude Code 的组合.md]]

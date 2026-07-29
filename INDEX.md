@@ -11,8 +11,6 @@
 
 ## 技术 (64 篇)
 
-- [Go 与 TypeScript 快速对比](kb/技术/Go 与 TypeScript 对比.md) — Go 和 TypeScript 语言特性、生态、典型用例对比，含 Qoder CLI 从 Go 重构到 TypeScript 的动机推测
-
 ### AI (48 篇)
 
 #### AI-Coding (5 篇)
@@ -92,6 +90,10 @@
 - [分布式事务全景](kb/技术/Java/分布式事务全景.md) — Java 后端程序员视角下的分布式事务方案对比与选型实践
 - [点赞Top排行榜设计方案](kb/技术/Java/点赞Top排行榜设计方案.md) — 点赞/热度排行榜的系统设计：Redis ZSet 直写 → 定时批量计算 → 分桶分片，海量数据下的分层架构与反作弊考量
 - [热点账户高并发记账方案](kb/技术/Java/热点账户高并发记账方案.md) — 单账户高并发写入场景下的 7 种解决方案对比、选型及异步一致性设计
+
+### 编程语言 (1 篇)
+
+- [Go 与 TypeScript 快速对比](kb/技术/编程语言/Go 与 TypeScript 对比.md) — Go 和 TypeScript 语言特性、生态、典型用例对比，含 Qoder CLI 从 Go 重构到 TypeScript 的动机推测
 
 ### 计算机基础 (3 篇)
 
