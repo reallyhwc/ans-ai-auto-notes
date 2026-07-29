@@ -33,8 +33,8 @@ test('auto-commit skill: 不应重复 CLAUDE.md 已有的 Conventional Commits �
 test('auto-commit skill: 应保留独有内容（Checklist + 反面案例）', () => {
   assert.match(skillContent, /自检 Checklist|提交前.*检查/,
     'Skill 应保留独有的自检 Checklist');
-  assert.match(skillContent, /反面案例|常见错误/,
-    'Skill 应保留独有的反面案例');
+  assert.match(skillContent, /反面案例|常见错误|Rationalization Table/,
+    'Skill 应保留独有的反面案例（现为 Rationalization Table 格式）');
 });
 
 test('auto-commit skill: 应包含触发条件', () => {
