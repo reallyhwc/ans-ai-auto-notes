@@ -9,7 +9,7 @@
 - [外部参考链接](kb/实战/外部参考链接.md) — 优质外部技术文章、博客、演讲的链接汇总，附带核心要点
 - [知识管理工具对比](kb/实战/知识管理工具对比.md) — Obsidian/Notion/本项目方案 对比分析
 
-## 技术 (64 篇)
+## 技术 (67 篇)
 
 ### AI (48 篇)
 
@@ -76,9 +76,11 @@
 - [主流 Agent 产品技术栈解剖：自研循环 vs 框架之争](kb/技术/AI/应用/主流 Agent 产品技术栈解剖：自研循环 vs 框架之争.md) — Claude Code/OpenClaw/Hermes Agent 技术栈拆解，为什么顶级 Agent 产品都不用 LangChain/Spring AI，Agent 循环对比（TAOR/Hub-and-Spoke/run_conversation）
 - [跨语言 Agent + MCP 架构：Python Agent ↔ Java MCP 混合开发](kb/技术/AI/应用/跨语言 Agent + MCP 架构：Python Agent ↔ Java MCP 混合开发.md) — LangChain 双语言支持(Python/JS)、Python写Agent+Java写MCP的正反两种方案、MCP协议抹平语言差异的配置示例、推荐架构
 
-### Java (12 篇)
+### Java (14 篇)
 
 - [Dubbo 与 RPC 框架横评](kb/技术/Java/Dubbo 与 RPC 框架横评.md) — Dubbo 核心架构、调用链路、3.x 新特性，以及 gRPC/OpenFeign/Thrift/Kitex 等主流 RPC 框架对比选型
+- [InnoDB 如何实现 ACID](kb/技术/Java/InnoDB 如何实现 ACID.md) — undo log 保证原子性、redo log 保证持久性、MVCC+锁保证隔离性、一致性是综合结果，含 ReadView 版本链、WAL、Gap Lock 完整原理
+- [JVM 内存模型与垃圾回收](kb/技术/Java/JVM 内存模型与垃圾回收.md) — JVM 运行时数据区结构、可达性分析与 GC Roots、标记-清除/复制/整理算法、分代收集机制、Serial/Parallel/CMS/G1/ZGC/Shenandoah 收集器原理、GC 调优参数与决策树
 - [MySQL B+树索引实现原理](kb/技术/Java/MySQL B+树索引实现原理.md) — InnoDB B+树索引的底层实现：页结构、聚簇索引 vs 二级索引、页分裂、树高估算、为什么不用二叉/哈希/跳表
 - [MySQL 索引失效场景全解](kb/技术/Java/MySQL 索引失效场景全解.md) — MySQL 索引失效的经典场景：函数/运算、隐式转换、LIKE %开头、最左前缀、OR、选择性低、!= / NOT IN 等，含 EXPLAIN 验证方法
 - [Redis 常用数据类型与使用场景](kb/技术/Java/Redis 常用数据类型与使用场景.md) — Redis 五大基本类型（String/List/Set/Hash/ZSet）的底层实现、使用场景、常用命令，ZSet 跳表原理及双结构设计，含 Bitmap/HyperLogLog/GEO/Stream 简表
@@ -95,8 +97,9 @@
 
 - [Go 与 TypeScript 快速对比](kb/技术/编程语言/Go 与 TypeScript 对比.md) — Go 和 TypeScript 语言特性、生态、典型用例对比，含 Qoder CLI 从 Go 重构到 TypeScript 的动机推测
 
-### 计算机基础 (3 篇)
+### 计算机基础 (4 篇)
 
+- [CAP 理论与工程选型](kb/技术/计算机基础/CAP 理论与工程选型.md) — 分布式系统 CAP 定理的本质、三种组合的工程含义、实际中间件/存储系统的 CAP 定位、与分布式事务方案的关系
 - [图灵机与冯诺依曼结构](kb/技术/计算机基础/图灵机与冯诺依曼结构.md) — 计算机科学两大基石：图灵机（可计算性理论）vs 冯诺依曼结构（工程实现蓝图），以及两者的关系
 - [满二叉树判定算法](kb/技术/计算机基础/满二叉树判定算法.md) — 满二叉树（Full/Perfect Binary Tree）的判定方法、算法实现与复杂度分析
 - [贝叶斯统计与AI的关系](kb/技术/计算机基础/贝叶斯统计与AI的关系.md) — 贝叶斯定理直觉理解、先验/后验/证据、HIV检测经典例子、与AI的四处交集（朴素贝叶斯/贝叶斯深度学习/概率图模型/生成模型）
