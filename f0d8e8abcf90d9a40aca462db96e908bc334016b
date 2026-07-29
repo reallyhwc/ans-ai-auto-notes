@@ -1,0 +1,46 @@
+INDEX.md
+  faf0f41ac5e6978b 12,81,88
+"kb/技术/Java/RocketMQ 底层实现原理.md"
+  faf0f41ac5e6978b 8,990
+"kb/技术/Java/RocketMQ 高级消息机制（延迟·顺序·高可用）.md"
+  faf0f41ac5e6978b 1-752
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.9",
+  "base_commit_sha": "f0d8e8abcf90d9a40aca462db96e908bc334016b",
+  "prompts": {
+    "faf0f41ac5e6978b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e6385508-9b6a-4052-8c40-5cd828a4f78e",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "xuhu",
+      "messages": [],
+      "total_additions": 759,
+      "total_deletions": 751,
+      "accepted_lines": 766,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "INDEX.md": {
+          "additions": 3,
+          "deletions": 2,
+          "accepted_lines": 3
+        },
+        "kb/技术/Java/RocketMQ 底层实现原理.md": {
+          "additions": 4,
+          "deletions": 749,
+          "accepted_lines": 3
+        },
+        "kb/技术/Java/RocketMQ 高级消息机制（延迟·顺序·高可用）.md": {
+          "additions": 752,
+          "accepted_lines": 752
+        },
+        "logs/agent-runs/2026-07.jsonl": {
+          "accepted_lines": 8
+        }
+      }
+    }
+  }
+}
