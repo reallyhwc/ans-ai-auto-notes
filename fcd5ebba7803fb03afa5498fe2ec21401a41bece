@@ -1,0 +1,35 @@
+tests/hook-config-consistency.test.js
+  2502bd7f4765220b 1-92
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.9",
+  "base_commit_sha": "fcd5ebba7803fb03afa5498fe2ec21401a41bece",
+  "prompts": {
+    "2502bd7f4765220b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b8d601be-be0e-4f3d-ac4c-ea12692046df",
+        "model": "glm-5.2"
+      },
+      "human_author": "xuhu",
+      "messages": [],
+      "total_additions": 92,
+      "total_deletions": 0,
+      "accepted_lines": 104,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "logs/agent-runs/2026-08.jsonl": {
+          "accepted_lines": 11
+        },
+        "logs/agent-runs/2026-07.jsonl": {
+          "accepted_lines": 1
+        },
+        "tests/hook-config-consistency.test.js": {
+          "additions": 92,
+          "accepted_lines": 92
+        }
+      }
+    }
+  }
+}
