@@ -2,8 +2,9 @@
 
 > 由 build-index.js 自动生成（基于 kb/ 目录扫描），勿手改
 
-## 实战 (4 篇)
+## 实战 (5 篇)
 
+- [ADR 架构决策记录](kb/实战/ADR 架构决策记录.md) — Architecture Decision Record——把架构/分类决策按固定格式记成编号条目，让 AI 在分类摇摆时有先例可循
 - [GitHub 项目创建与同步](kb/实战/GitHub 项目创建与同步.md) — SSH key 配置、仓库初始化、CI 基础
 - [overview.html 踩坑记录](kb/实战/overview.html 踩坑记录.md) — overview.html 维护过程中踩过的坑 & 解决方案
 - [外部参考链接](kb/实战/外部参考链接.md) — 优质外部技术文章、博客、演讲的链接汇总，附带核心要点

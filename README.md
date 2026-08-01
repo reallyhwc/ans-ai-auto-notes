@@ -2,7 +2,7 @@
 
 # AI Auto Notes — 对话驱动的个人知识库
 
-> 与 AI 聊天，自动沉淀为结构化知识库。零手动整理，完全本地，38+ 篇笔记持续生长中。
+> 与 AI 聊天，自动沉淀为结构化知识库。零手动整理，完全本地，75 篇笔记持续生长中。
 
 [:books: 浏览知识库 →](INDEX.md) &nbsp;|&nbsp; [:bar_chart: 可视化导览](http://localhost:8765/overview.html)
 
@@ -14,7 +14,7 @@
 
 ## 🚀 想搭建属于你自己的知识库？
 
-本仓库的 `main` 分支是作者的个人知识库（含 38+ 篇笔记）。如果你想**用同样的架构搭建自己的知识库**，请使用 [`quickStart` 分支](https://github.com/reallyhwc/ans-ai-auto-notes/tree/quickStart)：
+本仓库的 `main` 分支是作者的个人知识库（含 75 篇笔记）。如果你想**用同样的架构搭建自己的知识库**，请使用 [`quickStart` 分支](https://github.com/reallyhwc/ans-ai-auto-notes/tree/quickStart)：
 
 ```bash
 # 1. Fork 本仓库，然后切到 quickStart 分支
@@ -44,7 +44,7 @@ claude
 
 ## 知识库内容概览
 
-当前已积累 **38+ 篇**结构化笔记，覆盖以下领域：
+当前已积累 **75 篇**结构化笔记，覆盖以下领域：
 
 | 分类 | 代表笔记 |
 |------|----------|
@@ -83,7 +83,7 @@ claude
 | 层级 | 触发时机 | 做什么 |
 |------|---------|--------|
 | **约束层** | SessionStart | 环境体检 + 遗留变更提醒 + memory 过期检查（>14天）+ 架构 Linter（frontmatter / 死链 / 重复标题 / 行数 / 大小写一致性） |
-| **约束层** | Stop | Markdown lint + Git 状态 + 健康检查（12 项）+ Session 日志 + 权限审计 + 未 push 提醒（>5 自动 push） |
+| **约束层** | Stop | Markdown lint + Git 状态 + 健康检查（12 项）+ Session 日志 + 权限审计 + 未 push 提醒（≥3 自动 push）+ 沉淀声明审计 + 内容质量 fast-path |
 | **文档层** | Stop → 文件 | 从 git diff 自动生成结构化 session 日志，同日多次累加 |
 | **文档层** | 跨 Session | Memory 分层（稳定层/项目层/流水层），所有记忆带时间戳，>14 天自动告警 |
 
@@ -92,11 +92,16 @@ claude
 | 脚本 | 触发 | 功能 |
 |------|------|------|
 | `scripts/preflight.sh` | SessionStart | 上次 session 摘要、遗留变更、manifest 过期、memory 淘汰、调用 arch-lint |
-| `scripts/arch-lint.sh` | SessionStart | 8 项 KB 架构检查（frontmatter / 死链 / 行数 / 重复标题等） |
-| `exit-check.sh` | Stop | 串联 lint + check-overview + session-log + permission-audit + 未 push 检查 |
+| `scripts/arch-lint.sh` | SessionStart | 15 项 KB 架构检查（frontmatter / 死链 / 重复标题 / 行数 / 大小写 / memory 格式 / 零依赖 / 脚本引用 / 标题ID契约 / 章节编号 / anchor 存活 / 内容具象度等） |
+| `exit-check.sh` | Stop | 串联 11 项退出检查：lint + check-overview + session-log + permission-audit + list-open-plans + check-agent-log-compliance + content-quality-fast + 未 push（≥3 自动 push） |
+| `scripts/verify-claim.sh` | PostToolUse | 验证 Write/Edit 声称"已沉淀到 xxx.md"时文件确实存在，写 claim-ledger（exit-check 消费） |
+| `scripts/pretool-guard.sh` | PreToolUse | 拦截对 INDEX.md / manifest.json / overview.html 的直接编辑（exit 2 阻断） |
+| `scripts/hook-logger.sh` | 所有 shell hook | 透明包装器，记录 hook 执行耗时/exit code 到 `logs/hook-runs.jsonl` |
+| `scripts/agent-log-hook.js` | Stop / SubagentStop | 主 agent + subagent 工作日志（自动派生 title/summary/outcome） |
 | `scripts/session-log.sh` | Stop | 从 git diff 自动生成 session 日志 |
 | `scripts/permission-audit.sh` | Stop | 扫描 scripts/ vs allowlist，建议安全命令加白 |
 | `scripts/check-overview.js` | Stop | 12 项健康检查（数据完整性、链接、行数等） |
+| `scripts/content-quality-fast.sh` | Stop | 轻量内容质量（交叉链接 / 具象元素 / 元信息头日期过期） |
 | `scripts/build-index.js` | 手动 / `serve.sh` | 扫描 kb/ 重建 manifest.json + INDEX.md |
 
 ## 项目结构
@@ -160,7 +165,7 @@ AI 会根据 `CLAUDE.md` 中的规则自动提取知识到 `kb/` 目录。每次
 node scripts/build-index.js   # 重建 manifest.json + INDEX.md
 ./lint.sh                     # markdownlint 格式检查
 node scripts/check-overview.js # 12 项健康检查
-bash scripts/arch-lint.sh     # 8 项 KB 架构检查
+bash scripts/arch-lint.sh     # 15 项 KB 架构检查
 ```
 
 ## Skill 体系（AI 能力包）
