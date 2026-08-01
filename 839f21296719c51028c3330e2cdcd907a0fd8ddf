@@ -1,0 +1,43 @@
+README.md
+  2502bd7f4765220b 5,17,47,86,95-100,104,168
+INDEX.md
+  2502bd7f4765220b 5,7
+"kb/实战/ADR 架构决策记录.md"
+  2502bd7f4765220b 1-81
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.9",
+  "base_commit_sha": "839f21296719c51028c3330e2cdcd907a0fd8ddf",
+  "prompts": {
+    "2502bd7f4765220b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b8d601be-be0e-4f3d-ac4c-ea12692046df",
+        "model": "glm-5.2"
+      },
+      "human_author": "xuhu",
+      "messages": [],
+      "total_additions": 95,
+      "total_deletions": 8,
+      "accepted_lines": 95,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "INDEX.md": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "kb/实战/ADR 架构决策记录.md": {
+          "additions": 81,
+          "accepted_lines": 81
+        },
+        "README.md": {
+          "additions": 12,
+          "deletions": 7,
+          "accepted_lines": 12
+        }
+      }
+    }
+  }
+}
