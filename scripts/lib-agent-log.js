@@ -1,3 +1,4 @@
+// arch-lint-ignore-unref: 库模块，被 agent-log-hook.js / agent-log.js / agent-report.js 等 require()
 /**
  * lib-agent-log.js — Agent runs 事件日志的纯函数库
  *
@@ -72,8 +73,9 @@ const ROOT = path.resolve(__dirname, '..');
 // 从 transcript JSONL 文件解析机械字段
 // 返回: { duration_ms, tools_used, files_changed, model, has_substantive_work }
 //
+// transcript 格式由 Claude Code 框架归一化，与底层 LLM 无关（Claude/DeepSeek 均适用）。
 // 支持两种 schema:
-//   Claude Code 真实: { timestamp, type, message: { role, content, model, ... } }
+//   框架真实: { timestamp, type, message: { role, content, model, ... } }
 //   测试 fixture (flat): { timestamp, role, content, model, ... }
 //
 // 跳过无 timestamp 的 meta 行（如 type=last-prompt / permission-mode）。
@@ -88,7 +90,7 @@ function parseTranscript(transcriptPath) {
   // 过滤无 timestamp 的 meta 行（Claude Code 头部的 last-prompt / permission-mode）
   const withTime = messages.filter(m => m.timestamp);
   if (withTime.length === 0) {
-    return { duration_ms: 0, tools_used: [], files_changed: [], model: null, has_substantive_work: false };
+    return { duration_ms: 0, tools_used: [], files_changed: [], model: null, has_substantive_work: false, final_text: null, has_error: false };
   }
 
   const firstTime = new Date(withTime[0].timestamp).getTime();
@@ -99,13 +101,24 @@ function parseTranscript(transcriptPath) {
   const filesSet = new Set();
   let model = null;
   let hasSubstantive = false;
+  let finalText = null;
+  let hasError = false;
 
   for (const m of withTime) {
-    // 真实 Claude Code: message 嵌套。测试 fixture: 字段平铺。
+    // 框架 transcript: message 嵌套。测试 fixture: 字段平铺。
     const msg = m.message || m;
+
+    if (Array.isArray(msg.content)) {
+      for (const block of msg.content) {
+        if (block.type === 'tool_result' && block.is_error) hasError = true;
+      }
+    }
+
     if (msg.role === 'assistant') {
       if (msg.model && !model) model = msg.model;
       if (Array.isArray(msg.content)) {
+        const textBlocks = msg.content.filter(b => b.type === 'text' && typeof b.text === 'string');
+        finalText = textBlocks.length ? textBlocks.map(b => b.text).join('\n').trim() : null;
         for (const block of msg.content) {
           if (block.type === 'tool_use') {
             toolsSet.add(block.name);
@@ -129,7 +142,47 @@ function parseTranscript(transcriptPath) {
     files_changed: Array.from(filesSet),
     model,
     has_substantive_work: hasSubstantive,
+    final_text: finalText,
+    has_error: hasError,
   };
 }
 
-module.exports = { generateId, appendEvent, foldEvents, parseTranscript, WRITE_TOOLS, FILE_WRITE_TOOLS };
+function truncate(text, max) {
+  return text.length > max ? text.slice(0, max) + '…' : text;
+}
+
+// 检测 final_text 是否为 subagent 返回的结构化块：
+//   - VERDICT: / EXTRACT-VERDICT: 开头（kb-auditor / idea-extractor / plan-executor 的返回格式）
+//   - 可 parse 的 JSON 对象/数组（结构化数据，非自然语言）
+// 这类内容首行是无语义标记（如 "VERDICT: minor (2)"），不适合做 title。
+function isStructuredBlock(text) {
+  if (/^(VERDICT|EXTRACT-VERDICT):/.test(text)) return true;
+  try {
+    const parsed = JSON.parse(text);
+    return typeof parsed === 'object' && parsed !== null;
+  } catch { return false; }
+}
+
+// 从 parseTranscript 结果派生 title/summary/outcome，供 SubagentStop hook 自动填充
+// （不再依赖 AI 记得手动调用 agent-log.js patch）
+//
+// 返回 { title, summary, outcome, needs_manual_patch }：
+//   - needs_manual_patch=true 表示 final_text 是结构化块（VERDICT/JSON），title 无法自动派生，
+//     需 AI 手动 patch。check-agent-log-compliance.js 会独立检查此标记。
+function deriveAutoFields(parsed) {
+  const outcome = parsed.has_error ? 'partial' : 'success';
+  if (!parsed.final_text) return { title: null, summary: null, outcome, needs_manual_patch: false };
+  const text = parsed.final_text.trim();
+  if (isStructuredBlock(text)) {
+    return { title: null, summary: truncate(text, 200), outcome, needs_manual_patch: true };
+  }
+  const firstLine = text.split('\n')[0].trim();
+  return {
+    title: truncate(firstLine, 60),
+    summary: truncate(text, 200),
+    outcome,
+    needs_manual_patch: false,
+  };
+}
+
+module.exports = { generateId, appendEvent, foldEvents, parseTranscript, deriveAutoFields, WRITE_TOOLS, FILE_WRITE_TOOLS };

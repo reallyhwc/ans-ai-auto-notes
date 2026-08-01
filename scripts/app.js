@@ -667,10 +667,9 @@ function setupLiveReload() {
 // 加载 manifest.json + timeline.json（单一数据源）
 // ============================================================
 function loadManifest(callback) {
-  Promise.all([
-    fetch('manifest.json').then(function(r) { return r.json(); }),
-    fetch('timeline.json').then(function(r) { return r.json(); })
-  ]).then(function(results) {
+  var p1 = fetch('manifest.json').then(function(r) { return r.json(); });
+  var p2 = fetch('timeline.json').then(function(r) { return r.json(); }).catch(function() { return []; });
+  Promise.all([p1, p2]).then(function(results) {
     FILE_INDEX.categories = results[0].categories || [];
     FILE_INDEX.timeline = results[1] || [];
     // 暴露完整 manifest 给侧栏全文搜索 + 反向链接渲染消费

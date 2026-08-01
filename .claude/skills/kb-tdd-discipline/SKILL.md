@@ -1,6 +1,6 @@
 ---
 name: kb-tdd-discipline
-description: Use when modifying any file under scripts/ or tests/ in this ANS AI Auto Notes project. Also use when fixing any bug in markdown rendering, path resolution, frontmatter parsing, or static lint scripts. Enforces red-green-refactor cycle and bug-reproduction-test-first.
+description: Use when modifying scripts/ or tests/, or fixing bugs in markdown rendering, path resolution, frontmatter parsing, or lint scripts.
 ---
 
 # KB TDD Discipline (ANS AI Auto Notes 项目)
@@ -46,41 +46,29 @@ description: Use when modifying any file under scripts/ or tests/ in this ANS AI
 
 ## 测试文件组织
 
-```
-tests/
-├── lib.test.js              ← scripts/lib.js 纯函数（含 stripInline / slugify / resolveRelativeMd）
-├── link-renderer.test.js    ← marked link renderer 输出契约
-├── build-index.test.js      ← manifest.json 数据完整性
-├── build-timeline.test.js   ← timeline.json 聚合（按 ISO 周）
-├── search.test.js           ← 全文搜索 tokenize + buildSearchIndex
-├── backlinks.test.js        ← 反向链接图 extractLinks + buildBacklinks
-├── anchor-check.test.js     ← anchor 存活检查
-├── session-log.test.js      ← session-log 触发条件（commit 增量）
-├── content-quality.test.js  ← arch-lint 内容具象度（白名单 + 阈值）
-├── verify-claim.test.js     ← PostToolUse 沉淀验证 hook
-├── sync-memory.test.js      ← memory 双向 sync（mtime 较新者覆盖）
-├── plans-status.test.js     ← list-open-plans 状态解析
-├── split-doc.test.js        ← 半自动拆分工具
-├── server.test.js           ← server.js 路径安全 + SSE 端点
-└── integration.test.js      ← 全量 kb/ markdown 链接静态解析
-```
+测试文件按"被测对象"命名 `<source>.test.js`，全部在 `tests/` 目录下（`ls tests/*.test.js` 查看当前全量）。核心分层：
 
-**命名约定**：新测试按"被测对象"命名 `<source>.test.js`。
+- `lib.test.js`、`build-index.test.js`、`build-timeline.test.js` — 数据构建链路
+- `link-renderer.test.js`、`anchor-check.test.js`、`backlinks.test.js` — 链接/渲染契约
+- `agent-log.test.js`、`agent-log-compliance.test.js`、`hook-logger.test.js`、`verify-claim.test.js` — hook 体系
+- `integration.test.js` — 全量 kb/ markdown 链接静态解析（兜底）
 
 **Node 中可用的纯逻辑**：统一放 `scripts/lib.js`（UMD 双导出，浏览器和 Node 都能加载）。
 
 ## Push 前自动跑测试（双层 gate）
 
 1. **`scripts/git-hooks/pre-push`** — git 层硬拦截
-2. **`exit-check.sh` 的 auto-push 块** — Stop 时 ≥5 commits 未 push 时先跑 test 通过才 push
+2. **`exit-check.sh` 的 auto-push 块** — Stop 时 ≥3 commits 未 push 时先跑 test 通过才 push
 
 **首次安装 hook**：`bash scripts/install-hooks.sh`（新机器克隆后跑一次）。
 
-## 反面案例
+## Rationalization Table（借口 vs 现实）
 
-- ❌ "改了脚本但没加测试，下次出 bug 不知道为什么" → 应先加 failing test 再改 code
-- ❌ "测试随便写一行，主要是为了 git 不报错" → 测试要真验证行为，不只是 assert.ok(true)
-- ❌ "跳过 pre-push hook 因为测试'肯定能过'" → 不允许 --no-verify
+| 借口 | 现实 |
+|---|---|
+| "改了脚本但没加测试，下次出 bug 不知道为什么" | 应先加 failing test 再改 code——没测试就是没验证过 |
+| "测试随便写一行，主要是为了 git 不报错" | 测试要真验证行为，不只是 `assert.ok(true)`，否则等于没测 |
+| "跳过 pre-push hook 因为测试'肯定能过'" | 不允许 `--no-verify`；"肯定能过"正是没跑过才会说的话 |
 
 ## 自检 Checklist
 

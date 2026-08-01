@@ -38,14 +38,14 @@ bash bootstrap.sh
 flowchart TD
     subgraph L1["L1 约束层 Constraints —— 机器执行"]
         direction LR
-        H[hooks<br/>SessionStart/Stop/PostToolUse]
+        H[hooks<br/>SessionStart/Stop/PostToolUse/PreToolUse]
         ALINT[arch-lint.sh<br/>15 项机械检查]
-        ECHK[exit-check.sh<br/>9 项退出验证]
+        ECHK[exit-check.sh<br/>11 项退出验证]
         PRE[pre-push hook<br/>test + mermaid 守恒]
     end
 
     subgraph L2["L2 文档层 Documents —— 文件系统持久化"]
-        SKILL[.claude/skills/<br/>3 个项目级 skill]
+        SKILL[.claude/skills/<br/>5 个项目级 skill]
         ADR[docs/decisions.md<br/>ADR 决策先例]
         PLAN[docs/superpowers/plans/<br/>跨 session plan]
         MEM[.claude/memory-snapshot/<br/>跨设备 memory]
@@ -69,7 +69,7 @@ flowchart TD
 | **上下文构建** | CLAUDE.md + skill description + INDEX.md | CLAUDE.md / skill |
 | **工具定义** | `scripts/*.{js,sh}`（13+ 个） | 加新脚本 / 修现有 |
 | **约束规则** | arch-lint 15 项 + skill 触发 | 加 lint 项 / 改 skill |
-| **反馈回路** | exit-check 9 项 + arch-lint + pre-push | 加 hook / 改阈值 |
+| **反馈回路** | exit-check 11 项 + arch-lint + pre-push | 加 hook / 改阈值 |
 | **记忆管理** | memory-snapshot + ADR + plans + session-logs | 加 memory / ADR |
 | **安全护栏** | pre-push (test + mermaid) + verify-claim hook | 加 hook 触发条件 |
 
@@ -78,9 +78,10 @@ flowchart TD
 ### 自动化检查（机械化约束）
 
 - ✅ **arch-lint.sh 15 项**：frontmatter / 元信息头 / 死链 / 重复标题 / 磁盘 vs INDEX 一致性 / 大小写 / 行数限制 / memory 格式 / 零 npm 依赖 / 脚本被引用 / 文档→代码引用 / 标题 ID 契约 / 章节编号连续性 / **anchor 存活** / **内容具象度**
-- ✅ **exit-check.sh 9 项**：markdown 格式 / git 状态 / INDEX vs kb 一致性 / overview.html 健康（12 子项）/ session 日志 / 权限审计 / 未 push 检查 / **沉淀声明审计** / **plans 状态汇总**
+- ✅ **exit-check.sh 11 项**：markdown 格式 / git 状态 / INDEX vs kb 一致性 / overview.html 健康（12 子项）/ session 日志 / 权限审计 / 未 push 检查 / **沉淀声明审计** / **plans 状态汇总** / **agent-log 合规** / **内容质量 fast-path**
 - ✅ **pre-push hook**：跑 test.sh + mermaid 守恒检查（防止误删图）
 - ✅ **PostToolUse hook**（verify-claim.sh）：实时验证 AI 声称"已沉淀到 xxx.md"时文件确实存在
+- ✅ **PreToolUse hook**（pretool-guard.sh）：拦截对 INDEX.md / manifest.json / overview.html 的直接编辑
 
 ### 数据自动化
 
@@ -98,13 +99,29 @@ flowchart TD
 
 - ✅ **split-doc.js**：半自动拆分大文件（>1500 行触发 lint），保留 lead text + 自动重编号 + 更新 INDEX
 
-### 3 个项目级 skill（自动加载）
+### 5 个项目级 skill（自动加载）
 
 | Skill | 触发条件 |
 |---|---|
 | `auto-commit-discipline` | 完成一批文件变更 / 响应前未 commit |
 | `kb-content-style` | 写入/编辑 kb/ 下任何 md |
 | `kb-tdd-discipline` | 修改 scripts/ 或 tests/，或修 markdown 渲染/路径解析/lint bug |
+| `arch-lint-fix-guide` | arch-lint/preflight 报警告或错误时 |
+| `build-index` | 新增/删除 kb 文件后（`/build-index` 命令触发） |
+
+## Subagent 体系（AI 协作团队）
+
+项目注册了 3 个项目级 Subagent（定义在 `.claude/agents/`），与 Skill 互补：
+
+| Subagent | 职责 | 触发方式 | 产物 |
+|---|---|---|---|
+| **kb-auditor** | 审 long-form kb 笔记的深度/章节/链接/视觉化 | 写完 ≥300 行新内容或单文件 ≥800 行后主动 spawn | `logs/audits/*.md` + 结构化 VERDICT |
+| **idea-extractor** | 从长文/URL 识别 KB 沉淀候选（不写盘） | 用户贴入长文章/URL 时主动 spawn | 结构化 EXTRACT-VERDICT + candidates |
+| **plan-executor** | 端到端跑一个 docs/superpowers/plans/*.md 的所有 task | 用户说"run plan X"时 | 总报告 + verdict |
+
+**与 Skill 的关系**：Skill 提供"怎么写"的规范（参考型）和"跑什么动作"的快捷方式（任务型）；Subagent 处理"需要独立跑一阵"的长任务——三者共存互补。
+
+详见 [`.claude/agents/README.md`](.claude/agents/README.md)。
 
 ## 目录结构
 
@@ -127,7 +144,7 @@ my-kb/
 ├── overview.html                ← 可视化导览页（fetch manifest + timeline）
 ├── server.js + serve.sh         ← 本地预览服务器（端口 8765）
 ├── bootstrap.sh + SETUP.md      ← 新设备 onboarding
-├── exit-check.sh                ← Stop hook（9 项退出检查）
+├── exit-check.sh                ← Stop hook（11 项退出检查）
 ├── lint.sh                      ← markdown 格式检查（纯 bash awk）
 ├── CLAUDE.md                    ← 项目指令（AI 启动时加载）
 ├── docs/
@@ -167,14 +184,14 @@ AI 会按这个背景调整回答风格、举例子时选你熟悉的领域。
 - Mermaid 优先、保留 demo、反抽象化
 - 同主题聚合（不按日期拆文件）
 - 中文文件名 = frontmatter title
-- 行数 >1000 关注 / >1500 必拆
+- 行数 >1000 只提示关注，不擅自提案拆分（拆分决策权归用户）
 
 ### 3. 写下你的第一条 ADR
 
-遇到分类争议时（"Spring AI vs LangChain 笔记放哪？"），AI 会先看 `docs/decisions.md`。决策后追加 ADR：
+遇到分类争议时（"某篇笔记该放技术/还是实战/？"），AI 会先看 `docs/decisions.md`。决策后追加 ADR：
 
 ```markdown
-## ADR-004: Spring AI vs LangChain 笔记归入 kb/技术/AI/应用/
+## ADR-005: <你的分类决策标题>
 
 - 日期: 2026-06-15
 - 状态: 接受

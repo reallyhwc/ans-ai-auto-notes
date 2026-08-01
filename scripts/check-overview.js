@@ -177,21 +177,25 @@ if (Array.isArray(timeline)) {
   });
 }
 
+// 后 Task 2 (A2 timeline 自动化) 时代：
+// - timeline.json 现由 build-timeline.js 全量 git log 自动生成（含所有有 commit 的周）
+// - timeline/*.md 仍是手维护的叙事性周报子集（不需要覆盖所有周）
+// 因此只单向校验 disk -> json：手写了周报但 json 缺失才是真问题（可能 git-log 窗口错了）
+// 反向 (json -> disk) 已废弃 —— json 自动周可以没有手维护周报
 let weekDiff = 0;
 for (const w of diskWeeks) {
   if (!tlWeeks.has(w)) {
-    fail('timeline/' + w + '.md 存在但 timeline.json 中缺失');
+    fail('timeline/' + w + '.md 存在但 timeline.json 中缺失（可能 build-timeline 窗口错过该周）');
     weekDiff++;
   }
 }
+// 信息性输出：json 比 disk 多的周
+const jsonOnly = [];
 for (const w of tlWeeks) {
-  if (!diskWeeks.has(w)) {
-    fail('timeline.json 中存在 ' + w + ' 但磁盘上没有 timeline/' + w + '.md');
-    weekDiff++;
-  }
+  if (!diskWeeks.has(w)) jsonOnly.push(w);
 }
 if (weekDiff === 0) {
-  pass('timeline ' + diskWeeks.size + ' 周文件全部双向同步');
+  pass('timeline disk -> json 单向同步通过 (disk ' + diskWeeks.size + ' 周, json ' + tlWeeks.size + ' 周，json 多出 ' + jsonOnly.length + ' 个自动周)');
 }
 
 // ============================================================

@@ -93,6 +93,17 @@ while IFS= read -r -d '' file; do
   done < "$DEAD_LINKS"
 done < <(find kb -name "*.md" -print0 2>/dev/null)
 
+# 3b) 含空格/& 的 .md 链接必须用 <尖括号> 包裹（CommonMark 严格解析）
+# 否则 marked.js 不识别为链接，页面看似有链接但实际无法跳转。
+# 扫描 kb/ + timeline/（手维护周记中也有大量 kb 链接）
+# 修复脚本：node scripts/fix-md-link-spaces.js
+UNQUOTED_LINKS=$(grep -rEn '\]\([^<)][^)]*[ &][^)]*\.md(#[^)]*)?\)' kb/ timeline/ 2>/dev/null | wc -l | awk '{print $1}')
+if [ "$UNQUOTED_LINKS" -gt 0 ]; then
+  echo "  ⚠️  $UNQUOTED_LINKS 个 .md 链接含空格/& 但未用 <尖括号> 包裹（marked 解析失败）"
+  echo "      修复：node scripts/fix-md-link-spaces.js"
+  LINK_WARN=$((LINK_WARN + UNQUOTED_LINKS))
+fi
+
 echo "  结果: $LINK_WARN 个死链"
 
 # ── 检查 4: 重复标题 ──
@@ -101,10 +112,12 @@ echo "[4/15] 重复标题检查..."
 
 DUP_FOUND=0
 # 用进程替换收集所有 title，避免 pipeline 子 shell 计数丢失
+# LC_ALL=C：macOS BSD sort/uniq 在 en_US.UTF-8 locale 下对中文+特殊标点（— 、（）、·）
+# 做错误 collation，把不同 title 当相等，导致 uniq -d 凭空报重复。强制 C locale 按字节比较。
 DUPS=$(
   while IFS= read -r -d '' file; do
     head -10 "$file" | grep "^title:" | sed 's/^title: *//;s/^"//;s/"$//'
-  done < <(find kb -name "*.md" -print0 2>/dev/null) | sort | uniq -d
+  done < <(find kb -name "*.md" -print0 2>/dev/null) | LC_ALL=C sort | LC_ALL=C uniq -d
 )
 if [ -n "$DUPS" ]; then
   while IFS= read -r dup; do
@@ -133,55 +146,129 @@ fi
 # ── 检查 6: 链接路径大小写一致性 ──
 # macOS 文件系统不区分大小写（HFS+/APFS 默认），但 Linux/GitHub 区分。
 # 此检查逐段比较链接路径中的每个目录/文件名与磁盘实际大小写是否一致。
+#
+# 实现说明（2026-07-29 重写，修复真实检测盲区 + 性能）：
+#   - 路径规范化改用纯 bash 数组折叠 ./ 和 ../：此前用 `realpath -m` 折叠路径，
+#     但 macOS 自带的 BSD realpath 不支持 -m 选项会静默失败（stderr 被吞掉），
+#     导致所有含 "../" 的链接（kb/ 里最常见的写法）路径规范化直接失效，
+#     进而使后面的逐段比较从未真正对齐过路径——这个检查对"../"链接从未真正生效过。
+#   - 大小写比较改用"目录列表缓存 + bash 字符串比较"，不再用 `[ -e ]` 判断是否
+#     精确匹配：`[ -e ]` 走文件系统语义，在大小写不敏感的磁盘上对 "Foo" 和 "foo"
+#     都返回真，这个检查的核心前提（用文件系统操作分辨大小写）在 macOS 上本身就
+#     不成立，无论 realpath 那个 bug 修不修都测不出来。改为读一次目录内容到数组，
+#     用 bash 字符串比较（大小写敏感）做精确匹配，nocasematch 只在兜底查找时临时开。
+#   - 目录列表按路径缓存，同一目录被多个链接引用时只 `ls` 一次，避免每个路径段
+#     fork 一次 find/grep。缓存用两个并行数组实现（而非 `declare -A`）：
+#     macOS 自带 /bin/bash 是 3.2（GPLv2 授权，Apple 多年未升级），不支持 bash 4+
+#     的关联数组，之前用 declare -A 在这台机器上会静默出错导致缓存整个失效。
 echo ""
 echo "[6/15] 链接路径大小写一致性（Linux 兼容）..."
 
 CASE_WARN=0
+CACHE_DIRS=()
+CACHE_LISTS=()
+SCRIPT_CWD="$(pwd)"
+
+get_dir_entries() {
+  # 不能写成 entries=$(get_dir_entries ...) 调用——那样会把函数塞进命令替换的
+  # 子 shell，CACHE_DIRS/CACHE_LISTS 的追加在子 shell 退出后就丢了，缓存等于
+  # 从没生效。改用全局变量 DIR_ENTRIES_RESULT 传结果，调用处不包 $(...)。
+  local dir="$1"
+  local i
+  for i in "${!CACHE_DIRS[@]}"; do
+    if [ "${CACHE_DIRS[$i]}" = "$dir" ]; then
+      DIR_ENTRIES_RESULT="${CACHE_LISTS[$i]}"
+      return
+    fi
+  done
+  local listing
+  listing=$(ls -1A "$dir" 2>/dev/null)
+  CACHE_DIRS+=("$dir")
+  CACHE_LISTS+=("$listing")
+  DIR_ENTRIES_RESULT="$listing"
+}
+
+# 纯 bash 折叠路径中的 ./ 和 ../（macOS BSD realpath 无 -m 选项，不能用 realpath -m）
+normalize_path() {
+  local input="$1"
+  local -a segs=() stack=()
+  local part
+  IFS='/' read -ra segs <<< "$input"
+  for part in "${segs[@]}"; do
+    case "$part" in
+      ''|'.') continue ;;
+      '..') [ ${#stack[@]} -gt 0 ] && stack=("${stack[@]:0:${#stack[@]}-1}") ;;
+      *) stack+=("$part") ;;
+    esac
+  done
+  printf '/%s' "${stack[@]}"
+}
+
 while IFS= read -r -d '' file; do
-  FILE_DIR=$(dirname "$file")
+  FILE_DIR="${file%/*}"
   # 提取所有相对路径的 md 链接：](../xxx.md) 和 ](./xxx.md) 格式，去掉锚点
-  LINKS=$(grep -oE ']\([.]{1,2}/[^)]+\.md[^)]*\)' "$file" 2>/dev/null | sed 's/](\(.*\))/\1/' | sed 's/#.*//')
+  LINKS=$(grep -oE ']\([.]{1,2}/[^)]+\.md[^)]*\)' "$file" 2>/dev/null | sed 's/](\(.*\))/\1/;s/#.*//')
 
   for link in $LINKS; do
-    # 用 python3 逐段比较：将链接解析为绝对路径，再逐个路径段对比磁盘实际名称
-    MISMATCH=$(python3 -c "
-import os, sys
-file_dir = '$FILE_DIR'
-link = '$link'
-# 将相对链接解析为绝对路径
-abs_link = os.path.normpath(os.path.join(file_dir, link))
-# 逐段检查每个路径段的大小写是否与磁盘一致
-parts = abs_link.split(os.sep)
-current = os.sep
-for part in parts:
-    if not part:
-        continue
-    current = os.path.join(current, part)
-    parent = os.path.dirname(current)
-    if not os.path.isdir(parent):
-        break
-    try:
-        entries = os.listdir(parent)
-    except OSError:
-        break
-    # 在父目录中找到实际名称（大小写敏感匹配）
-    if part not in entries:
-        # 大小写不一致：part 在磁盘上不存在（但 macOS 可能忽略大小写找到了）
-        # 确认是大小写问题而非真正缺失
-        lower_matches = [e for e in entries if e.lower() == part.lower()]
-        if lower_matches:
-            print(f'{part} -> {lower_matches[0]}')
-            sys.exit(0)
-        break
-" 2>/dev/null)
+    abs_link=$(normalize_path "$SCRIPT_CWD/$FILE_DIR/$link")
 
-    if [ -n "$MISMATCH" ]; then
-      echo "  ⚠️  $file"
-      echo "      链接中: $link"
-      echo "      大小写不一致: $MISMATCH"
-      CASE_WARN=$((CASE_WARN + 1))
-      break  # 每个文件只报一次
-    fi
+    # SCRIPT_CWD 这段前缀来自 pwd，天然大小写正确，不需要逐段验证——
+    # 去掉这段前缀，只检查链接本身涉及的那几段，链接一般 3-6 段，
+    # 不去掉的话每个链接都要多验证 5-8 段固定不变的前缀，纯浪费。
+    rel_link="${abs_link#"$SCRIPT_CWD"/}"
+
+    # 逐段检查大小写（从 SCRIPT_CWD 开始，不必重新验证前缀本身）
+    IFS='/' read -ra parts <<< "$rel_link"
+    current="$SCRIPT_CWD"
+    mismatch_found=0
+
+    for part in "${parts[@]}"; do
+      [ -z "$part" ] && continue
+
+      parent="$current"
+
+      # 如果父目录不存在，跳出
+      if [ ! -d "$parent" ]; then
+        break
+      fi
+
+      get_dir_entries "$parent"
+      entries="$DIR_ENTRIES_RESULT"
+
+      # 精确匹配：用一次 grep -F 做（编译好的二进制字符串匹配，比纯 bash 循环快得多，
+      # 常见情况——链接大小写本来就对——只多花这一次 fork）
+      if printf '%s\n' "$entries" | grep -qxF "$part"; then
+        current="$parent/$part"
+        continue
+      fi
+
+      # 大小写不敏感兜底查找：只有真正大小写不匹配时才会走到这里（少数情况），
+      # 这里再上纯 bash 循环换 nocasematch 也不算浪费
+      shopt -s nocasematch
+      actual_name=""
+      while IFS= read -r entry; do
+        if [[ "$entry" == "$part" ]]; then
+          actual_name="$entry"
+          break
+        fi
+      done <<< "$entries"
+      shopt -u nocasematch
+
+      if [ -n "$actual_name" ] && [ "$actual_name" != "$part" ]; then
+        echo "  ⚠️  $file"
+        echo "      链接中: $link"
+        echo "      大小写不一致: $part -> $actual_name"
+        CASE_WARN=$((CASE_WARN + 1))
+        mismatch_found=1
+        break
+      elif [ -n "$actual_name" ]; then
+        current="$parent/$actual_name"
+      else
+        break
+      fi
+    done
+
+    [ "$mismatch_found" -eq 1 ] && break  # 每个文件只报一次
   done
 done < <(find kb -name "*.md" -print0 2>/dev/null)
 
@@ -296,9 +383,11 @@ echo "  结果: $DEPS_ISSUES 个依赖问题"
 # ── 检查 10: 脚本被引用一致性 ──
 # 沉淀共性问题："文档先进了一步" —— CLAUDE.md/README 声称在 hook 链路里跑的脚本，
 # 实际可能从未被调用（如 permission-audit.sh 曾是死代码几个月）。
-# 此检查找出 scripts/*.sh 中未被任何调用方引用的"孤儿脚本"。
+# 此检查找出 scripts/*.{sh,js} 中未被任何调用方引用的"孤儿脚本"。
 # 调用方白名单：exit-check.sh / preflight.sh / arch-lint.sh / install-hooks.sh /
 #               git-hooks/* / test.sh / serve.sh / .claude/settings*.json
+# 手动 CLI 工具（不在 hook 链路里）用 arch-lint-ignore-unref 注释豁免，
+# 反向校验确保豁免注释不冗余（脚本被引用后注释应删除）。
 echo ""
 echo "[10/15] 脚本被引用一致性..."
 
@@ -322,11 +411,12 @@ GIT_HOOKS=$(find scripts/git-hooks -type f 2>/dev/null)
 
 while IFS= read -r script; do
   SCRIPT_NAME=$(basename "$script")
-  # 豁免：脚本顶部含 `# arch-lint-ignore-unref:` 注释（如 PostToolUse hook script，
-  # 由 settings.local.json 引用而非 hook 链路；该文件 .gitignore 不参与 scan）
-  if head -5 "$script" 2>/dev/null | grep -q "^# arch-lint-ignore-unref:"; then
-    continue
+  # 检查是否有豁免注释（.sh 用 #，.js 用 //；手动 CLI 工具等不在 hook 链路里的脚本）
+  HAS_IGNORE=0
+  if head -5 "$script" 2>/dev/null | grep -qE "^(#|//) arch-lint-ignore-unref:"; then
+    HAS_IGNORE=1
   fi
+  # 检查是否被引用（所有脚本都检查，用于正常孤儿检测 + 反向校验豁免必要性）
   REFERENCED=0
   for ref in "${REFERENCING[@]}"; do
     [ -f "$ref" ] || continue
@@ -342,14 +432,21 @@ while IFS= read -r script; do
       REFERENCED=1
     fi
   fi
-  if [ $REFERENCED -eq 0 ]; then
+  # 分类报告
+  if [ $HAS_IGNORE -eq 1 ] && [ $REFERENCED -eq 1 ]; then
+    # 反向校验：带豁免注释但实际已被引用，说明豁免已过时
+    echo "  ⚠️  豁免冗余：$script 已被引用，建议删除 arch-lint-ignore-unref 注释"
+    UNREF_COUNT=$((UNREF_COUNT + 1))
+  elif [ $HAS_IGNORE -eq 0 ] && [ $REFERENCED -eq 0 ]; then
     echo "  ⚠️  $script 未在任何 hook/exit-check/手动入口中被引用（可能是死代码或文档未对齐）"
     UNREF_COUNT=$((UNREF_COUNT + 1))
   fi
-done < <(find scripts -maxdepth 1 -name "*.sh" -type f 2>/dev/null)
+  # HAS_IGNORE=1 && REFERENCED=0 → 正确豁免，不报告
+  # HAS_IGNORE=0 && REFERENCED=1 → 正常引用，不报告
+done < <(find scripts -maxdepth 1 \( -name "*.sh" -o -name "*.js" \) -type f 2>/dev/null)
 
 if [ "$UNREF_COUNT" -eq 0 ]; then
-  echo "  ✓ 所有 scripts/*.sh 都已被某个入口引用"
+  echo "  ✓ 所有 scripts/*.{sh,js} 都已被某个入口引用或正确豁免"
 fi
 echo "  结果: $UNREF_COUNT 个孤儿脚本"
 

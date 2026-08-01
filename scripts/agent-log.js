@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// arch-lint-ignore-unref: 手动 CLI 工具（patch 子命令），不在 hook 链路里
 /**
  * agent-log.js — Agent runs 日志的 CLI（目前仅 patch 子命令）
  *

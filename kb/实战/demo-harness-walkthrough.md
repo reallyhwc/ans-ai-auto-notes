@@ -100,7 +100,7 @@ git rebase --continue
 
 - **Pre-push hook 跑 test.sh + mermaid 守恒**：`scripts/git-hooks/pre-push`
 - **Conventional Commits**：`feat: / fix: / docs: / refactor: / chore:`
-- **≥5 commits 未 push 时 Stop hook 自动 push**：`exit-check.sh [7/9]`
+- **≥3 commits 未 push 时 Stop hook 自动 push**：`exit-check.sh [7/11]`
 - **永不 amend 已 push 的 commit**：见 `auto-commit-discipline` skill
 
 ## 5. 进阶资源

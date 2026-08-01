@@ -45,14 +45,14 @@ FILE_LIST=$( {
   $GIT diff --name-only 2>/dev/null
   $GIT diff --cached --name-only 2>/dev/null
   $GIT ls-files --others --exclude-standard 2>/dev/null | grep "\.md$"
-} | sort -u | head -20)
+} | LC_ALL=C sort -u | head -20)
 
 # 主要变更方向（从文件路径推断）
 MAIN_TOPICS=""
 if [ -n "$FILE_LIST" ]; then
   MAIN_TOPICS=$(echo "$FILE_LIST" | while read f; do
     echo "$f" | sed -n 's|kb/[^/]*/\([^/]*\)/.*|\1|p'
-  done | sort -u | head -5 | paste -sd '，' -)
+  done | LC_ALL=C sort -u | head -5 | paste -sd '，' -)
 fi
 
 # 生成建议的 commit message
@@ -67,7 +67,7 @@ if [ -n "$FILE_LIST" ]; then
   done | paste -sd '，' -)
   MOD_TOPICS=$($GIT diff --name-only 2>/dev/null | while read f; do
     basename "$f" .md 2>/dev/null
-  done | sort -u | head -5 | paste -sd '，' -)
+  done | LC_ALL=C sort -u | head -5 | paste -sd '，' -)
 
   if [ "$HAS_NEW" -gt 0 ] 2>/dev/null && [ -n "$MOD_TOPICS" ]; then
     SUGGESTED_COMMIT="docs: 新增 $NEW_TOPICS + 更新 $MOD_TOPICS"

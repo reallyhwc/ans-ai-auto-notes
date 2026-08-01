@@ -5,17 +5,16 @@ description: "ans-ai-auto-notes 三个项目级 subagent（kb-auditor / plan-exe
 
 # 项目级 Subagent 使用手册
 
-> 设计文档：[3 subagent spec](../../docs/superpowers/specs/2026-06-03-three-subagents-design.md)
-> 落地纪律：[[feedback-spawn-kb-auditor]] · [[feedback-agent-log-patch]]
+> 落地纪律：kb-auditor 同一文件 24h 内不重复 spawn；dispatch 后按需 patch agent-log（SubagentStop 已自动派生 title/summary/outcome，仅结构化返回不准时手动 patch）
 > Smoke 测试：`tests/subagents.test.js`（跑 `bash test.sh`）
 
 ## 一句话定位
 
 | Agent | 干什么 | 触发方 | 产物 |
 |---|---|---|---|
-| **kb-auditor** | 审 long-form kb 笔记的深度/章节/链接/视觉化 | AI 主动 (≥300 行改动 OR ≥800 行单文件) + 用户显式 | `logs/audits/<basename>-YYYY-MM-DD.md` |
+| **kb-auditor** | 审 long-form kb 笔记的深度/章节/链接/视觉化 | AI 主动 (≥300 行改动 OR ≥800 行单文件) + 用户显式 | `logs/audits/<basename>-YYYY-MM-DD.md` + 结构化 `VERDICT` + issues 列表 + metrics |
 | **plan-executor** | 端到端跑 `docs/superpowers/plans/*.md` 全部 task（嵌套 implementer + reviewer） | 用户显式（"run plan X"） | `logs/plan-runs/<plan>-YYYY-MM-DD.md` |
-| **idea-extractor** | 从长文/URL 识别 KB 沉淀候选（不写盘） | 用户显式 + AI 看到长文章主动提议 | 主对话内的 `EXTRACT-VERDICT:` 建议块 |
+| **idea-extractor** | 从长文/URL 识别 KB 沉淀候选（不写盘） | 用户显式 + AI 看到长文章主动提议 | 结构化 `EXTRACT-VERDICT` + candidates/skipped/existing_overlap |
 
 ## 触发决策树
 
@@ -36,6 +35,8 @@ description: "ans-ai-auto-notes 三个项目级 subagent（kb-auditor / plan-exe
   └─ 普通 Task tool subagent_type: general-purpose / Explore
 ```
 
+> **注意：以上分支不互斥，常见连续触发**——典型链路是"用户贴长文 → idea-extractor 识别候选 → 主 agent 按建议写入 kb → 若单次新增 ≥300 行则接着触发 kb-auditor"。决策树描述的是"此刻该 spawn 谁"，不是"只能 spawn 一个"。
+
 ## Dispatch 模板
 
 ### kb-auditor（最常用）
@@ -45,8 +46,17 @@ Task tool:
   subagent_type: kb-auditor
   description: "审 X.md"
   prompt: |
-    审计文件: kb/技术/AI/大模型/Agent 与 MCP.md
+    审计文件: kb/<主题>/<文件>.md
     上下文: 本轮新写 500 行 / 总量 845 行 long-form
+
+    审计标准（对齐 kb-content-style skill）：
+    - Mermaid 优先画图（overview.html 渲染为 SVG）
+    - §N 编号从 1 连续递增
+    - demo 优先，反抽象化（像演示而非教科书）
+    - 中文文件名 = frontmatter title
+    - 行数 >1000 关注 / >1500 必拆
+    - 跨文件关联用 > 关联: 格式，双向链接
+
     按 4 维度走完，写 report 落 logs/audits/，return VERDICT 行
 ```
 
@@ -76,7 +86,7 @@ Task tool:
 ## 拿到返回后必做的 3 件事
 
 1. **解析 VERDICT 行** (`VERDICT: pass|minor|major (N)` / `EXTRACT-VERDICT: N 个候选 (...)` / `VERDICT: completed|partial|blocked`)
-2. **patch agent-log**（[[feedback-agent-log-patch]] 强制）：
+2. **（可选）patch agent-log 覆盖自动摘要**：`agent-log-hook.js` 已在 SubagentStop 时自动从 subagent 最后一条文本消息派生 title/summary/outcome（见 `scripts/lib-agent-log.js:deriveAutoFields`）。多数情况下不需要手动操作；如果自动摘要不够精准，或 subagent 最后一条消息没有文本（只有工具调用），用：
    ```bash
    node scripts/agent-log.js patch \
      --id last \
@@ -84,10 +94,10 @@ Task tool:
      --summary "<VERDICT + 关键发现>" \
      --outcome success|partial|blocked
    ```
-3. **执行建议**：
-   - `kb-auditor` Important 级 → 立即 Edit kb 文件；Minor → 视情况
-   - `plan-executor` partial/blocked → 看 `logs/plan-runs/` 里 blocked task 决策
-   - `idea-extractor` 候选 → 跟用户对齐再写 kb（**不要** 自动落盘，extractor 是 review-only）
+3. **消费 Handoff Contract**：
+   - `kb-auditor`：遍历 `issues` 列表，`severity: important` 立即按 `suggestion` 逐项 Edit kb 文件；`minor` 视情况。用 `metrics` 判断是否需要补 mermaid/表格
+   - `plan-executor`：partial/blocked → 看 `logs/plan-runs/` 里 blocked task 决策
+   - `idea-extractor`：按 `candidates` 的 `priority` 顺序处理，用 `depth_hint` 决定写入篇幅，用 `existing_overlap` 避免重复。`action: create` 直接新建；`action: append` 追加到指定 `section`。**不要**跳过 overlap 检查直接写
 
 ## 工具白名单（最小权限）
 
@@ -101,7 +111,7 @@ Task tool:
 
 ## 常见坑
 
-- **忘记 patch agent-log** → 月底 `agent-report.js` 报告里 run 记录 `outcome=unknown`，价值归零。每次 dispatch 后立即 patch（[[feedback-agent-log-patch]]）。
+- **subagent 最后一条消息只有工具调用没有文本收尾** → 自动摘要拿不到 `final_text`，title/summary 仍为 null，`check-agent-log-compliance.js` 会标记。此时手动 patch 补一句摘要即可。
 - **复制 audit 报告全文进主对话** → 浪费 context。已落 `logs/audits/`，引用路径即可。
 - **kb-auditor 同一文件 24h 内重复 spawn** → 没新增内容，跳过。
 - **plan-executor 不验证 reviewer 通过就推进** → 违反 spec §3.2 设计；reviewer 报问题 → 派 fix → 重 review，循环 ≤3 次。

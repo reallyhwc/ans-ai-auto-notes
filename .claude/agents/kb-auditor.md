@@ -62,12 +62,34 @@ tools: Read, Grep, Glob, Bash
 
    （提示：用 heredoc 是因为你的 tools 白名单只有 Read/Grep/Glob/Bash，没有 Write）
 
-2. 返回给主 agent 的 message 必须以 `VERDICT:` 开头，1-3 句话总结：
+2. **Handoff Contract**（返回给主 agent 的 message）：
+
+   必须以 `VERDICT:` 开头，后跟结构化 issues 列表和 metrics。主 agent 直接按 issues 逐项 Edit，不用再从散文中提取。
+
    ```
-   VERDICT: pass / minor (N 处建议) / major (N 处建议)。
-   详见 logs/audits/<basename>-YYYY-MM-DD.md。
-   关键观察：<最重要的 1-2 点>。
+   VERDICT: pass | minor (N 处建议) | major (N 处建议)
+   report: logs/audits/<basename>-YYYY-MM-DD.md
+
+   ## issues（按 severity 降序）
+
+   - { dimension: 1, severity: important, location: "§3 第2段", suggestion: "Attention 机制缺 Q/K/V 计算 demo，建议补一个 3x4 矩阵的完整示例" }
+   - { dimension: 4, severity: minor, location: "§5", suggestion: "流程图适合用 mermaid sequenceDiagram 替代纯文字描述" }
+   - { dimension: 3, severity: minor, location: "关联链接", suggestion: "引用了 Agent 与 MCP.md 但对方未反向链接，需补双向" }
+
+   ## metrics
+
+   - lines: 856
+   - mermaid_count: 3
+   - code_block_count: 7
+   - table_count: 4
+   - cross_link_count: 5
    ```
+
+   **字段说明**：
+   - `dimension`: 1=深度与具象度 / 2=论述流畅性 / 3=链接语义 / 4=视觉化质量
+   - `severity`: important（主 agent 应立即修复）/ minor（视情况）
+   - `location`: 精确到 §N、段落或具体描述
+   - `suggestion`: 可直接操作的修改建议（不是"建议改进"这种空话）
 
 **不要做的事**：
 - 不要修改 kb/ 下任何文件（你没有 Edit/Write 工具权限）

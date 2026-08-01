@@ -63,6 +63,23 @@
 
 ---
 
+## ADR-004: timeline.json 改为构建产物（仅自动化 JSON，md 保留手维护）
+
+- **日期**: 2026-06-01
+- **状态**: 接受
+- **背景**: timeline.json 手维护是负担，但 timeline/*.md 含人类叙事性内容
+- **选项**:
+  - (a) 两者都自动化
+  - (b) 仅自动化 timeline.json，timeline/*.md 保留
+  - (c) 反过来，timeline/*.md 才是源，JSON 从 md 生成
+- **决定**: (b)
+- **理由**:
+  - JSON 可机器生成（git log + frontmatter 已含所需信息），由 `scripts/build-timeline.js` 实现
+  - md 的"为什么改 / 感悟"是人类才能写的，保留手维护
+  - 渐进式自动化优于一次性大改
+
+---
+
 ## 新 ADR 模板
 
 ```markdown

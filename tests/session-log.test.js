@@ -69,3 +69,15 @@ test('session-log: 非 quiet 路径在 bash 3.2 下不应触发 unbound variable
   assert.ok(result.includes('跳过'), 'echo 输出应含「跳过」字样: ' + result);
   assert.ok(!result.includes('unbound variable'), 'bash 3.2 不应抛 unbound variable: ' + result);
 });
+
+// 回归测试：macOS BSD sort 在 en_US.UTF-8 locale 下对中文路径/主题/basename 做错误
+// collation，可能误判不同路径为相同而去重（同 arch-lint [4/15] 已修复的 bug）。
+// 修复：session-log.sh 中所有 sort -u 必须强制 LC_ALL=C。
+test('session-log.sh: 所有 sort -u 应使用 LC_ALL=C 避免 macOS locale collation 误去重', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'session-log.sh'), 'utf8');
+  const sortLines = src.split('\n').filter(l => l.includes('sort -u'));
+  assert.ok(sortLines.length >= 3, `应至少有 3 处 sort -u（路径/主题/basename），实际 ${sortLines.length}`);
+  for (const line of sortLines) {
+    assert.match(line, /LC_ALL=C sort -u/, `sort -u 应带 LC_ALL=C 前缀: ${line.trim()}`);
+  }
+});

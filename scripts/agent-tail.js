@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// arch-lint-ignore-unref: 手动 CLI 工具（终端 viewer），不在 hook 链路里
 /**
  * agent-tail.js — Agent runs 日志的终端 viewer
  *

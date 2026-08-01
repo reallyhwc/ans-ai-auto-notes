@@ -45,7 +45,7 @@ test('verify-claim: stdin JSON 解析 tool_input.file_path 不存在文件 → M
   });
 });
 
-test('verify-claim: stdin JSON 文件存在 → exists', () => {
+test('verify-claim: stdin JSON 文件存在 → 不写 ledger（只写 MISSING 行）', () => {
   withTempProject(dir => {
     fs.writeFileSync(path.join(dir, 'kb', '技术', 'a.md'), '# A');
     runHook(dir, {
@@ -53,7 +53,7 @@ test('verify-claim: stdin JSON 文件存在 → exists', () => {
       tool_input: { file_path: 'kb/技术/a.md' },
     });
     const log = readLedger(dir);
-    assert.match(log, / \| Edit \| kb\/技术\/a\.md \| exists$/m);
+    assert.equal(log, '', 'exists 场景不应写 ledger（避免 claim-ledger 无限增长）');
   });
 });
 

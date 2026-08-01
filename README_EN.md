@@ -38,14 +38,14 @@ See [SETUP.md](SETUP.md) for detailed steps.
 flowchart TD
     subgraph L1["L1 Constraints —— Machine-Executed"]
         direction LR
-        H[hooks<br/>SessionStart/Stop/PostToolUse]
+        H[hooks<br/>SessionStart/Stop/PostToolUse/PreToolUse]
         ALINT[arch-lint.sh<br/>15 mechanical checks]
-        ECHK[exit-check.sh<br/>9 exit verifications]
+        ECHK[exit-check.sh<br/>11 exit verifications]
         PRE[pre-push hook<br/>test + mermaid integrity]
     end
 
     subgraph L2["L2 Documents —— Filesystem-Persisted"]
-        SKILL[.claude/skills/<br/>3 project-level skills]
+        SKILL[.claude/skills/<br/>5 project-level skills]
         ADR[docs/decisions.md<br/>ADR records]
         PLAN[docs/superpowers/plans/<br/>cross-session plans]
         MEM[.claude/memory-snapshot/<br/>cross-device memory]
@@ -69,7 +69,7 @@ flowchart TD
 | **Context Building** | CLAUDE.md + skill descriptions + INDEX.md | CLAUDE.md / skills |
 | **Tool Definition** | `scripts/*.{js,sh}` (13+ scripts) | add new / modify existing |
 | **Constraints** | arch-lint 15 items + skill triggers | add lint / modify skill |
-| **Feedback Loops** | exit-check 9 items + arch-lint + pre-push | add hooks / adjust thresholds |
+| **Feedback Loops** | exit-check 11 items + arch-lint + pre-push | add hooks / adjust thresholds |
 | **Memory Management** | memory-snapshot + ADR + plans + session-logs | add memory / write ADR |
 | **Safety Rails** | pre-push (test + mermaid) + verify-claim hook | add hook conditions |
 
@@ -78,9 +78,10 @@ flowchart TD
 ### Automated Checks (Mechanical Constraints)
 
 - ✅ **arch-lint.sh 15 items**: frontmatter / metadata header / dead links / duplicate titles / disk-vs-INDEX consistency / case sensitivity / line-count limits / memory format / zero npm deps / script references / doc→code refs / heading ID contract / section number continuity / **anchor liveness** / **content concreteness**
-- ✅ **exit-check.sh 9 items**: markdown format / git status / INDEX-vs-kb consistency / overview.html health (12 sub-items) / session log / permission audit / unpushed check / **claim audit** / **plans status summary**
+- ✅ **exit-check.sh 11 items**: markdown format / git status / INDEX-vs-kb consistency / overview.html health (12 sub-items) / session log / permission audit / unpushed check / **claim audit** / **plans status summary** / **agent-log compliance** / **content quality fast-path**
 - ✅ **pre-push hook**: runs test.sh + mermaid integrity check (prevents accidental diagram deletion)
 - ✅ **PostToolUse hook** (verify-claim.sh): real-time verifies that when AI claims "saved to xxx.md", the file actually exists
+- ✅ **PreToolUse hook** (pretool-guard.sh): blocks direct edits to INDEX.md / manifest.json / overview.html
 
 ### Data Automation
 
@@ -98,13 +99,29 @@ flowchart TD
 
 - ✅ **split-doc.js**: semi-automated split of large files (>1500 lines triggers lint), preserves lead text + auto-renumbers + updates INDEX
 
-### 3 Project-Level Skills (Auto-Loaded)
+### 5 Project-Level Skills (Auto-Loaded)
 
 | Skill | Trigger |
 |---|---|
 | `auto-commit-discipline` | Finishing batch of file changes / before responding when uncommitted |
 | `kb-content-style` | Writing/editing any md under kb/ |
 | `kb-tdd-discipline` | Modifying scripts/ or tests/, or fixing markdown render/path resolve/lint bugs |
+| `arch-lint-fix-guide` | When arch-lint/preflight reports warnings or errors |
+| `build-index` | After adding/removing kb files (`/build-index` command) |
+
+## Subagent System (AI Collaboration Team)
+
+The project registers 3 project-level Subagents (defined in `.claude/agents/`), complementary to Skills:
+
+| Subagent | Responsibility | Trigger | Output |
+|---|---|---|---|
+| **kb-auditor** | Audits long-form kb notes for depth/chapters/links/visuals | Auto-spawned after ≥300 new lines or single file ≥800 lines | `logs/audits/*.md` + structured VERDICT |
+| **idea-extractor** | Identifies KB sedimentation candidates from long text/URL (no disk write) | Auto-spawned when user pastes long articles/URLs | Structured EXTRACT-VERDICT + candidates |
+| **plan-executor** | End-to-end runs all tasks in a docs/superpowers/plans/*.md | When user says "run plan X" | Summary report + verdict |
+
+**Relationship with Skills**: Skills provide "how to write" norms (reference type) and "what action to run" shortcuts (task type); Subagents handle long tasks that "need to run independently" — the three coexist complementarily.
+
+See [`.claude/agents/README.md`](.claude/agents/README.md).
 
 ## Directory Structure
 
@@ -127,7 +144,7 @@ my-kb/
 ├── overview.html                ← visual navigator (fetches manifest + timeline)
 ├── server.js + serve.sh         ← local preview server (port 8765)
 ├── bootstrap.sh + SETUP.md      ← new device onboarding
-├── exit-check.sh                ← Stop hook (9-item exit checks)
+├── exit-check.sh                ← Stop hook (11-item exit checks)
 ├── lint.sh                      ← markdown format check (pure bash awk)
 ├── CLAUDE.md                    ← project instructions (loaded at AI startup)
 ├── docs/
@@ -167,14 +184,14 @@ Just tell AI "let's discuss X". AI will distill the conversation into kb/ follow
 - Prefer Mermaid diagrams; preserve demos; avoid abstraction
 - Aggregate by topic (don't split by date)
 - Chinese filenames = frontmatter title
-- >1000 lines → consider split; >1500 lines → must split
+- >1000 lines → flag for attention, never auto-propose split (split decision is the user's)
 
 ### 3. Write Your First ADR
 
-When facing a classification dispute ("where does this Spring AI vs LangChain note go?"), AI checks `docs/decisions.md` first. After deciding, append an ADR:
+When facing a classification dispute ("should this note go under 技术/ or 实战/?"), AI checks `docs/decisions.md` first. After deciding, append an ADR:
 
 ```markdown
-## ADR-004: Spring AI vs LangChain note placed in kb/技术/AI/应用/
+## ADR-005: <your classification decision title>
 
 - Date: 2026-06-15
 - Status: Accepted

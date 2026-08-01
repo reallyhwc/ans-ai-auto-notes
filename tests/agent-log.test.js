@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
 const { execFileSync } = require('node:child_process');
-const { generateId, appendEvent, foldEvents, parseTranscript } = require('../scripts/lib-agent-log.js');
+const { generateId, appendEvent, foldEvents, parseTranscript, deriveAutoFields } = require('../scripts/lib-agent-log.js');
 
 test('generateId: 格式 r-YYYY-MM-DD-HH-MM-<4hex>', () => {
   const id = generateId(new Date('2026-06-02T21:50:14+08:00'));
@@ -147,6 +147,86 @@ test('parseTranscript: 含 malformed JSON 行 → 跳过坏行，其他行正常
   }
 });
 
+test('parseTranscript: final_text 取最后一条 assistant 消息的文本块', () => {
+  const r = parseTranscript('tests/fixtures/agent-log-transcript-with-summary.jsonl');
+  assert.equal(r.final_text, '审计完成，发现 2 处链接失效，已在 report 中列出。\nVERDICT: minor (2)');
+});
+
+test('parseTranscript: 最后一条 assistant 消息只有 tool_use 无文本 → final_text 为 null', () => {
+  const r = parseTranscript('tests/fixtures/agent-log-transcript-sample.jsonl');
+  assert.equal(r.final_text, null);
+});
+
+test('parseTranscript: has_error 检测 tool_result.is_error', () => {
+  const tmpFile = path.join(os.tmpdir(), `has-error-${Date.now()}.jsonl`);
+  fs.writeFileSync(tmpFile, [
+    '{"type":"assistant","timestamp":"2026-06-02T00:00:00Z","message":{"role":"assistant","model":"x","content":[{"type":"tool_use","name":"Bash","input":{"command":"false"}}]}}',
+    '{"type":"tool_result","timestamp":"2026-06-02T00:00:01Z","message":{"role":"user","content":[{"type":"tool_result","content":"command failed","is_error":true}]}}',
+  ].join('\n') + '\n');
+  try {
+    const r = parseTranscript(tmpFile);
+    assert.equal(r.has_error, true);
+  } finally { fs.unlinkSync(tmpFile); }
+});
+
+test('parseTranscript: 无 is_error 字段 → has_error 为 false', () => {
+  const r = parseTranscript('tests/fixtures/agent-log-transcript-sample.jsonl');
+  assert.equal(r.has_error, false);
+});
+
+test('deriveAutoFields: 无 final_text → title/summary null，outcome success，needs_manual_patch false', () => {
+  const auto = deriveAutoFields({ final_text: null, has_error: false });
+  assert.deepEqual(auto, { title: null, summary: null, outcome: 'success', needs_manual_patch: false });
+});
+
+test('deriveAutoFields: 有 final_text → summary=全文，title=首行截断60字', () => {
+  const text = '审计完成，发现 2 处链接失效，已在 report 中列出。\nVERDICT: minor (2)';
+  const auto = deriveAutoFields({ final_text: text, has_error: false });
+  assert.equal(auto.summary, text);
+  assert.equal(auto.title, '审计完成，发现 2 处链接失效，已在 report 中列出。');
+  assert.equal(auto.outcome, 'success');
+});
+
+test('deriveAutoFields: has_error true → outcome partial', () => {
+  const auto = deriveAutoFields({ final_text: 'done', has_error: true });
+  assert.equal(auto.outcome, 'partial');
+});
+
+test('deriveAutoFields: summary 超 200 字截断加省略号，title 超 60 字截断加省略号', () => {
+  const longLine = 'x'.repeat(250);
+  const auto = deriveAutoFields({ final_text: longLine, has_error: false });
+  assert.equal(auto.summary.length, 201); // 200 字 + '…'
+  assert.ok(auto.summary.endsWith('…'));
+  assert.equal(auto.title.length, 61); // 60 字 + '…'
+  assert.ok(auto.title.endsWith('…'));
+});
+
+// 假设6：结构化块检测（VERDICT: / EXTRACT-VERDICT: / JSON）→ title null + needs_manual_patch
+test('deriveAutoFields: final_text 以 VERDICT: 开头 → title null, needs_manual_patch true', () => {
+  const auto = deriveAutoFields({ final_text: 'VERDICT: minor (2)\n详细内容...', has_error: false });
+  assert.equal(auto.title, null);
+  assert.equal(auto.needs_manual_patch, true);
+  assert.equal(auto.outcome, 'success');
+});
+
+test('deriveAutoFields: final_text 以 EXTRACT-VERDICT: 开头 → title null, needs_manual_patch true', () => {
+  const auto = deriveAutoFields({ final_text: 'EXTRACT-VERDICT: 3 个候选\n...', has_error: false });
+  assert.equal(auto.title, null);
+  assert.equal(auto.needs_manual_patch, true);
+});
+
+test('deriveAutoFields: final_text 是 JSON 对象 → title null, needs_manual_patch true', () => {
+  const auto = deriveAutoFields({ final_text: '{"verdict":"pass"}', has_error: false });
+  assert.equal(auto.title, null);
+  assert.equal(auto.needs_manual_patch, true);
+});
+
+test('deriveAutoFields: 自然语言 final_text → title 非空, needs_manual_patch false（回归保护）', () => {
+  const auto = deriveAutoFields({ final_text: '审计完成，发现 2 处问题', has_error: false });
+  assert.equal(auto.title, '审计完成，发现 2 处问题');
+  assert.equal(auto.needs_manual_patch, false);
+});
+
 function runHook(mode, stdinJson, env = {}) {
   return execFileSync('node', ['scripts/agent-log-hook.js', mode], {
     input: JSON.stringify(stdinJson),
@@ -174,10 +254,26 @@ test('agent-log-hook subagent: 解析 stdin + 追加 start event', () => {
   assert.deepEqual(ev.files_changed.sort(), ['kb/a.md', 'kb/b.md']);
   assert.equal(ev.duration_ms, 496000);
   assert.equal(ev.model, 'claude-opus-4-7');
-  assert.equal(ev.outcome, 'unknown');
+  assert.equal(ev.outcome, 'success');
   assert.equal(ev.title, null);
   assert.equal(ev.summary, null);
   assert.match(ev.id, /^r-\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-[0-9a-f]{4}$/);
+
+  fs.rmSync(tmpDir, { recursive: true });
+});
+
+test('agent-log-hook subagent: 最后消息有文本 → 自动填充 title/summary/outcome=success', () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agent-log-hook-'));
+  const logFile = path.join(tmpDir, '2026-06.jsonl');
+  runHook('subagent', {
+    transcript_path: path.resolve('tests/fixtures/agent-log-transcript-with-summary.jsonl'),
+    subagent_name: 'kb-auditor',
+  }, { AGENT_LOG_FILE: logFile });
+
+  const ev = JSON.parse(fs.readFileSync(logFile, 'utf8').trim());
+  assert.equal(ev.outcome, 'success');
+  assert.equal(ev.title, '审计完成，发现 2 处链接失效，已在 report 中列出。');
+  assert.match(ev.summary, /VERDICT: minor \(2\)/);
 
   fs.rmSync(tmpDir, { recursive: true });
 });

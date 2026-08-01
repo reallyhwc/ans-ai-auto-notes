@@ -36,37 +36,24 @@ fi
 
 # [4/7] 注入项目本地 hooks 配置（SessionStart / Stop / PostToolUse）
 echo ""
-echo "[4/7] 检查并注入项目本地 hooks (.claude/settings.local.json)..."
+echo "[4/7] 检查项目本地配置 (.claude/settings.local.json)..."
 LOCAL_SETTINGS=".claude/settings.local.json"
+# hook 配置已在入库的 .claude/settings.json（clone 自带 4 hook + agent-log），
+# settings.local.json 只存设备私有的权限白名单，不存 hook
 if [ ! -f "$LOCAL_SETTINGS" ]; then
-  echo "  ⚠️  $LOCAL_SETTINGS 不存在，跳过 PostToolUse hook 注入"
-  echo "      请手动创建该文件并复制项目其他设备的内容（含 SessionStart/Stop/PostToolUse hooks）"
+  echo "  ℹ️  $LOCAL_SETTINGS 不存在，创建空权限模板"
+  mkdir -p .claude
+  cat > "$LOCAL_SETTINGS" <<'EOF'
+{
+  "permissions": {
+    "defaultMode": "bypassPermissions",
+    "allow": []
+  }
+}
+EOF
+  echo "  ✓ 已创建 $LOCAL_SETTINGS（空权限白名单，按需添加）"
 else
-  # 检查是否已含 PostToolUse 段；没有则注入
-  HAS_POST_TOOL_USE=$(python3 -c "
-import json, sys
-try:
-    with open('$LOCAL_SETTINGS') as f: d = json.load(f)
-    print('yes' if 'PostToolUse' in d.get('hooks', {}) else 'no')
-except Exception:
-    print('error')
-" 2>/dev/null)
-  if [ "$HAS_POST_TOOL_USE" = "no" ]; then
-    python3 -c "
-import json
-with open('$LOCAL_SETTINGS') as f: d = json.load(f)
-d.setdefault('hooks', {})['PostToolUse'] = [{
-  'matcher': 'Write|Edit',
-  'hooks': [{'type': 'command', 'command': 'bash scripts/verify-claim.sh', 'timeout': 10}]
-}]
-with open('$LOCAL_SETTINGS', 'w') as f: json.dump(d, f, indent=2, ensure_ascii=False)
-"
-    echo "  ✓ PostToolUse hook 已注入"
-  elif [ "$HAS_POST_TOOL_USE" = "yes" ]; then
-    echo "  ✓ PostToolUse hook 已存在，跳过"
-  else
-    echo "  ⚠️  解析 settings.local.json 失败，跳过 hook 注入"
-  fi
+  echo "  ✓ $LOCAL_SETTINGS 已存在（含 $(python3 -c "import json; print(len(json.load(open('$LOCAL_SETTINGS'))['permissions']['allow']))" 2>/dev/null || echo '?') 条权限）"
 fi
 
 # [5/7] 初始化 memory（从 snapshot）
