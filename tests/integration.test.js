@@ -16,7 +16,11 @@ const ROOT = path.resolve(__dirname, '..');
 
 function walkMd(dir) {
   const out = [];
-  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+  // 模板/新仓库场景下 timeline/ 等目录可能不存在，跳过而非崩溃
+  let entries;
+  try { entries = fs.readdirSync(dir, { withFileTypes: true }); }
+  catch { return out; }
+  for (const e of entries) {
     const p = path.join(dir, e.name);
     if (e.isDirectory()) out.push(...walkMd(p));
     else if (e.name.endsWith('.md')) out.push(p);
