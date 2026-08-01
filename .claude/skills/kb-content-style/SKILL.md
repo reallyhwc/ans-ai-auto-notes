@@ -23,7 +23,7 @@ description: Use when writing or editing any markdown file under kb/ in this ANS
 - 时序图 → `sequenceDiagram`
 - 架构图 → `flowchart TB` + `subgraph`
 
-ASCII 框图仅在 Mermaid 不适用时使用。范例参考 `kb/技术/AI/Claude-Code/claude-code-architecture.md` 内的 8 处 mermaid 用法。
+ASCII 框图仅在 Mermaid 不适用时使用。范例参考 `kb/技术/AI/Claude-Code/Claude Code 整体架构 & 工作流程.md` 内的 8 处 mermaid 用法。
 
 ### 3. 重组而非堆砌
 同一主题的多次对话要持续归纳合并为自上而下的结构化文档，不应出现多个同日期独立小节堆在一起。

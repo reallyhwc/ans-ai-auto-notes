@@ -65,7 +65,7 @@ ans-ai-auto-notes/
 3. **主动性在我这边**：不等用户下指令，我自行判断时机并提案。
 4. **知识内容自动沉淀，不询问**：对话中产生的技术讲解、概念梳理、方案对比等知识内容，直接写入 kb/ 对应文件，不要问"要不要沉淀到知识库？"。仅当涉及文件拆分、合并、重组、目录结构变更时才主动提案。
 
-> 文件拆分、章节编号、"严禁口头沉淀"等内容质量规则统一收敛到 [kb-content-style skill](.Codex/skills/kb-content-style/SKILL.md)，写入 kb/ 时由 AI 助手自动加载。
+> 文件拆分、章节编号、"严禁口头沉淀"等内容质量规则统一收敛到 [kb-content-style skill](.agents/skills/kb-content-style/SKILL.md)，写入 kb/ 时由 AI 助手自动加载。
 
 ### 跨文件关联规则
 
@@ -87,7 +87,7 @@ ans-ai-auto-notes/
 
 ### 笔记风格 & 拆分 & 章节规则
 
-详见 [.Codex/skills/kb-content-style/SKILL.md](.Codex/skills/kb-content-style/SKILL.md) —— AI 助手在写入 kb/ 时自动加载。核心要点：
+详见 [.agents/skills/kb-content-style/SKILL.md](.agents/skills/kb-content-style/SKILL.md) —— AI 助手在写入 kb/ 时自动加载。核心要点：
 
 - 保留 demo、Mermaid 优先、反抽象化
 - 同主题聚合，文件内时间倒序
@@ -107,7 +107,7 @@ ans-ai-auto-notes/
 
 ### 测试纪律（软 TDD）
 
-详见 [.Codex/skills/kb-tdd-discipline/SKILL.md](.Codex/skills/kb-tdd-discipline/SKILL.md) —— AI 助手在修改 scripts/ 或 tests/ 时自动加载。核心要点：
+详见 [.agents/skills/kb-tdd-discipline/SKILL.md](.agents/skills/kb-tdd-discipline/SKILL.md) —— AI 助手在修改 scripts/ 或 tests/ 时自动加载。核心要点：
 
 - 错误趋向区域（marked 渲染、路径解析、frontmatter、lint 脚本）必须 TDD：先红后绿
 - Bug 修复必须先在 tests/ 加复现 case
@@ -116,7 +116,7 @@ ans-ai-auto-notes/
 
 ### Git 规则
 
-详见 [.Codex/skills/auto-commit-discipline/SKILL.md](.Codex/skills/auto-commit-discipline/SKILL.md) —— AI 助手会按 skill 触发条件自动加载完整规则。核心要点：
+详见 [.agents/skills/auto-commit-discipline/SKILL.md](.agents/skills/auto-commit-discipline/SKILL.md) —— AI 助手会按 skill 触发条件自动加载完整规则。核心要点：
 
 - 完成一批文件变更立即 commit（不等用户提醒）
 - Conventional Commits 格式
@@ -125,16 +125,16 @@ ans-ai-auto-notes/
 
 ### 会话退出检查（重要）
 
-**自动化 Hook 体系**（`.Codex/settings.local.json` + `.Codex/settings.json`，基于 Harness Engineering 三层模型）：
+**自动化 Hook 体系**（`.claude/settings.local.json` + `.claude/settings.json`，基于 Harness Engineering 三层模型）：
 
 | 层级 | Hook | 配置来源 | 脚本 | 检查内容 |
 |------|------|---------|------|---------|
 | **约束层** | SessionStart | settings.local.json | `scripts/preflight.sh` → `scripts/arch-lint.sh` | 15 项机械检查（frontmatter、元信息头、交叉链接、重复标题、磁盘一致性、大小写、行数限制、memory 格式、零依赖、脚本引用、标题 ID 契约、章节编号、anchor 存活、内容具象度）+ memory 过期 + 遗留变更 + manifest 过期 + session 摘要 |
 | **约束层** | Stop | settings.local.json | `exit-check.sh` → `lint.sh` + `check-overview.js` + `session-log.sh` + `permission-audit.sh` + 未 push 检查 | 11 项退出检查：markdown 格式、git 状态、INDEX 一致性、overview 健康、session 日志、权限审计、未 push commit（≥5 自动 push）、沉淀声明审计、plans 状态、agent-log patch 合规、内容质量 fast-path |
 | **约束层** | Stop | settings.json | `node scripts/agent-log-hook.js main` | 主 agent 工作日志记录（有实质工作时写入 `logs/agent-runs/` JSONL） |
-| **约束层** | PostToolUse（Write/Edit） | settings.local.json | `scripts/verify-claim.sh` | 每次 Write/Edit kb/ 或 memory/ 文件时验证文件确实存在，写入 `.Codex/claim-ledger.log`（exit-check [8/11] 消费） |
+| **约束层** | PostToolUse（Write/Edit） | settings.local.json | `scripts/verify-claim.sh` | 每次 Write/Edit kb/ 或 memory/ 文件时验证文件确实存在，写入 `.claude/claim-ledger.log`（exit-check [8/11] 消费） |
 | **约束层** | SubagentStop | settings.json | `node scripts/agent-log-hook.js subagent` | subagent 工作日志记录（写入 `logs/agent-runs/` JSONL，后续由 AI patch title/summary/outcome） |
-| **文档层** | — | — | `.Codex/session-logs/` | 每日 session 日志存档（同日多次 Stop 累加 append） |
+| **文档层** | — | — | `.claude/session-logs/` | 每日 session 日志存档（同日多次 Stop 累加 append） |
 | **文档层** | — | — | `memory/*.md` | 记忆文件优先用 frontmatter 内 `lastUpdated`（任意缩进），无此字段时 fallback 到文件 mtime，>14 天告警 |
 
 > 注：Stop hook 来自两个配置文件叠加（settings.local.json 跑 exit-check.sh，settings.json 跑 agent-log-hook.js），两者都会执行。

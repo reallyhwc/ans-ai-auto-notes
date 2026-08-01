@@ -1,6 +1,6 @@
 ---
 name: auto-commit-discipline
-description: Use when finishing any batch of file changes in this KB project (one logical topic complete). Also use before sending response to user when there are uncommitted changes. Enforces conventional commits in 中/英, never amend, ≥5 unpushed triggers auto-push, never skip hooks.
+description: Use when finishing any batch of file changes in this KB project (one logical topic complete). Also use before sending response to user when there are uncommitted changes. Quick reference for commit discipline — full rules in AGENTS.md.
 ---
 
 # Auto-Commit Discipline (ANS AI Auto Notes 项目)
@@ -39,8 +39,8 @@ EOF
 ```
 
 ### 自动 push 阈值
-- 未 push commit ≥5 → exit-check.sh 自动跑 test 通过后 push
-- 未 push commit <5 → 仅提示，不自动 push
+- 未 push commit ≥3 → exit-check.sh 自动跑 test 通过后 push
+- 未 push commit <3 → 仅提示，不自动 push
 - pre-push hook 兜底：`test.sh` 通过 + mermaid 守恒检查通过
 
 ## 自检 Checklist（提交前）
@@ -51,7 +51,7 @@ EOF
 - [ ] 未跳过 hooks
 - [ ] 未 amend 已 push 的 commit
 
-## 反面案例
+## Rationalization Table（借口 vs 现实）
 
 - ❌ "我打包完成多件事后一起 commit" → 应该每个逻辑主题完成立即 commit
 - ❌ "用户没催 commit，我先继续干别的" → 主动性在 AI 这边
@@ -59,7 +59,7 @@ EOF
 
 ## 与其他 skill / hook 的关系
 
-- `exit-check.sh [7/9]` 检查未 push commit 数量，≥5 自动 push
+- `exit-check.sh [7/11]` 检查未 push commit 数量，≥3 自动 push
 - `pre-push hook` 跑 test 兜底
 - `verify-claim.sh` (PostToolUse hook) 验证 kb/ 文件写入
 

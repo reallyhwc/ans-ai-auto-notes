@@ -1,6 +1,6 @@
 ---
 name: kb-tdd-discipline
-description: Use when modifying any file under scripts/ or tests/ in this ANS AI Auto Notes project. Also use when fixing any bug in markdown rendering, path resolution, frontmatter parsing, or static lint scripts. Enforces red-green-refactor cycle and bug-reproduction-test-first.
+description: Use when modifying scripts/ or tests/, or fixing bugs in markdown rendering, path resolution, frontmatter parsing, or lint scripts.
 ---
 
 # KB TDD Discipline (ANS AI Auto Notes 项目)
@@ -72,11 +72,11 @@ tests/
 ## Push 前自动跑测试（双层 gate）
 
 1. **`scripts/git-hooks/pre-push`** — git 层硬拦截
-2. **`exit-check.sh` 的 auto-push 块** — Stop 时 ≥5 commits 未 push 时先跑 test 通过才 push
+2. **`exit-check.sh` 的 auto-push 块** — Stop 时 ≥3 commits 未 push 时先跑 test 通过才 push
 
 **首次安装 hook**：`bash scripts/install-hooks.sh`（新机器克隆后跑一次）。
 
-## 反面案例
+## Rationalization Table（借口 vs 现实）
 
 - ❌ "改了脚本但没加测试，下次出 bug 不知道为什么" → 应先加 failing test 再改 code
 - ❌ "测试随便写一行，主要是为了 git 不报错" → 测试要真验证行为，不只是 assert.ok(true)
