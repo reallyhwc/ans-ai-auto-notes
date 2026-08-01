@@ -125,23 +125,24 @@ ans-ai-auto-notes/
 
 ### 会话退出检查（重要）
 
-**自动化 Hook 体系**（`.claude/settings.local.json` + `.claude/settings.json`，基于 Harness Engineering 三层模型）：
+**自动化 Hook 体系**（hook 配置在入库的 `.claude/settings.json` 共享，`.claude/settings.local.json` 仅存设备私有权限白名单；基于 Harness Engineering 三层模型）：
 
 | 层级 | Hook | 配置来源 | 脚本 | 检查内容 |
 |------|------|---------|------|---------|
-| **约束层** | SessionStart | settings.local.json | `scripts/preflight.sh` → `scripts/arch-lint.sh` | 15 项机械检查（frontmatter、元信息头、交叉链接、重复标题、磁盘一致性、大小写、行数限制、memory 格式、零依赖、脚本引用、标题 ID 契约、章节编号、anchor 存活、内容具象度）+ memory 过期 + 遗留变更 + manifest 过期 + session 摘要 |
-| **约束层** | Stop | settings.local.json | `exit-check.sh` → `lint.sh` + `check-overview.js` + `session-log.sh` + `permission-audit.sh` + 未 push 检查 | 11 项退出检查：markdown 格式、git 状态、INDEX 一致性、overview 健康、session 日志、权限审计、未 push commit（≥5 自动 push）、沉淀声明审计、plans 状态、agent-log patch 合规、内容质量 fast-path |
+| **约束层** | SessionStart | settings.json | `scripts/preflight.sh` → `scripts/arch-lint.sh` | 15 项机械检查（frontmatter、元信息头、交叉链接、重复标题、磁盘一致性、大小写、行数限制、memory 格式、零依赖、脚本引用、文档→代码引用一致性、标题 ID 契约、章节编号、anchor 存活、内容具象度）+ memory 过期 + 遗留变更 + manifest 过期 + session 摘要 |
+| **约束层** | Stop | settings.json | `exit-check.sh` → `lint.sh` + `check-overview.js` + `session-log.sh` + `permission-audit.sh` + `list-open-plans.js` + `check-agent-log-compliance.js` + `content-quality-fast.sh` + 未 push 检查 | 11 项退出检查：markdown 格式、git 状态、INDEX 一致性、overview 健康、session 日志、权限审计、未 push commit（≥3 自动 push，含 pull --rebase 重试）、沉淀声明审计、plans 状态、agent-log patch 合规、内容质量 fast-path |
 | **约束层** | Stop | settings.json | `node scripts/agent-log-hook.js main` | 主 agent 工作日志记录（有实质工作时写入 `logs/agent-runs/` JSONL） |
-| **约束层** | PostToolUse（Write/Edit） | settings.local.json | `scripts/verify-claim.sh` | 每次 Write/Edit kb/ 或 memory/ 文件时验证文件确实存在，写入 `.claude/claim-ledger.log`（exit-check [8/11] 消费） |
+| **约束层** | PostToolUse（Write/Edit） | settings.json | `scripts/verify-claim.sh` | 每次 Write/Edit kb/ 或 memory/ 文件时验证文件确实存在，写入 `.claude/claim-ledger.log`（exit-check [8/11] 消费） |
+| **约束层** | PreToolUse（Write/Edit/NotebookEdit） | settings.json | `scripts/pretool-guard.sh` | 拦截对 INDEX.md / manifest.json / overview.html 的直接编辑（exit 2 阻断），引导走 build-index.js 或改源文件 |
 | **约束层** | SubagentStop | settings.json | `node scripts/agent-log-hook.js subagent` | subagent 工作日志记录（写入 `logs/agent-runs/` JSONL，后续由 AI patch title/summary/outcome） |
 | **文档层** | — | — | `.claude/session-logs/` | 每日 session 日志存档（同日多次 Stop 累加 append） |
 | **文档层** | — | — | `memory/*.md` | 记忆文件优先用 frontmatter 内 `lastUpdated`（任意缩进），无此字段时 fallback 到文件 mtime，>14 天告警 |
 
-> 注：Stop hook 来自两个配置文件叠加（settings.local.json 跑 exit-check.sh，settings.json 跑 agent-log-hook.js），两者都会执行。
+> 注：Stop hook 在 settings.json 里有两个 hook 数组（agent-log-hook.js main + exit-check.sh），两者都会执行。
 
 > 注：UserPromptSubmit hook 已移除（commit-reminder.sh 已淘汰）——由 AI 主动 auto-commit 替代机械提醒。AI 每完成一批文件变更后立即 `git add -A && git commit`，不等用户提醒。
 
-> 所有 settings.local.json 中的 hook 通过 `scripts/hook-logger.sh` 包装执行，执行结果（耗时、exit code）记录到 `logs/hook-runs.jsonl`（.gitignore 中）。
+> 所有 settings.json 中的 shell hook（preflight/exit-check/verify-claim/pretool-guard）通过 `scripts/hook-logger.sh` 包装执行，执行结果（耗时、exit code）记录到 `logs/hook-runs.jsonl`（.gitignore 中）。agent-log-hook.js（node）不经 hook-logger（自带日志输出到 `logs/agent-runs/`）。新设备 `git clone` 后 hook 配置随 settings.json 自带，无需手动注入。
 
 当用户说"准备退出"、"不聊了"、"下次再继续"或类似结束语时，Stop hook 会自动执行上述检查并输出建议的 commit 命令。除此之外，AI 还需主动完成：
 
