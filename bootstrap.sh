@@ -57,7 +57,7 @@ import json
 with open('$LOCAL_SETTINGS') as f: d = json.load(f)
 d.setdefault('hooks', {})['PostToolUse'] = [{
   'matcher': 'Write|Edit',
-  'hooks': [{'type': 'command', 'command': 'bash scripts/verify-claim.sh', 'timeout': 10}]
+  'hooks': [{'type': 'command', 'command': 'bash scripts/hook-logger.sh verify-claim \"bash scripts/verify-claim.sh\"', 'timeout': 10}]
 }]
 with open('$LOCAL_SETTINGS', 'w') as f: json.dump(d, f, indent=2, ensure_ascii=False)
 "

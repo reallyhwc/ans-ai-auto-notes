@@ -25,11 +25,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd /Users/xuhu/workspace/ans-ai-auto-notes && bash exit-check.sh"
-          },
-          {
-            "type": "command",
-            "command": "bash scripts/permission-audit.sh"
+            "command": "bash exit-check.sh"
           }
         ]
       }

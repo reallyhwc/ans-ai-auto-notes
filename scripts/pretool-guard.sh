@@ -1,6 +1,6 @@
 #!/bin/bash
-# arch-lint-ignore-unref: Hook script attached via PreToolUse in .claude/settings.local.json
 # pretool-guard.sh — PreToolUse hook：拦截对勿手改文件的直接编辑
+# 接入位置：.claude/settings.local.json 的 PreToolUse (matcher: Write|Edit|NotebookEdit)
 #
 # 被拦截文件（构建产物或自动生成）：
 #   - INDEX.md（由 build-index.js 生成）
