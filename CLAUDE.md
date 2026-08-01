@@ -28,17 +28,24 @@ ans-ai-auto-notes/
 ├── timeline/                    ← 按周归档的对话摘要
 ├── tests/                       ← 单元 + 集成测试（node --test，零依赖）
 ├── test.sh                      ← 测试入口
-├── scripts/                     ← 构建/检查脚本
+├── scripts/                     ← 构建/检查脚本（共 20+ 个，见各 § 引用）
 │   ├── build-index.js           ← 扫描 kb/ 生成 manifest.json + INDEX.md
-│   ├── check-overview.js        ← 12 项健康检查（含行数限制）
-│   ├── arch-lint.sh             ← 8 项 KB 架构检查
-│   ├── preflight.sh             ← SessionStart 预检
+│   ├── check-overview.js        ← Stop hook [4/11]：12 项 overview 健康检查（含行数限制）
+│   ├── arch-lint.sh             ← SessionStart：15 项 KB 架构检查
+│   ├── preflight.sh             ← SessionStart 预检（memory 过期/遗留变更/manifest 过期）
+│   ├── verify-claim.sh          ← PostToolUse：Write/Edit kb/ 后验证文件实存，写 claim-ledger
+│   ├── hook-logger.sh           ← 所有 hook 的透明包装器（旁路记录耗时/exit code 到 JSONL）
+│   ├── agent-log-hook.js        ← Stop/SubagentStop：主 agent + subagent 工作日志（logs/agent-runs/）
+│   ├── content-quality-fast.sh  ← Stop hook [11/11]：内容质量 fast-path
 │   ├── session-log.sh           ← 自动生成 session 日志
-│   ├── permission-audit.sh      ← 权限审计
+│   ├── permission-audit.sh      ← Stop hook [6/11]：权限审计
 │   ├── lib.js                   ← 纯函数库（浏览器+Node 双环境，便于单测）
 │   ├── app.js                   ← overview.html 前端逻辑
 │   ├── install-hooks.sh         ← 一次性安装 git pre-push hook
 │   └── git-hooks/pre-push       ← push 前跑 test.sh，失败阻断
+├── exit-check.sh                ← Stop hook 入口：串联 11 项退出检查
+├── lint.sh                      ← Stop hook [1/11]：markdown 格式检查（9 条 MD 规则）
+├── bootstrap.sh                 ← 新设备一次性注入 PostToolUse hook 配置
 ├── INDEX.md                     ← 总目录索引（由 build-index.js 自动生成，勿手改）
 ├── manifest.json                ← 分类数据（构建产物，.gitignore 中，勿手改）
 ├── timeline.json                ← 时间线数据（手维护）
@@ -122,7 +129,7 @@ ans-ai-auto-notes/
 | **plan-executor** | 用户说 "run plan X" / "执行 plan X" | 端到端跑 plan，task-by-task 嵌套 implementer |
 
 **通用纪律**：
-- dispatch 后**立即 patch agent-log**（`feedback-agent-log-patch`）：补 title/summary/outcome
+- dispatch 后**按需 patch agent-log**：`agent-log-hook.js` 已在 SubagentStop 时自动从 subagent 最后一条文本消息派生 title/summary/outcome，**多数情况下不需要手动 patch**；仅当自动摘要不准（如 subagent 返回结构化数据而非自然语言总结）时才手动 patch
 - **不要**把 subagent 返回的完整报告复制到主对话，引用 `logs/` 路径即可
 - kb-auditor 同一文件 24h 内不重复 spawn
 
@@ -210,8 +217,8 @@ Skill 开发遵循 **SDD（Skill Development Discipline）**——本质是把 T
 
 | 层级 | Hook | 配置来源 | 脚本 | 检查内容 |
 |------|------|---------|------|---------|
-| **约束层** | SessionStart | settings.local.json | `scripts/preflight.sh` → `scripts/arch-lint.sh` | 15 项机械检查（frontmatter、元信息头、交叉链接、重复标题、磁盘一致性、大小写、行数限制、memory 格式、零依赖、脚本引用、标题 ID 契约、章节编号、anchor 存活、内容具象度）+ memory 过期 + 遗留变更 + manifest 过期 + session 摘要 |
-| **约束层** | Stop | settings.local.json | `exit-check.sh` → `lint.sh` + `check-overview.js` + `session-log.sh` + `permission-audit.sh` + 未 push 检查 | 11 项退出检查：markdown 格式、git 状态、INDEX 一致性、overview 健康、session 日志、权限审计、未 push commit（≥3 自动 push，含 pull --rebase 重试）、沉淀声明审计、plans 状态、agent-log patch 合规、内容质量 fast-path |
+| **约束层** | SessionStart | settings.local.json | `scripts/preflight.sh` → `scripts/arch-lint.sh` | 15 项机械检查（frontmatter、元信息头、交叉链接、重复标题、磁盘一致性、大小写、行数限制、memory 格式、零依赖、脚本引用、文档→代码引用一致性、标题 ID 契约、章节编号、anchor 存活、内容具象度）+ memory 过期 + 遗留变更 + manifest 过期 + session 摘要 |
+| **约束层** | Stop | settings.local.json | `exit-check.sh` → `lint.sh` + `check-overview.js` + `session-log.sh` + `permission-audit.sh` + `list-open-plans.js` + `check-agent-log-compliance.js` + `content-quality-fast.sh` + 未 push 检查 | 11 项退出检查：markdown 格式、git 状态、INDEX 一致性、overview 健康、session 日志、权限审计、未 push commit（≥3 自动 push，含 pull --rebase 重试）、沉淀声明审计、plans 状态、agent-log patch 合规、内容质量 fast-path |
 | **约束层** | Stop | settings.json | `node scripts/agent-log-hook.js main` | 主 agent 工作日志记录（有实质工作时写入 `logs/agent-runs/` JSONL） |
 | **约束层** | PostToolUse（Write/Edit） | settings.local.json | `scripts/verify-claim.sh` | 每次 Write/Edit kb/ 或 memory/ 文件时验证文件确实存在，写入 `.claude/claim-ledger.log`（exit-check [8/11] 消费） |
 | **约束层** | SubagentStop | settings.json | `node scripts/agent-log-hook.js subagent` | subagent 工作日志记录（写入 `logs/agent-runs/` JSONL，后续由 AI patch title/summary/outcome） |
