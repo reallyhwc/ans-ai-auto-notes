@@ -17,7 +17,7 @@ CLAUDE.md 再完美也会被忘，但一个 lint 脚本永远不会。
 git clone <this-repo-url> my-kb
 cd my-kb
 
-# 2. 一键 onboarding（7 步：claude 探测 → install-hooks → 全局 settings → PostToolUse hook 注入 → memory sync → 构建索引 → 跑测试）
+# 2. 一键 onboarding（7 步：claude 探测 → install-hooks → 全局 settings → 权限模板 → memory sync → 构建索引 → 跑测试）
 bash bootstrap.sh
 
 # 3. 启动本地预览
@@ -153,7 +153,8 @@ my-kb/
 │       ├── specs/               ← 设计文档
 │       └── plans/               ← 实施 plan
 ├── .claude/
-│   ├── settings.local.json      ← Hook 配置（不入 git）
+│   ├── settings.json            ← Hook 配置（入 git，clone 自带 5 hook）
+│   ├── settings.local.json      ← 权限白名单（不入 git，设备私有）
 │   ├── skills/                  ← 项目级 skill（入 git）
 │   ├── memory-snapshot/         ← memory 跨设备 staging（入 git）
 │   ├── session-logs/            ← session 日志（不入 git）
@@ -188,6 +189,8 @@ AI 会按这个背景调整回答风格、举例子时选你熟悉的领域。
 
 ### 3. 写下你的第一条 ADR
 
+**ADR（Architecture Decision Record，架构决策记录）**：把重要的分类/架构决策按固定格式记成编号条目，让 AI 下次遇到类似争议时有先例可循，避免目录漂移。
+
 遇到分类争议时（"某篇笔记该放技术/还是实战/？"），AI 会先看 `docs/decisions.md`。决策后追加 ADR：
 
 ```markdown
@@ -206,7 +209,7 @@ AI 会按这个背景调整回答风格、举例子时选你熟悉的领域。
 
 ### Plan 系统（跨 session 持久化任务）
 
-长期任务（"重构整个 Java 笔记目录"）写到 `docs/superpowers/plans/YYYY-MM-DD-<topic>.md`，加 frontmatter `status: 进行中`。Stop hook 的 `[9/9]` 会列出所有未完成 plan，避免遗忘。完成后改 `status: completed`。
+长期任务（"重构整个 Java 笔记目录"）写到 `docs/superpowers/plans/YYYY-MM-DD-<topic>.md`，加 frontmatter `status: 进行中`。Stop hook 的 `[9/11]` 会列出所有未完成 plan，避免遗忘。完成后改 `status: completed`。
 
 ### split-doc 拆大文件
 

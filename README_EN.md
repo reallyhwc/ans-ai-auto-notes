@@ -17,7 +17,7 @@ A perfect CLAUDE.md gets forgotten; a lint script never does.
 git clone <this-repo-url> my-kb
 cd my-kb
 
-# 2. One-command onboarding (7 steps: claude detection → install-hooks → settings → PostToolUse hook injection → memory sync → build index → run tests)
+# 2. One-command onboarding (7 steps: claude detection → install-hooks → settings → permission template → memory sync → build index → run tests)
 bash bootstrap.sh
 
 # 3. Start local preview
@@ -153,7 +153,8 @@ my-kb/
 │       ├── specs/               ← design docs
 │       └── plans/               ← implementation plans
 ├── .claude/
-│   ├── settings.local.json      ← hook config (not in git)
+│   ├── settings.json            ← hook config (in git, clone-ready with 5 hooks)
+│   ├── settings.local.json      ← permission allowlist (not in git, device-private)
 │   ├── skills/                  ← project-level skills (in git)
 │   ├── memory-snapshot/         ← cross-device memory staging (in git)
 │   ├── session-logs/            ← session logs (not in git)
@@ -188,6 +189,8 @@ Just tell AI "let's discuss X". AI will distill the conversation into kb/ follow
 
 ### 3. Write Your First ADR
 
+**ADR (Architecture Decision Record)**: Record important classification/architecture decisions as numbered entries in a fixed format, so AI has precedent to follow next time a similar dispute arises — preventing directory drift.
+
 When facing a classification dispute ("should this note go under 技术/ or 实战/?"), AI checks `docs/decisions.md` first. After deciding, append an ADR:
 
 ```markdown
@@ -206,7 +209,7 @@ Next time AI faces a similar classification, it'll cite this ADR.
 
 ### Plan System (Cross-Session Persistent Tasks)
 
-Long-running tasks (e.g., "refactor entire Java directory") go in `docs/superpowers/plans/YYYY-MM-DD-<topic>.md` with frontmatter `status: 进行中`. Stop hook's `[9/9]` lists all incomplete plans to prevent forgetting. Mark `status: completed` when done.
+Long-running tasks (e.g., "refactor entire Java directory") go in `docs/superpowers/plans/YYYY-MM-DD-<topic>.md` with frontmatter `status: 进行中`. Stop hook's `[9/11]` lists all incomplete plans to prevent forgetting. Mark `status: completed` when done.
 
 ### split-doc for Large Files
 
