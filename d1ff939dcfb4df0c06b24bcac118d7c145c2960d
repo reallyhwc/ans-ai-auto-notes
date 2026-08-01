@@ -1,0 +1,59 @@
+tests/lint.test.js
+  2502bd7f4765220b 1-167
+tests/check-overview.test.js
+  2502bd7f4765220b 1-96
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.9",
+  "base_commit_sha": "d1ff939dcfb4df0c06b24bcac118d7c145c2960d",
+  "prompts": {
+    "2502bd7f4765220b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b8d601be-be0e-4f3d-ac4c-ea12692046df",
+        "model": "glm-5.2"
+      },
+      "human_author": "xuhu",
+      "messages": [],
+      "total_additions": 325,
+      "total_deletions": 10,
+      "accepted_lines": 334,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "tests/lint.test.js": {
+          "additions": 167,
+          "accepted_lines": 167
+        },
+        "tests/agent-log.test.js": {
+          "additions": 28,
+          "deletions": 2,
+          "accepted_lines": 28
+        },
+        "tests/session-log.test.js": {
+          "additions": 12,
+          "accepted_lines": 12
+        },
+        "tests/agent-log-compliance.test.js": {
+          "additions": 19,
+          "accepted_lines": 19
+        },
+        "logs/agent-runs/2026-07.jsonl": {
+          "accepted_lines": 1
+        },
+        "tests/check-overview.test.js": {
+          "additions": 96,
+          "accepted_lines": 96
+        },
+        "logs/agent-runs/2026-08.jsonl": {
+          "accepted_lines": 8
+        },
+        "tests/hook-contract.test.js": {
+          "additions": 3,
+          "deletions": 8,
+          "accepted_lines": 3
+        }
+      }
+    }
+  }
+}
