@@ -1,0 +1,57 @@
+.claude/skills/kb-content-style/SKILL.md
+  2502bd7f4765220b 56,58,60-64,66-91,172
+.agents/skills/kb-content-style/SKILL.md
+  2502bd7f4765220b 56,58,60-64,66-91,170
+CLAUDE.md
+  2502bd7f4765220b 163
+AGENTS.md
+  2502bd7f4765220b 95
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.9",
+  "base_commit_sha": "75f13afd3e148277daafbec56ba2545d32e05adb",
+  "prompts": {
+    "2502bd7f4765220b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b8d601be-be0e-4f3d-ac4c-ea12692046df",
+        "model": "glm-5.2"
+      },
+      "human_author": "xuhu",
+      "messages": [],
+      "total_additions": 70,
+      "total_deletions": 20,
+      "accepted_lines": 77,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "CLAUDE.md": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "AGENTS.md": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        ".claude/skills/kb-content-style/SKILL.md": {
+          "additions": 34,
+          "deletions": 9,
+          "accepted_lines": 34
+        },
+        ".agents/skills/kb-content-style/SKILL.md": {
+          "additions": 34,
+          "deletions": 9,
+          "accepted_lines": 34
+        },
+        "logs/agent-runs/2026-08.jsonl": {
+          "accepted_lines": 6
+        },
+        "logs/agent-runs/2026-07.jsonl": {
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
