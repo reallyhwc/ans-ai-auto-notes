@@ -14,14 +14,14 @@ CMD="$*"
 LOG_FILE="${HOOK_LOG_FILE:-$(cd "$(dirname "$0")/.." && pwd)/logs/hook-runs.jsonl}"
 mkdir -p "$(dirname "$LOG_FILE")"
 
-START_MS=$(python3 -c "import time; print(int(time.time()*1000))" 2>/dev/null || echo 0)
+START_MS=$(perl -MTime::HiRes=time -e 'print int(time*1000)' 2>/dev/null || echo 0)
 
 set +e
 ( eval "$CMD" )
 EXIT_CODE=$?
 set -e
 
-END_MS=$(python3 -c "import time; print(int(time.time()*1000))" 2>/dev/null || echo 0)
+END_MS=$(perl -MTime::HiRes=time -e 'print int(time*1000)' 2>/dev/null || echo 0)
 DURATION_MS=$((END_MS - START_MS))
 TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 

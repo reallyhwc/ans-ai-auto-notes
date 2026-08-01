@@ -1,3 +1,4 @@
+// arch-lint-ignore-unref: 库模块，被 agent-log-hook.js / agent-log.js / agent-report.js 等 require()
 /**
  * lib-agent-log.js — Agent runs 事件日志的纯函数库
  *
@@ -150,17 +151,37 @@ function truncate(text, max) {
   return text.length > max ? text.slice(0, max) + '…' : text;
 }
 
+// 检测 final_text 是否为 subagent 返回的结构化块：
+//   - VERDICT: / EXTRACT-VERDICT: 开头（kb-auditor / idea-extractor / plan-executor 的返回格式）
+//   - 可 parse 的 JSON 对象/数组（结构化数据，非自然语言）
+// 这类内容首行是无语义标记（如 "VERDICT: minor (2)"），不适合做 title。
+function isStructuredBlock(text) {
+  if (/^(VERDICT|EXTRACT-VERDICT):/.test(text)) return true;
+  try {
+    const parsed = JSON.parse(text);
+    return typeof parsed === 'object' && parsed !== null;
+  } catch { return false; }
+}
+
 // 从 parseTranscript 结果派生 title/summary/outcome，供 SubagentStop hook 自动填充
 // （不再依赖 AI 记得手动调用 agent-log.js patch）
+//
+// 返回 { title, summary, outcome, needs_manual_patch }：
+//   - needs_manual_patch=true 表示 final_text 是结构化块（VERDICT/JSON），title 无法自动派生，
+//     需 AI 手动 patch。check-agent-log-compliance.js 会独立检查此标记。
 function deriveAutoFields(parsed) {
   const outcome = parsed.has_error ? 'partial' : 'success';
-  if (!parsed.final_text) return { title: null, summary: null, outcome };
+  if (!parsed.final_text) return { title: null, summary: null, outcome, needs_manual_patch: false };
   const text = parsed.final_text.trim();
+  if (isStructuredBlock(text)) {
+    return { title: null, summary: truncate(text, 200), outcome, needs_manual_patch: true };
+  }
   const firstLine = text.split('\n')[0].trim();
   return {
     title: truncate(firstLine, 60),
     summary: truncate(text, 200),
     outcome,
+    needs_manual_patch: false,
   };
 }
 

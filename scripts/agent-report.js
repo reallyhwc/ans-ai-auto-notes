@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// arch-lint-ignore-unref: 手动 CLI 工具（月度报告），不在 hook 链路里
 /**
  * agent-report.js — Agent runs 月度报告
  *

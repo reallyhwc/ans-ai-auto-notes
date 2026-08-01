@@ -57,3 +57,20 @@ test('arch-lint.sh: 应输出 15 项检查汇总', () => {
   assert.match(content, /Linter 汇总/, '应有汇总标题');
   assert.match(content, /通过.*错误.*警告/, '应输出通过/错误/警告数');
 });
+
+test('arch-lint.sh: [10/15] 应反向校验 ignore-unref 注释的必要性（被引用则报冗余）', () => {
+  // 带 arch-lint-ignore-unref 注释但实际被 REFERENCING 文件引用的脚本，
+  // 说明豁免已过时（脚本后来被接入了 hook 链路），应报"豁免冗余"警告
+  assert.match(content, /豁免冗余/, '应输出"豁免冗余"警告文案');
+  assert.match(content, /已被引用.*建议删除 arch-lint-ignore-unref/,
+    '应建议删除被引用脚本上的冗余 arch-lint-ignore-unref 注释');
+});
+
+test('arch-lint.sh: [10/15] 应扫描 scripts/*.js 孤儿（不只 *.sh）', () => {
+  // find 命令应同时扫描 .sh 和 .js 文件，覆盖手动 CLI 工具和库文件
+  assert.match(content, /find scripts.*\*\.js/,
+    'find 命令应包含 *.js（当前只扫 *.sh，漏掉 .js 孤儿）');
+  // ignore-unref 注释检查应同时匹配 # 和 // 风格（.sh 用 #，.js 用 //）
+  assert.match(content, /\/\/.*arch-lint-ignore-unref/,
+    'ignore-unref 检查应支持 // 注释风格（.js 文件用 // 而非 #）');
+});

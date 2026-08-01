@@ -44,7 +44,7 @@ test('契约: verify-claim 输出格式被 exit-check 正确消费（MISSING 场
   }
 });
 
-test('契约: verify-claim 输出格式被 exit-check 正确消费（exists 场景）', () => {
+test('契约: verify-claim exists 场景不写 ledger（只写 MISSING 行，避免无限增长）', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hc-test-'));
   const scriptSrc = path.resolve(__dirname, '..', 'scripts', 'verify-claim.sh');
   fs.mkdirSync(path.join(dir, 'scripts'));
@@ -65,13 +65,8 @@ test('契约: verify-claim 输出格式被 exit-check 正确消费（exists 场�
       stdio: ['pipe', 'pipe', 'pipe'],
     });
 
-    const ledger = fs.readFileSync(path.join(dir, '.claude', 'claim-ledger.log'), 'utf-8');
-
-    const missingCount = (ledger.match(/ \| MISSING$/gm) || []).length;
-    assert.equal(missingCount, 0, 'exists 行不应被 MISSING 匹配');
-
-    const parts = ledger.trim().split(' | ');
-    assert.equal(parts[3], 'exists');
+    const ledgerPath = path.join(dir, '.claude', 'claim-ledger.log');
+    assert.ok(!fs.existsSync(ledgerPath), 'exists 场景不应创建 ledger 文件（只写 MISSING 行）');
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
@@ -84,5 +79,6 @@ test('契约: exit-check [8/N] 的 grep pattern 与 ledger 格式一致', () => 
 
   const verifyClaim = fs.readFileSync(path.resolve(__dirname, '..', 'scripts', 'verify-claim.sh'), 'utf-8');
   assert.match(verifyClaim, /\| MISSING"/, 'verify-claim 应写入 "| MISSING" 后缀');
-  assert.match(verifyClaim, /\| exists"/, 'verify-claim 应写入 "| exists" 后缀');
+  // exists 行不再落盘（假设7修复），只写 MISSING 行避免 ledger 无限增长
+  assert.doesNotMatch(verifyClaim, /exists.*>>.*LEDGER/, 'verify-claim 不应再 append exists 行到 ledger');
 });

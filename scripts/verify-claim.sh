@@ -1,7 +1,7 @@
 #!/bin/bash
-# arch-lint-ignore-unref: Hook script attached via PostToolUse in .claude/settings.local.json (managed by bootstrap.sh)
 # verify-claim.sh — PostToolUse hook：验证 Write/Edit 写入的 kb/ 或 memory/ 文件确实存在
-# 输出: append 到 .claude/claim-ledger.log
+# 输出: 仅 MISSING 行 append 到 .claude/claim-ledger.log（exists 不落盘，避免无限增长）
+#       exit-check [8/11] 只消费 MISSING 行
 #
 # 输入协议（双轨，stdin 优先）:
 #   1. 真实 Claude Code: stdin 传入 JSON
@@ -63,7 +63,8 @@ esac
 
 TS=$(date "+%Y-%m-%d %H:%M:%S")
 if [ -f "$FILE_PATH" ]; then
-  echo "$TS | $TOOL | $FILE_PATH | exists" >> "$LEDGER"
+  # exists 行不落盘（避免 claim-ledger 无限增长），静默通过
+  :
 else
   echo "$TS | $TOOL | $FILE_PATH | MISSING" >> "$LEDGER"
   echo "⚠️  verify-claim: 声称写入但文件不存在: $FILE_PATH" >&2

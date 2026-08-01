@@ -1,3 +1,4 @@
+// arch-lint-ignore-unref: 手动 CLI 工具（批量重命名），不在 hook 链路里
 // rename-mapping.js — 扫描 kb/ 下所有 md，从 frontmatter title 生成中文文件名映射
 // 用法: node scripts/rename-mapping.js [--dry-run] [--apply]
 

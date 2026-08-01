@@ -66,3 +66,33 @@ test('compliance: main agent title 缺失 → 不报（仅检查 subagent）', (
     assert.match(out, /✓/);
   });
 });
+
+test('compliance: subagent needs_manual_patch=true（结构化返回未派生 title）→ 输出 ⚠️ + 列出 id', () => {
+  withTempLog([
+    { event: 'start', id: 'r-2026-06-08-10-00-ab12', time: '2026-06-08T10:00:00+08:00', agent: 'kb-auditor', outcome: 'success', title: null, summary: 'VERDICT: minor (2)', needs_manual_patch: true },
+  ], (dir) => {
+    const out = runCheck(dir);
+    assert.match(out, /⚠️/);
+    assert.match(out, /r-2026-06-08-10-00-ab12/);
+  });
+});
+
+test('compliance: subagent needs_manual_patch=true 但 title 已被 patch → 仍报（flag 未清除）', () => {
+  withTempLog([
+    { event: 'start', id: 'r-2026-06-08-10-00-ab12', time: '2026-06-08T10:00:00+08:00', agent: 'kb-auditor', outcome: 'success', title: null, summary: 'VERDICT: minor (2)', needs_manual_patch: true },
+    { event: 'patch', id: 'r-2026-06-08-10-00-ab12', time: '2026-06-08T10:05:00+08:00', title: '手动补的标题' },
+  ], (dir) => {
+    const out = runCheck(dir);
+    assert.match(out, /⚠️/);
+    assert.match(out, /r-2026-06-08-10-00-ab12/);
+  });
+});
+
+test('compliance: subagent needs_manual_patch=false 且 title 非空 → 不报', () => {
+  withTempLog([
+    { event: 'start', id: 'r-2026-06-08-10-00-ab12', time: '2026-06-08T10:00:00+08:00', agent: 'kb-auditor', outcome: 'success', title: '审计完成', summary: '...', needs_manual_patch: false },
+  ], (dir) => {
+    const out = runCheck(dir);
+    assert.match(out, /✓/);
+  });
+});

@@ -78,3 +78,17 @@ test('hook-logger: 传递原始命令的 exit code', () => {
     assert.equal(logs[0].exit_code, 2);
   });
 });
+
+// 回归测试：每次 hook 调用 fork 2 次 python3 取毫秒时间戳（4 hook × 2 = 8 次/轮，
+// ~200-400ms 开销）。perl 启动比 python3 快约 2x，macOS 自带 perl。
+// 修复：START_MS / END_MS 时间戳获取改用 perl -MTime::HiRes，不再 fork python3。
+test('hook-logger.sh: 毫秒时间戳应使用 perl Time::HiRes 而非 python3（减少 fork 开销）', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'hook-logger.sh'), 'utf8');
+  // 只检查时间戳获取行（START_MS / END_MS），不检查 JSON 写入行（line 29 仍可用 python3）
+  const tsLines = src.split('\n').filter(l => l.includes('_MS=$') && l.includes('print'));
+  assert.ok(tsLines.length >= 2, `应至少有 2 处时间戳获取（START_MS, END_MS），实际 ${tsLines.length}`);
+  for (const line of tsLines) {
+    assert.ok(!line.includes('python3'), `时间戳获取不应 fork python3: ${line.trim()}`);
+    assert.match(line, /perl/, `时间戳获取应使用 perl: ${line.trim()}`);
+  }
+});

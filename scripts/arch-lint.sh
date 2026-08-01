@@ -383,9 +383,11 @@ echo "  结果: $DEPS_ISSUES 个依赖问题"
 # ── 检查 10: 脚本被引用一致性 ──
 # 沉淀共性问题："文档先进了一步" —— CLAUDE.md/README 声称在 hook 链路里跑的脚本，
 # 实际可能从未被调用（如 permission-audit.sh 曾是死代码几个月）。
-# 此检查找出 scripts/*.sh 中未被任何调用方引用的"孤儿脚本"。
+# 此检查找出 scripts/*.{sh,js} 中未被任何调用方引用的"孤儿脚本"。
 # 调用方白名单：exit-check.sh / preflight.sh / arch-lint.sh / install-hooks.sh /
 #               git-hooks/* / test.sh / serve.sh / .claude/settings*.json
+# 手动 CLI 工具（不在 hook 链路里）用 arch-lint-ignore-unref 注释豁免，
+# 反向校验确保豁免注释不冗余（脚本被引用后注释应删除）。
 echo ""
 echo "[10/15] 脚本被引用一致性..."
 
@@ -409,11 +411,12 @@ GIT_HOOKS=$(find scripts/git-hooks -type f 2>/dev/null)
 
 while IFS= read -r script; do
   SCRIPT_NAME=$(basename "$script")
-  # 豁免：脚本顶部含 `# arch-lint-ignore-unref:` 注释（如 PostToolUse hook script，
-  # 由 settings.local.json 引用而非 hook 链路；该文件 .gitignore 不参与 scan）
-  if head -5 "$script" 2>/dev/null | grep -q "^# arch-lint-ignore-unref:"; then
-    continue
+  # 检查是否有豁免注释（.sh 用 #，.js 用 //；手动 CLI 工具等不在 hook 链路里的脚本）
+  HAS_IGNORE=0
+  if head -5 "$script" 2>/dev/null | grep -qE "^(#|//) arch-lint-ignore-unref:"; then
+    HAS_IGNORE=1
   fi
+  # 检查是否被引用（所有脚本都检查，用于正常孤儿检测 + 反向校验豁免必要性）
   REFERENCED=0
   for ref in "${REFERENCING[@]}"; do
     [ -f "$ref" ] || continue
@@ -429,14 +432,21 @@ while IFS= read -r script; do
       REFERENCED=1
     fi
   fi
-  if [ $REFERENCED -eq 0 ]; then
+  # 分类报告
+  if [ $HAS_IGNORE -eq 1 ] && [ $REFERENCED -eq 1 ]; then
+    # 反向校验：带豁免注释但实际已被引用，说明豁免已过时
+    echo "  ⚠️  豁免冗余：$script 已被引用，建议删除 arch-lint-ignore-unref 注释"
+    UNREF_COUNT=$((UNREF_COUNT + 1))
+  elif [ $HAS_IGNORE -eq 0 ] && [ $REFERENCED -eq 0 ]; then
     echo "  ⚠️  $script 未在任何 hook/exit-check/手动入口中被引用（可能是死代码或文档未对齐）"
     UNREF_COUNT=$((UNREF_COUNT + 1))
   fi
-done < <(find scripts -maxdepth 1 -name "*.sh" -type f 2>/dev/null)
+  # HAS_IGNORE=1 && REFERENCED=0 → 正确豁免，不报告
+  # HAS_IGNORE=0 && REFERENCED=1 → 正常引用，不报告
+done < <(find scripts -maxdepth 1 \( -name "*.sh" -o -name "*.js" \) -type f 2>/dev/null)
 
 if [ "$UNREF_COUNT" -eq 0 ]; then
-  echo "  ✓ 所有 scripts/*.sh 都已被某个入口引用"
+  echo "  ✓ 所有 scripts/*.{sh,js} 都已被某个入口引用或正确豁免"
 fi
 echo "  结果: $UNREF_COUNT 个孤儿脚本"
 

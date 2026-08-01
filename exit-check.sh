@@ -38,14 +38,14 @@ else
   # 逐个验证 INDEX.md 中列出的文件确实存在（拦截"口头沉淀"——声称已创建但实际未写盘）
   MISSING_FILES=0
   while IFS= read -r line; do
-    # 提取 ](path.md) 中的路径
-    md_file=$(echo "$line" | sed 's/.*](\(.*\.md\)).*/\1/')
+    # 提取 ](path.md) 中的路径（非贪婪：[^)]+ 排除含 ) 的路径）
+    md_file=$(echo "$line" | sed 's/](//;s/)$//')
     [ -z "$md_file" ] && continue
     if [ ! -f "$md_file" ]; then
       echo "  ❌ 文件不存在: $md_file"
       MISSING_FILES=$((MISSING_FILES + 1))
     fi
-  done < <(grep -o ']([^)]*\.md)' INDEX.md 2>/dev/null || true)
+  done < <(grep -oE '\]\([^)]+\.md\)' INDEX.md 2>/dev/null || true)
   [ "$MISSING_FILES" -gt 0 ] && echo "  ❌ $MISSING_FILES 个 INDEX.md 引用的文件不存在！请检查是否只写了文档但没创建文件"
 fi
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// arch-lint-ignore-unref: 手动 CLI 工具（半自动拆分），不在 hook 链路里
 /**
  * split-doc.js — 半自动拆分 KB 大文件
  *

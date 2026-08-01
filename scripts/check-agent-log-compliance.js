@@ -20,13 +20,23 @@ const events = content.split('\n').filter(l => l.trim()).flatMap(l => {
 });
 
 const records = foldEvents(events);
-const unpatched = records.filter(r => r.agent !== 'main' && (r.title === null || r.title === undefined));
+// 未 patch 判定（subagent only）：
+//   1. title 缺失（null/undefined）— 自动派生拿不到 + AI 未手动补
+//   2. needs_manual_patch === true — final_text 是结构化块（VERDICT/JSON），title 无法自动派生，
+//      即使 AI 后续 patch 了 title 但未清除此 flag，仍报（提示 flag 清除纪律）
+const unpatched = records.filter(r =>
+  r.agent !== 'main' &&
+  (r.title === null || r.title === undefined || r.needs_manual_patch === true)
+);
 
 if (unpatched.length === 0) {
   console.log('  ✓ 所有 subagent run 均已 patch');
 } else {
-  console.log(`  ⚠️  ${unpatched.length} 个 subagent run 未 patch（outcome=unknown）：`);
+  console.log(`  ⚠️  ${unpatched.length} 个 subagent run 未 patch（title 缺失或 needs_manual_patch）：`);
   for (const r of unpatched) {
-    console.log(`    ${r.id} | agent=${r.agent} | time=${r.time}`);
+    const reasons = [];
+    if (r.title === null || r.title === undefined) reasons.push('title缺失');
+    if (r.needs_manual_patch === true) reasons.push('结构化块待patch');
+    console.log(`    ${r.id} | agent=${r.agent} | time=${r.time} | ${reasons.join('+')}`);
   }
 }

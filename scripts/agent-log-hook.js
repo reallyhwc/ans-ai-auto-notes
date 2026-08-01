@@ -80,6 +80,7 @@ function main() {
     model: parsed.model,
     title: auto.title,
     summary: auto.summary,
+    needs_manual_patch: auto.needs_manual_patch === true,
   };
 
   const logFile = process.env.AGENT_LOG_FILE || defaultLogFile();

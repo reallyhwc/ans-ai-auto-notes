@@ -174,9 +174,9 @@ test('parseTranscript: 无 is_error 字段 → has_error 为 false', () => {
   assert.equal(r.has_error, false);
 });
 
-test('deriveAutoFields: 无 final_text → title/summary null，outcome success（无错误信号）', () => {
+test('deriveAutoFields: 无 final_text → title/summary null，outcome success，needs_manual_patch false', () => {
   const auto = deriveAutoFields({ final_text: null, has_error: false });
-  assert.deepEqual(auto, { title: null, summary: null, outcome: 'success' });
+  assert.deepEqual(auto, { title: null, summary: null, outcome: 'success', needs_manual_patch: false });
 });
 
 test('deriveAutoFields: 有 final_text → summary=全文，title=首行截断60字', () => {
@@ -199,6 +199,32 @@ test('deriveAutoFields: summary 超 200 字截断加省略号，title 超 60 字
   assert.ok(auto.summary.endsWith('…'));
   assert.equal(auto.title.length, 61); // 60 字 + '…'
   assert.ok(auto.title.endsWith('…'));
+});
+
+// 假设6：结构化块检测（VERDICT: / EXTRACT-VERDICT: / JSON）→ title null + needs_manual_patch
+test('deriveAutoFields: final_text 以 VERDICT: 开头 → title null, needs_manual_patch true', () => {
+  const auto = deriveAutoFields({ final_text: 'VERDICT: minor (2)\n详细内容...', has_error: false });
+  assert.equal(auto.title, null);
+  assert.equal(auto.needs_manual_patch, true);
+  assert.equal(auto.outcome, 'success');
+});
+
+test('deriveAutoFields: final_text 以 EXTRACT-VERDICT: 开头 → title null, needs_manual_patch true', () => {
+  const auto = deriveAutoFields({ final_text: 'EXTRACT-VERDICT: 3 个候选\n...', has_error: false });
+  assert.equal(auto.title, null);
+  assert.equal(auto.needs_manual_patch, true);
+});
+
+test('deriveAutoFields: final_text 是 JSON 对象 → title null, needs_manual_patch true', () => {
+  const auto = deriveAutoFields({ final_text: '{"verdict":"pass"}', has_error: false });
+  assert.equal(auto.title, null);
+  assert.equal(auto.needs_manual_patch, true);
+});
+
+test('deriveAutoFields: 自然语言 final_text → title 非空, needs_manual_patch false（回归保护）', () => {
+  const auto = deriveAutoFields({ final_text: '审计完成，发现 2 处问题', has_error: false });
+  assert.equal(auto.title, '审计完成，发现 2 处问题');
+  assert.equal(auto.needs_manual_patch, false);
 });
 
 function runHook(mode, stdinJson, env = {}) {
