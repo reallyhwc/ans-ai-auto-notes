@@ -1,0 +1,431 @@
+scripts/agent-log-hook.js
+  2502bd7f4765220b 18,66-68,79,81-83
+.claude/settings.json
+  2502bd7f4765220b 3-14,17,25-55
+test.sh
+  2502bd7f4765220b 3,7-17,19
+tests/agent-log.test.js
+  2502bd7f4765220b 8,150-229,257,265-276
+scripts/session-log.sh
+  2502bd7f4765220b 48,55,70
+server.js
+  2502bd7f4765220b 50-61,64-70,72-83,85-89,92,94-109,112-115,129-147,150
+scripts/preflight.sh
+  2502bd7f4765220b 116-117
+.claude/skills/arch-lint-fix-guide/SKILL.md
+  2502bd7f4765220b 1-189
+tests/arch-lint-perf.test.js
+  2502bd7f4765220b 1-42
+docs/future-ideas.md
+  2502bd7f4765220b 1-47
+tests/arch-lint-check6.test.js
+  2502bd7f4765220b 1-65
+tests/subagent-definitions.test.js
+  2502bd7f4765220b 1-96
+tests/server.test.js
+  2502bd7f4765220b 1-138
+scripts/check-agent-log-compliance.js
+  2502bd7f4765220b 1-42
+scripts/hook-logger.sh
+  2502bd7f4765220b 1-42
+tests/auto-push.test.js
+  2502bd7f4765220b 1-41
+bootstrap.sh
+  2502bd7f4765220b 39,41-42,44-54,56
+scripts/verify-claim.sh
+  2502bd7f4765220b 3-4,66-67
+.claude/agents/README.md
+  2502bd7f4765220b 8,15,17,38-39,49,51-59,89,97-100,114
+.claude/skills/build-index/SKILL.md
+  2502bd7f4765220b 1-95
+scripts/rename-mapping.js
+  2502bd7f4765220b 1-214
+tests/integration.test.js
+  2502bd7f4765220b 19-23,51-70
+tests/content-quality-fast.test.js
+  2502bd7f4765220b 1-152
+docs/decisions.md
+  2502bd7f4765220b 66-82
+.claude/skills/auto-commit-discipline/SKILL.md
+  2502bd7f4765220b 3,6,8,17,19-22,24,31-32,45,47-52,54,56-57,60
+scripts/arch-lint.sh
+  2502bd7f4765220b 96-106,115-116,120,149-163,168-206,208,210,213-231,233-262,264-266,268-271,386,389-390,414-417,419,435-440,444-446,449
+tests/arch-lint.test.js
+  2502bd7f4765220b 1-76
+scripts/lib-agent-log.js
+  2502bd7f4765220b 1,76,78,93,104-105,108,110-116,120-121,145-184,188
+scripts/content-quality-fast.sh
+  2502bd7f4765220b 1-63
+lint.sh
+  2502bd7f4765220b 2-6,9-103
+scripts/split-doc.js
+  2502bd7f4765220b 2
+.gitignore
+  2502bd7f4765220b 28-29,31,42-43
+tests/pretool-guard.test.js
+  2502bd7f4765220b 1-109
+exit-check.sh
+  2502bd7f4765220b 8-14,18,20,23,25,28,30,41-42,48,52,54,57,59,62,64,67,70,72,83-86,90,92,96-100,102-118,120-122,129,140-142,145,147,152-153,162,164,167-175
+tests/auto-save-discipline.test.js
+  2502bd7f4765220b 1-57
+.claude/agents/kb-auditor.md
+  2502bd7f4765220b 65-68,70-85,88-92
+tests/lint.test.js
+  2502bd7f4765220b 1-167
+tests/session-log.test.js
+  2502bd7f4765220b 72-83
+.claude/agents/idea-extractor.md
+  2502bd7f4765220b 11,21,23,28,31-36,39-53,55-57,60-61
+.claude/skills/kb-tdd-discipline/SKILL.md
+  2502bd7f4765220b 3,49,51-54,61,65,67-71
+kb/实战/demo-harness-walkthrough.md
+  2502bd7f4765220b 103
+serve.sh
+  2502bd7f4765220b 19,21
+scripts/fix-md-link-spaces.js
+  2502bd7f4765220b 1-65
+tests/hook-logger.test.js
+  2502bd7f4765220b 1-94
+scripts/check-overview.js
+  2502bd7f4765220b 180-184,188,192-193,195,198
+scripts/git-hooks/pre-push
+  2502bd7f4765220b 2,9,24-79
+CLAUDE.md
+  2502bd7f4765220b 5,35,37-43,45,50-52,71,78-119,121-138,140,162,167,182,189-208,211,215,220,222-231,233,237,239,244,251
+README_EN.md
+  2502bd7f4765220b 41,43,48,72,81,84,102,109-124,147,187,191,194
+tests/exit-check.test.js
+  2502bd7f4765220b 1-27
+scripts/pretool-guard.sh
+  2502bd7f4765220b 1-44
+tests/fixtures/agent-log-transcript-with-summary.jsonl
+  2502bd7f4765220b 1-4
+tests/hook-contract.test.js
+  2502bd7f4765220b 1-84
+scripts/agent-tail.js
+  2502bd7f4765220b 2
+overview.html
+  2502bd7f4765220b 157-171,264-274
+tests/verify-claim.test.js
+  2502bd7f4765220b 48,56
+scripts/agent-report.js
+  2502bd7f4765220b 2
+.claude/skills/kb-content-style/SKILL.md
+  2502bd7f4765220b 3,26,56,58,60-64,66,68-91,99-100,108-157,161,165-167,172
+README.md
+  2502bd7f4765220b 41,43,48,72,81,84,102,109-110,112-124,147,187,191,194
+tests/check-overview.test.js
+  2502bd7f4765220b 1-96
+scripts/agent-log.js
+  2502bd7f4765220b 2
+tests/agent-log-compliance.test.js
+  2502bd7f4765220b 1-98
+tests/auto-commit-skill.test.js
+  2502bd7f4765220b 1-43
+scripts/app.js
+  2502bd7f4765220b 670-672
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.9",
+  "base_commit_sha": "2972f9ff745a5da1ba0ff0f3871e48731f545c71",
+  "prompts": {
+    "2502bd7f4765220b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b8d601be-be0e-4f3d-ac4c-ea12692046df",
+        "model": "glm-5.2"
+      },
+      "human_author": "xuhu",
+      "messages": [],
+      "total_additions": 3416,
+      "total_deletions": 373,
+      "accepted_lines": 3401,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "scripts/lib-agent-log.js": {
+          "additions": 57,
+          "deletions": 4,
+          "accepted_lines": 57
+        },
+        "tests/content-quality-fast.test.js": {
+          "additions": 152,
+          "accepted_lines": 152
+        },
+        "kb/实战/demo-harness-walkthrough.md": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "scripts/hook-logger.sh": {
+          "additions": 42,
+          "accepted_lines": 42
+        },
+        "tests/fixtures/agent-log-transcript-with-summary.jsonl": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "tests/integration.test.js": {
+          "additions": 25,
+          "deletions": 1,
+          "accepted_lines": 25
+        },
+        "tests/lint.test.js": {
+          "additions": 167,
+          "accepted_lines": 167
+        },
+        "lint.sh": {
+          "additions": 100,
+          "deletions": 4,
+          "accepted_lines": 100
+        },
+        "docs/decisions.md": {
+          "additions": 17,
+          "accepted_lines": 17
+        },
+        "tests/hook-logger.test.js": {
+          "additions": 94,
+          "accepted_lines": 94
+        },
+        "overview.html": {
+          "additions": 26,
+          "accepted_lines": 26
+        },
+        "scripts/pretool-guard.sh": {
+          "additions": 44,
+          "accepted_lines": 44
+        },
+        "tests/check-overview.test.js": {
+          "additions": 96,
+          "accepted_lines": 96
+        },
+        "scripts/verify-claim.sh": {
+          "additions": 4,
+          "deletions": 3,
+          "accepted_lines": 4
+        },
+        ".claude/skills/arch-lint-fix-guide/SKILL.md": {
+          "additions": 189,
+          "accepted_lines": 189
+        },
+        "tests/agent-log-compliance.test.js": {
+          "additions": 98,
+          "accepted_lines": 98
+        },
+        "tests/arch-lint.test.js": {
+          "additions": 76,
+          "accepted_lines": 76
+        },
+        "tests/arch-lint-perf.test.js": {
+          "additions": 42,
+          "accepted_lines": 42
+        },
+        "scripts/session-log.sh": {
+          "additions": 3,
+          "deletions": 3,
+          "accepted_lines": 3
+        },
+        "bootstrap.sh": {
+          "additions": 15,
+          "deletions": 28,
+          "accepted_lines": 15
+        },
+        "tests/exit-check.test.js": {
+          "additions": 27,
+          "accepted_lines": 27
+        },
+        "scripts/agent-log.js": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        ".claude/skills/auto-commit-discipline/SKILL.md": {
+          "additions": 23,
+          "deletions": 29,
+          "accepted_lines": 23
+        },
+        "tests/subagent-definitions.test.js": {
+          "additions": 96,
+          "accepted_lines": 96
+        },
+        "tests/hook-contract.test.js": {
+          "additions": 84,
+          "accepted_lines": 84
+        },
+        ".claude/skills/kb-content-style/SKILL.md": {
+          "additions": 97,
+          "deletions": 16,
+          "accepted_lines": 93
+        },
+        "scripts/fix-md-link-spaces.js": {
+          "additions": 65,
+          "accepted_lines": 65
+        },
+        "scripts/split-doc.js": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "README.md": {
+          "additions": 27,
+          "deletions": 10,
+          "accepted_lines": 27
+        },
+        "scripts/app.js": {
+          "additions": 3,
+          "deletions": 4,
+          "accepted_lines": 3
+        },
+        "scripts/preflight.sh": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "scripts/check-agent-log-compliance.js": {
+          "additions": 42,
+          "accepted_lines": 42
+        },
+        "README_EN.md": {
+          "additions": 27,
+          "deletions": 10,
+          "accepted_lines": 27
+        },
+        ".claude/agents/idea-extractor.md": {
+          "additions": 31,
+          "deletions": 14,
+          "accepted_lines": 31
+        },
+        "scripts/agent-log-hook.js": {
+          "additions": 8,
+          "deletions": 4,
+          "accepted_lines": 8
+        },
+        ".claude/skills/kb-tdd-discipline/SKILL.md": {
+          "additions": 15,
+          "deletions": 27,
+          "accepted_lines": 14
+        },
+        "scripts/check-overview.js": {
+          "additions": 10,
+          "deletions": 6,
+          "accepted_lines": 10
+        },
+        "scripts/agent-report.js": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "scripts/arch-lint.sh": {
+          "additions": 144,
+          "deletions": 47,
+          "accepted_lines": 144
+        },
+        "server.js": {
+          "additions": 83,
+          "deletions": 61,
+          "accepted_lines": 83
+        },
+        "tests/auto-push.test.js": {
+          "additions": 41,
+          "accepted_lines": 41
+        },
+        "scripts/agent-tail.js": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "docs/future-ideas.md": {
+          "additions": 48,
+          "deletions": 1,
+          "accepted_lines": 47
+        },
+        "exit-check.sh": {
+          "additions": 78,
+          "deletions": 26,
+          "accepted_lines": 78
+        },
+        "CLAUDE.md": {
+          "additions": 140,
+          "deletions": 47,
+          "accepted_lines": 131
+        },
+        "scripts/rename-mapping.js": {
+          "additions": 214,
+          "accepted_lines": 214
+        },
+        ".gitignore": {
+          "additions": 6,
+          "deletions": 2,
+          "accepted_lines": 6
+        },
+        ".claude/settings.json": {
+          "additions": 47,
+          "accepted_lines": 47
+        },
+        ".claude/agents/README.md": {
+          "additions": 21,
+          "deletions": 11,
+          "accepted_lines": 21
+        },
+        ".claude/skills/build-index/SKILL.md": {
+          "additions": 95,
+          "accepted_lines": 95
+        },
+        "tests/verify-claim.test.js": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "tests/session-log.test.js": {
+          "additions": 12,
+          "accepted_lines": 12
+        },
+        "test.sh": {
+          "additions": 13,
+          "deletions": 2,
+          "accepted_lines": 13
+        },
+        "scripts/git-hooks/pre-push": {
+          "additions": 58,
+          "deletions": 2,
+          "accepted_lines": 58
+        },
+        "serve.sh": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "scripts/content-quality-fast.sh": {
+          "additions": 63,
+          "accepted_lines": 63
+        },
+        "tests/agent-log.test.js": {
+          "additions": 98,
+          "deletions": 2,
+          "accepted_lines": 98
+        },
+        "tests/auto-commit-skill.test.js": {
+          "additions": 43,
+          "accepted_lines": 43
+        },
+        "tests/auto-save-discipline.test.js": {
+          "additions": 57,
+          "accepted_lines": 57
+        },
+        "tests/server.test.js": {
+          "additions": 138,
+          "accepted_lines": 138
+        },
+        ".claude/agents/kb-auditor.md": {
+          "additions": 26,
+          "deletions": 4,
+          "accepted_lines": 26
+        },
+        "tests/arch-lint-check6.test.js": {
+          "additions": 65,
+          "accepted_lines": 65
+        },
+        "tests/pretool-guard.test.js": {
+          "additions": 109,
+          "accepted_lines": 109
+        }
+      }
+    }
+  }
+}
