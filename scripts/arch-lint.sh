@@ -112,10 +112,12 @@ echo "[4/15] 重复标题检查..."
 
 DUP_FOUND=0
 # 用进程替换收集所有 title，避免 pipeline 子 shell 计数丢失
+# LC_ALL=C：macOS BSD sort/uniq 在 en_US.UTF-8 locale 下对中文+特殊标点（— 、（）、·）
+# 做错误 collation，把不同 title 当相等，导致 uniq -d 凭空报重复。强制 C locale 按字节比较。
 DUPS=$(
   while IFS= read -r -d '' file; do
     head -10 "$file" | grep "^title:" | sed 's/^title: *//;s/^"//;s/"$//'
-  done < <(find kb -name "*.md" -print0 2>/dev/null) | sort | uniq -d
+  done < <(find kb -name "*.md" -print0 2>/dev/null) | LC_ALL=C sort | LC_ALL=C uniq -d
 )
 if [ -n "$DUPS" ]; then
   while IFS= read -r dup; do

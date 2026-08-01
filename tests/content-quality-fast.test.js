@@ -36,6 +36,10 @@ function runCheck(dir, opts = {}) {
   });
 }
 
+// 合格 fixture 用的"近期日期"——动态取今天，避免硬编码日期随时间过期导致 flaky
+const today = new Date();
+const recentDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
 test('content-quality-fast: 缺交叉链接 → 警告', () => {
   withTempKb({
     'kb/技术/Java/test.md': [
@@ -44,7 +48,7 @@ test('content-quality-fast: 缺交叉链接 → 警告', () => {
       'description: Test file',
       '---',
       '',
-      '> 最后整理: 2026-06-08 | 来源: 对话',
+      `> 最后整理: ${recentDate} | 来源: 对话`,
       '',
       '## 1. 内容',
       '',
@@ -64,7 +68,7 @@ test('content-quality-fast: 有交叉链接 → 不警告', () => {
       'description: Test file',
       '---',
       '',
-      '> 最后整理: 2026-06-08 | 来源: 对话',
+      `> 最后整理: ${recentDate} | 来源: 对话`,
       '',
       '## 1. 内容',
       '',
@@ -85,7 +89,7 @@ test('content-quality-fast: 缺 mermaid/代码块/表格 → 警告', () => {
       'description: Test file',
       '---',
       '',
-      '> 最后整理: 2026-06-08 | 来源: 对话',
+      `> 最后整理: ${recentDate} | 来源: 对话`,
       '',
       '## 1. 纯文字内容',
       '',
@@ -130,7 +134,7 @@ test('content-quality-fast: 合格文件 → 全部 ✓', () => {
       'description: Test file',
       '---',
       '',
-      '> 最后整理: 2026-06-08 | 来源: 对话',
+      `> 最后整理: ${recentDate} | 来源: 对话`,
       '',
       '## 1. 内容',
       '',

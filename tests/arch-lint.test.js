@@ -44,6 +44,15 @@ test('arch-lint.sh: 应使用 find -print0 + read -d 处理中文文件名空格
   assert.match(content, /read.*-d\s*''/, '应使用 -d 空分隔符读取');
 });
 
+test('arch-lint.sh: 重复标题检查应使用 LC_ALL=C 避免 macOS locale collation 误报', () => {
+  // macOS BSD sort/uniq 在 en_US.UTF-8 locale 下会对中文+特殊标点（— 、（）、·）
+  // 做错误 collation，把不同 title 当相等，导致 uniq -d 凭空报重复。
+  // 修复：title 去重 pipeline 必须强制 LC_ALL=C。
+  const dupSection = content.match(/DUPS=\$[\s\S]{1,400}uniq -d/);
+  assert.ok(dupSection, '应找到 DUPS 提取 pipeline');
+  assert.match(dupSection[0], /LC_ALL=C/, '重复标题去重 pipeline 应设置 LC_ALL=C');
+});
+
 test('arch-lint.sh: 应输出 15 项检查汇总', () => {
   assert.match(content, /Linter 汇总/, '应有汇总标题');
   assert.match(content, /通过.*错误.*警告/, '应输出通过/错误/警告数');
