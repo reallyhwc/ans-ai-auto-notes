@@ -2,7 +2,7 @@
 
 # AI Auto Notes — Conversation-Driven Personal Knowledge Base
 
-> Chat with AI, automatically distill into a structured knowledge base. Zero manual organizing, fully local, 38+ notes and growing.
+> Chat with AI, automatically distill into a structured knowledge base. Zero manual organizing, fully local, 75 notes and growing.
 
 [:books: Browse Knowledge Base →](INDEX.md) &nbsp;|&nbsp; [:bar_chart: Visual Overview](http://localhost:8765/overview.html)
 
@@ -14,7 +14,7 @@ Every time you chat with Claude Code, the AI automatically classifies, summarize
 
 ## 🚀 Want to Build Your Own Knowledge Base?
 
-The `main` branch is the author's personal knowledge base (38+ notes). If you want to **build your own using the same architecture**, use the [`quickStart` branch](https://github.com/reallyhwc/ans-ai-auto-notes/tree/quickStart):
+The `main` branch is the author's personal knowledge base (75 notes). If you want to **build your own using the same architecture**, use the [`quickStart` branch](https://github.com/reallyhwc/ans-ai-auto-notes/tree/quickStart):
 
 ```bash
 # 1. Fork this repo, then switch to quickStart branch
@@ -44,7 +44,7 @@ The `quickStart` branch retains the full feature architecture (visual overview, 
 
 ## Knowledge Base Overview
 
-Currently accumulated **38+** structured notes covering the following areas:
+Currently accumulated **75** structured notes covering the following areas:
 
 | Category | Representative Notes |
 |----------|---------------------|
@@ -83,7 +83,7 @@ Conversation Layer (AI real-time understanding) → CLAUDE.md project rules + AI
 | Layer | Trigger | What It Does |
 |-------|---------|--------------|
 | **Constraint** | SessionStart | Environment health check + stale changes reminder + memory expiry check (>14 days) + Architecture Linter (frontmatter / dead links / duplicate titles / line count / case consistency) |
-| **Constraint** | Stop | Markdown lint + Git status + Health check (12 items) + Session log + Permission audit + Unpushed reminder (>5 auto push) |
+| **Constraint** | Stop | Markdown lint + Git status + Health check (12 items) + Session log + Permission audit + Unpushed reminder (≥3 auto push) + Claim audit + Content quality fast-path |
 | **Documentation** | Stop → File | Auto-generate structured session log from git diff, appending for same-day multiple sessions |
 | **Documentation** | Cross-Session | Memory layered (stable/project/stream), all memories timestamped, >14 days auto-alert |
 
@@ -92,11 +92,16 @@ Conversation Layer (AI real-time understanding) → CLAUDE.md project rules + AI
 | Script | Trigger | Function |
 |--------|---------|----------|
 | `scripts/preflight.sh` | SessionStart | Last session summary, stale changes, manifest expiry, memory eviction, invoke arch-lint |
-| `scripts/arch-lint.sh` | SessionStart | 8 KB architecture checks (frontmatter / dead links / line count / duplicate titles, etc.) |
-| `exit-check.sh` | Stop | Chain lint + check-overview + session-log + permission-audit + unpushed check |
+| `scripts/arch-lint.sh` | SessionStart | 15 KB architecture checks (frontmatter / dead links / duplicate titles / line count / case / memory format / zero deps / script refs / heading ID contract / section numbering / anchor liveness / content concreteness, etc.) |
+| `exit-check.sh` | Stop | Chain 11 exit checks: lint + check-overview + session-log + permission-audit + list-open-plans + check-agent-log-compliance + content-quality-fast + unpushed (≥3 auto push) |
+| `scripts/verify-claim.sh` | PostToolUse | Verify files claimed "saved to xxx.md" actually exist, write claim-ledger (consumed by exit-check) |
+| `scripts/pretool-guard.sh` | PreToolUse | Block direct edits to INDEX.md / manifest.json / overview.html (exit 2) |
+| `scripts/hook-logger.sh` | All shell hooks | Transparent wrapper, logs hook duration/exit code to `logs/hook-runs.jsonl` |
+| `scripts/agent-log-hook.js` | Stop / SubagentStop | Main agent + subagent work log (auto-derive title/summary/outcome) |
 | `scripts/session-log.sh` | Stop | Auto-generate session log from git diff |
 | `scripts/permission-audit.sh` | Stop | Scan scripts/ vs allowlist, suggest safe commands for whitelisting |
 | `scripts/check-overview.js` | Stop | 12 health checks (data integrity, links, line count, etc.) |
+| `scripts/content-quality-fast.sh` | Stop | Lightweight content quality (cross-links / concrete elements / metadata date expiry) |
 | `scripts/build-index.js` | Manual / `serve.sh` | Scan kb/ to rebuild manifest.json + INDEX.md |
 
 ## Project Structure
@@ -160,7 +165,7 @@ AI will automatically extract knowledge to the `kb/` directory based on rules in
 node scripts/build-index.js   # Rebuild manifest.json + INDEX.md
 ./lint.sh                     # markdownlint format check
 node scripts/check-overview.js # 12 health checks
-bash scripts/arch-lint.sh     # 8 KB architecture checks
+bash scripts/arch-lint.sh     # 15 KB architecture checks
 ```
 
 ## Customization
