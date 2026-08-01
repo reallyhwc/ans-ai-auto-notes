@@ -1,0 +1,30 @@
+tests/integration.test.js
+  2502bd7f4765220b 19-23
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.9",
+  "base_commit_sha": "efd52b6eed344c31f672e2902d672b47584da6e8",
+  "prompts": {
+    "2502bd7f4765220b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b8d601be-be0e-4f3d-ac4c-ea12692046df",
+        "model": "glm-5.2"
+      },
+      "human_author": "xuhu",
+      "messages": [],
+      "total_additions": 5,
+      "total_deletions": 1,
+      "accepted_lines": 5,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "tests/integration.test.js": {
+          "additions": 5,
+          "deletions": 1,
+          "accepted_lines": 5
+        }
+      }
+    }
+  }
+}
