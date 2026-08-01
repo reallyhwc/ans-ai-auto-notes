@@ -12,6 +12,7 @@
 - [Feedback: FILE_INDEX Traversal](feedback-file-index-traversal.md) — FILE_INDEX 结构升级时必须 grep 全扫所有遍历函数（renderCategories/buildFileIndex/searchKB/checkServer），不能"修完报错的就停"
 - [Feedback: Tree Depth CSS Limit](feedback-tree-depth-css-limit.md) — 菜单嵌套 JS 递归无限制，但 CSS 视觉极限 ~5 层（sidebar 200px / margin-left 16px 累加）
 - [Project: Cross-Environment Workflow](cross-environment-workflow.md) — 公司Mac(Aone Copilot+Claude Opus)和个人Mac(Claude Code CLI)双环境维护，git同步
+- [Project: Agents/Skills Mirror](project-agents-skills-mirror.md) — .claude/skills 与 .agents/skills 是双镜像，改 skill 必须两边同步（仅 CLAUDE.md↔AGENTS.md 引用名不同），否则 Codex 侧漂移
 - [Feedback: Proactive Divergent Suggestions](feedback-proactive-divergent-suggestions.md) — 用户认可"小的发散性想法"作为知识库特色，AI应主动提议改进点而非被动执行指令
 - [Feedback: Auto-Commit After Changes](feedback-auto-commit.md) — AI必须在每批文件变更后立即git commit，不等提醒；退出时只提醒未push的commit
 - [Feedback: Zero NPM Deps](feedback-zero-npm-deps.md) — 项目坚持零 npm 依赖；优先 Node 内置 / vendoring / vanilla，引入 package.json 须用户确认（2026-05-18 两次确认）
@@ -19,5 +20,5 @@
 - [Feedback: Physical Structure Over Metadata](feedback-physical-structure-over-metadata.md) — 分类决策默认选物理目录拆分，不要 frontmatter 字段/脚本逻辑做隐式分组
 - [Directory Structure Preference](目录结构偏好.md) — AI 子树 5 个并列子目录（基础/大模型/Claude-Code/AI-Coding/应用 五子目录），manifest+INDEX 由 build-index 自动生成不要手改
 - [Feedback: RAG Threshold Reminder](feedback-rag-threshold-reminder.md) — 知识库 >50 篇时提醒启动 BM25 索引，>80 篇时提醒启动 MCP Server（规划详见 kb/技术/AI/应用/个人知识库接入 RAG 的规划.md）
-- [Feedback: Agent Log Patch](feedback-agent-log-patch.md) — subagent 结束 / 主 agent 一轮实质工作完后必须立即 patch agent-log 补 title/summary/outcome
+- [Feedback: Agent Log Patch](feedback-agent-log-patch.md) — agent-log 的 title/summary/outcome 由 hook 自动派生，仅自动摘要不准（结构化返回/误判 outcome）时才手动 patch
 - [Feedback: Spawn kb-auditor](feedback-spawn-kb-auditor.md) — long-form kb 笔记 ≥300 行改动 OR ≥800 行总量后主动 spawn kb-auditor，review-only 隔离 context

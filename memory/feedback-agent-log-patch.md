@@ -1,41 +1,32 @@
 ---
 name: feedback-agent-log-patch
-description: subagent 调用结束 / 主 agent 完成一轮实质工作后，必须立即 patch agent-log 补 title/summary/outcome
+description: agent-log 的 title/summary/outcome 由 SubagentStop/Stop hook 自动派生，仅当自动摘要不准时才手动 patch
 metadata:
   type: feedback
-  lastUpdated: 2026-06-02
+  lastUpdated: 2026-08-01
 ---
 
-完成一轮**实质工作**后（spawn 了 subagent / 改了文件 / 跑了 Bash），在向用户发送响应前必须调用：
+`agent-log-hook.js` 在 SubagentStop / Stop 时调用 `deriveAutoFields` 自动派生：
+- title ← subagent 最后一条文本消息的第一行（截断 60 字）
+- summary ← 最后一条文本消息前 200 字
+- outcome ← 有错误 `partial`，否则 `success`
 
-```bash
-node scripts/agent-log.js patch --id last \
-  --title "<本轮一句话标题，<30 字>" \
-  --summary "<干了啥的 1-3 句>" \
-  --outcome success|partial|blocked
-```
+**多数情况下不需要手动 patch**——hook 已经做了。
 
-**Why**: hook 只能采集机械字段（工具、文件、耗时），title/summary 反映任务的"为什么和结果"——
-不补的话日志只能做"工具使用频次"这种浅层分析。
+**Why**：旧纪律要求"必须立即手动 patch"，但那时 hook 还没有自动派生能力。2026-06 后 `deriveAutoFields` 上线，手动 patch 变成冗余。继续要求手动 patch 会导致 AI 浪费 token 重复 hook 已做的事。
 
-**How to apply**:
-- **触发时机**：和 [[feedback-auto-commit]] 同位（每完成一批文件变更立刻提交 + 立刻 patch）
-- **偷懒识别**：如果你刚跑了 `git commit` 但没 patch agent-log，那就是漏了
-- **跳过条件**：本轮纯聊天 / 纯回答问题（hook 也不会写 start 事件，自然不用 patch）
-- **outcome 写法**：
-  - `success`：任务完整完成、测试通过
-  - `partial`：部分完成（如 4/5 子任务做了），summary 标注剩余
-  - `blocked`：被卡住（如环境问题、需要用户决策）
+**How to apply**：
+- **默认不 patch**：相信 hook 的自动派生
+- **仅在这些情况手动 patch**：
+  1. subagent 返回的是**结构化数据**（JSON/表格）而非自然语言总结 → 自动派生的 title/summary 会是原始数据片段，不准
+  2. 自动派生的 outcome 不对（如任务其实 blocked 但 subagent 末尾没报错 → hook 误判 success）
+- **手动 patch 命令**（仅上述情况）：
+  ```bash
+  node scripts/agent-log.js patch --id last \
+    --title "<一句话标题>" \
+    --summary "<1-3 句>" \
+    --outcome success|partial|blocked
+  ```
+- **跳过条件**：本轮纯聊天（hook 也不写 start 事件）
 
-**与 dispatching subagent 的关系**：
-派出 subagent 时（用 Agent tool），subagent 自己会触发 SubagentStop hook → start 行已写。
-主 agent 拿到 subagent 返回后，**立即** patch subagent 对应的那一行（不是自己 main 的）：
-
-```bash
-node scripts/agent-log.js patch --id last --title "kb-auditor 审 Transformer.md" --summary "通过 + 12 处建议" --outcome success
-```
-
-注意 `--id last` 拿到的是最近一条 start，而 subagent 的 start 在 SubagentStop 时已写入，
-所以"主 agent 拿到返回后第一时间 patch"= 正确锁定。
-
-相关：[[feedback-self-review-before-next-task]]
+关联 [[project-agents-skills-mirror]]、[[feedback-auto-commit]]、[[feedback-self-review-before-next-task]]。
