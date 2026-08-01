@@ -1,0 +1,43 @@
+tests/content-quality-fast.test.js
+  2502bd7f4765220b 39-42,51,71,92,137
+scripts/arch-lint.sh
+  2502bd7f4765220b 115-116,120
+tests/arch-lint.test.js
+  2502bd7f4765220b 47-55
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.9",
+  "base_commit_sha": "fbec2420aa5aef1fd128302cdc4976f7fe14af00",
+  "prompts": {
+    "2502bd7f4765220b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b8d601be-be0e-4f3d-ac4c-ea12692046df",
+        "model": "glm-5.2"
+      },
+      "human_author": "xuhu",
+      "messages": [],
+      "total_additions": 24,
+      "total_deletions": 9,
+      "accepted_lines": 20,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "scripts/arch-lint.sh": {
+          "additions": 3,
+          "deletions": 1,
+          "accepted_lines": 3
+        },
+        "tests/content-quality-fast.test.js": {
+          "additions": 12,
+          "deletions": 8,
+          "accepted_lines": 8
+        },
+        "tests/arch-lint.test.js": {
+          "additions": 9,
+          "accepted_lines": 9
+        }
+      }
+    }
+  }
+}
