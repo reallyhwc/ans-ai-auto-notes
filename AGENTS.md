@@ -52,18 +52,14 @@ ans-ai-auto-notes/
 
 ### 文件组织规则
 
-1. **同主题聚合到一个文件**：同一个主题的知识点持续追加到同一个 md 文件，不按日期拆分。例如所有 JVM GC 内容都在 `kb/技术/Java/jvm-gc.md` 中。
-2. **文件内按时间倒序**：最新内容追加在文件顶部，以 `## YYYY-MM-DD - 标题` 作为二级标题。
-3. **目录深度规则**：默认两层（如 `技术/Java/jvm-gc.md`）；当一个领域内容显著膨胀且能划分清晰子领域时（如 AI 已分化出"基础/大模型/Codex/AI-Coding/应用"），允许使用三层。第三层需要满足：每个子目录有 ≥3 篇文件 且 子领域之间边界清晰。
-4. **新主题新建文件**：遇到全新主题时创建新文件。
-5. **中文文件名（强制性）**：所有 `kb/` 下的 md 文件名必须与 frontmatter `title` 一致（即 Web 页面显示什么，磁盘文件名就是什么）。规则：(a) 冒号 `:` 替换为全角 `：`；(b) 移除 `/` `\` `*` `?` `"` `<` `>` `|` 等非法字符；(c) 多空格合并为一个；(d) 过长时（>60 字）截断。新文件创建时直接使用中文名；旧文件重命名用 `node scripts/rename-mapping.js --apply` 批量处理。
+文件组织（同主题聚合到一文件、文件内时间倒序追加、新主题新建文件、目录深度）权威定义见 [kb-content-style skill](.agents/skills/kb-content-style/SKILL.md)（细则在 reference.md）。**中文文件名 = frontmatter title（强制性）**——命名与拆分细则见 reference.md。
 
 ### 更新策略（混合模式）
 
 1. **小知识点自动记录**：回答完问题后，自动提取知识点追加到对应主题文件，无需询问。
 2. **大改动主动提案**：涉及文件拆分、合并、重组、目录结构变更时，主动向用户提案，待确认后执行。
 3. **主动性在我这边**：不等用户下指令，我自行判断时机并提案。
-4. **知识内容自动沉淀，不询问**：对话中产生的技术讲解、概念梳理、方案对比等知识内容，直接写入 kb/ 对应文件，不要问"要不要沉淀到知识库？"。仅当涉及文件拆分、合并、重组、目录结构变更时才主动提案。
+4. **知识内容自动沉淀，不询问**：对话中产生的技术讲解、概念梳理、方案对比等知识内容，直接写入 kb/ 对应文件，不要问"要不要沉淀到知识库？"。仅当涉及文件拆分、合并、重组、目录结构变更时才主动提案。完整纪律（违规句式黑名单、判断算法）见 [kb-content-style skill](.agents/skills/kb-content-style/SKILL.md)。
 
 > 文件拆分、章节编号、"严禁口头沉淀"等内容质量规则统一收敛到 [kb-content-style skill](.agents/skills/kb-content-style/SKILL.md)，写入 kb/ 时由 AI 助手自动加载。
 
@@ -120,7 +116,7 @@ ans-ai-auto-notes/
 
 - 完成一批文件变更立即 commit（不等用户提醒）
 - Conventional Commits 格式
-- ≥5 commits 未 push 时 Stop hook 自动 push
+- ≥3 commits 未 push 时 Stop hook 自动 push
 - 永不 amend 已 push 的 commit、永不 --no-verify
 
 ### 会话退出检查（重要）
@@ -149,7 +145,7 @@ ans-ai-auto-notes/
 1. **文件格式检查**：运行 `./lint.sh` 做自动格式校验（heading、空行等），然后人工扫描本次变动的 md 文件，确认元信息头（`> 最后整理: YYYY-MM-DD | 来源: xxx`）符合规范。发现格式不一致的文件立即修正。
 2. **交叉链接检查**：确认新增/修改的文件有指向关联文件的双向链接（`[[./xxx]]` 或 `> 关联:` 格式）。
 3. **Memory 检查**：确认本次会话中用户的新偏好、新反馈、新项目上下文已写入 `memory/` 目录并更新 `MEMORY.md` 索引。
-4. **Git 检查**：确认所有变更已提交（AI 应在变更发生后立即 auto-commit，无需等退出），`git status` 显示 clean。同时检查是否有未 push 的 commit，如有则提醒用户 `git push`（≥5 时 Stop hook 会自动 push，pre-push 的 test + mermaid 守恒兜底）。
+4. **Git 检查**：确认所有变更已提交（AI 应在变更发生后立即 auto-commit，无需等退出），`git status` 显示 clean。同时检查是否有未 push 的 commit，如有则提醒用户 `git push`（≥3 时 Stop hook 会自动 push，pre-push 的 test + mermaid 守恒兜底）。
 5. **INDEX 一致性**：若新增/删除了 md 文件，确认 `node scripts/build-index.js` 已跑过，INDEX.md 条目数 = kb/ 实际 md 数（INDEX.md 自身不再包含动态日期，避免 git noise）。
 
 上述检查全部通过后，向用户报告检查结果，确认可以安全退出。
