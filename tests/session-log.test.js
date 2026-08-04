@@ -27,7 +27,8 @@ function shInTempRepo(commands) {
     return { result, dir };
   } finally {
     // 同步清理，避免 setTimeout 在 worker 退出/重用前未触发导致泄漏
-    fs.rmSync(dir, { recursive: true, force: true });
+    // maxRetries/retryDelay：macOS 文件系统缓存延迟偶发 ENOTEMPTY（已知 flake）
+    fs.rmSync(dir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
   }
 }
 
