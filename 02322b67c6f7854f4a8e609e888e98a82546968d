@@ -1,0 +1,57 @@
+scripts/arch-lint.sh
+  5308b147d45bbb44 282,284,290-291,293,298
+scripts/check-overview.js
+  5308b147d45bbb44 340,342,349-350,352,356,358-359
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.9",
+  "base_commit_sha": "02322b67c6f7854f4a8e609e888e98a82546968d",
+  "prompts": {
+    "2502bd7f4765220b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b8d601be-be0e-4f3d-ac4c-ea12692046df",
+        "model": "glm-5.2"
+      },
+      "human_author": "xuhu",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 166,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "readme_en.md": {
+          "accepted_lines": 166
+        }
+      }
+    },
+    "5308b147d45bbb44": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "540545d5-8881-4a13-b709-b41754f1001a",
+        "model": "glm-5.2"
+      },
+      "human_author": "xuhu",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 25,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "scripts/arch-lint.sh": {
+          "accepted_lines": 6
+        },
+        "scripts/check-overview.js": {
+          "accepted_lines": 8
+        },
+        "logs/agent-runs/2026-08.jsonl": {
+          "accepted_lines": 9
+        },
+        "tests/session-log.test.js": {
+          "accepted_lines": 2
+        }
+      }
+    }
+  }
+}
