@@ -10,11 +10,40 @@ cd "$(dirname "$0")/.."
 
 WARN_COUNT=0
 
+# core.quotepath=false：避免 git diff 把中文路径引号+八进制转义（"kb/\\346..."），
+# 否则 grep '^kb/.*\.md$' 匹配不到任何中文名文件（原默认模式对中文名文件实际从未生效）
+GIT="git -c core.quotepath=false"
+
 if [ "${CQF_CHECK_ALL:-}" = "1" ]; then
   FILES=$(find kb -name "*.md" -type f 2>/dev/null)
 else
-  FILES=$(git diff --name-only HEAD~1 2>/dev/null | grep '^kb/.*\.md$' || true)
-  [ -z "$FILES" ] && FILES=$(git diff --cached --name-only 2>/dev/null | grep '^kb/.*\.md$' || true)
+  # 覆盖本 session 起点（修复：原 `git diff HEAD~1` 只覆盖最近 1 个 commit + 未提交区，
+  # 多 commit session 会漏掉更早的 commit）。基线优先级：
+  #   1) .claude/session-logs/.last-checkpoint —— session-log.sh 维护的会话边界（上次 Stop 的 HEAD）
+  #   2) 今天最早 commit 的父提交（整个今日 session）
+  # 两者皆无再退回 HEAD~1。
+  BASE_SHA=""
+  if [ -f .claude/session-logs/.last-checkpoint ]; then
+    BASE_SHA=$(head -1 .claude/session-logs/.last-checkpoint 2>/dev/null)
+    git rev-parse --quiet --verify "$BASE_SHA" >/dev/null 2>&1 || BASE_SHA=""
+  fi
+  if [ -z "$BASE_SHA" ]; then
+    FIRST_TODAY=$($GIT log --format=%H --since="$(date +%Y-%m-%d) 00:00:00" 2>/dev/null | tail -1)
+    if [ -n "$FIRST_TODAY" ]; then
+      BASE_SHA=$(git rev-parse --quiet --verify "$FIRST_TODAY^" 2>/dev/null || echo "$FIRST_TODAY")
+    fi
+  fi
+  if [ -n "$BASE_SHA" ]; then
+    # 会话内已 commit 变更 + 未提交工作区 + 已暂存区 + 未跟踪新文件
+    FILES=$( {
+      $GIT diff --name-only "$BASE_SHA"..HEAD 2>/dev/null
+      $GIT diff --name-only 2>/dev/null
+      $GIT diff --cached --name-only 2>/dev/null
+      $GIT ls-files --others --exclude-standard 2>/dev/null
+    } | grep '^kb/.*\.md$' | LC_ALL=C sort -u )
+  else
+    FILES=$( { $GIT diff --name-only HEAD~1 2>/dev/null; $GIT diff --cached --name-only 2>/dev/null; } | grep '^kb/.*\.md$' | LC_ALL=C sort -u )
+  fi
 fi
 
 [ -z "$FILES" ] && echo "  ✓ 无 kb/ 文件需检查" && exit 0
