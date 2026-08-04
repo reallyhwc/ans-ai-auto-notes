@@ -1,0 +1,51 @@
+scripts/hook-logger.sh
+  5308b147d45bbb44 28-38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.9",
+  "base_commit_sha": "72211fea0c778b999052e1b7fddf13cfcd8d63b4",
+  "prompts": {
+    "2502bd7f4765220b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b8d601be-be0e-4f3d-ac4c-ea12692046df",
+        "model": "glm-5.2"
+      },
+      "human_author": "xuhu",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 166,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "readme_en.md": {
+          "accepted_lines": 166
+        }
+      }
+    },
+    "5308b147d45bbb44": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "540545d5-8881-4a13-b709-b41754f1001a",
+        "model": "glm-5.2"
+      },
+      "human_author": "xuhu",
+      "messages": [],
+      "total_additions": 11,
+      "total_deletions": 13,
+      "accepted_lines": 19,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "logs/agent-runs/2026-08.jsonl": {
+          "accepted_lines": 8
+        },
+        "scripts/hook-logger.sh": {
+          "additions": 11,
+          "deletions": 13,
+          "accepted_lines": 11
+        }
+      }
+    }
+  }
+}
