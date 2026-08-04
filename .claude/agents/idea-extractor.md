@@ -1,6 +1,6 @@
 ---
 name: idea-extractor
-description: 从长文 / URL / 用户分享的内容中识别 KB 沉淀候选。Review-only 不写 kb，仅给建议列表供主 agent 决策。
+description: Use when 用户贴入长文/URL/课程笔记全文，需要识别 KB 沉淀候选。Review-only，不写 kb。
 tools: Read, Grep, Glob, WebFetch
 ---
 

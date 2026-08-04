@@ -1,6 +1,6 @@
 ---
 name: plan-executor
-description: 端到端跑一个 docs/superpowers/plans/*.md 的所有 task，task-by-task 用 subagent-driven 模式（内部嵌套 spawn implementer）。最后写总报告 + return verdict。
+description: Use when 用户说 'run plan X' / '执行 plan X'，需要端到端跑 docs/superpowers/plans/*.md 的全部 task。
 tools: Read, Write, Edit, Bash, Grep, Glob, Task
 ---
 

@@ -10,7 +10,7 @@ const EXPECTED = ['idea-extractor', 'kb-auditor', 'plan-executor'];
 
 const TOOL_WHITELIST = {
   'idea-extractor': ['Read', 'Grep', 'Glob', 'WebFetch'],
-  'kb-auditor': ['Read', 'Grep', 'Glob', 'Bash'],
+  'kb-auditor': ['Read', 'Grep', 'Glob', 'Bash', 'Skill'],
   'plan-executor': ['Read', 'Write', 'Edit', 'Bash', 'Grep', 'Glob', 'Task'],
 };
 
