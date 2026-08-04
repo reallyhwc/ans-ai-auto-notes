@@ -55,7 +55,7 @@ Task tool:
     - §N 编号从 1 连续递增
     - demo 优先，反抽象化（像演示而非教科书）
     - 中文文件名 = frontmatter title
-    - 行数 >1000 关注 / >1500 必拆
+    - 行数 >1000 关注 / >1500 同样只是提示，不提案拆分
     - 跨文件关联用 > 关联: 格式，双向链接
 
     按 4 维度走完，写 report 落 logs/audits/，return VERDICT 行
