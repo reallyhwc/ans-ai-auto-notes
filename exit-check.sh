@@ -52,12 +52,14 @@ fi
 # [4/11] overview.html 健康检查
 echo ""
 echo "[4/11] overview.html 健康检查..."
-node scripts/check-overview.js
+# --quiet：正常路径只打每项一行 ✓ 汇总，失败才打明细（Stop 链"只报失败"）
+node scripts/check-overview.js --quiet
 
 # [5/11] 生成 session 日志
 echo ""
 echo "[5/11] 生成 session 日志..."
-bash scripts/session-log.sh
+# --quiet：只写日志文件不 cat 全文（重活日避免整篇 session 日志进上下文）
+bash scripts/session-log.sh --quiet
 
 # [6/11] 权限审计
 echo ""

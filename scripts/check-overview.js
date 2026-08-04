@@ -35,9 +35,27 @@ const INDEX_MD_PATH = path.join(ROOT, 'INDEX.md');
 const TIMELINE_DIR = path.join(ROOT, 'timeline');
 
 let failed = 0;
-function pass(msg) { console.log('  PASS: ' + msg); }
-function fail(msg) { console.log('  FAIL: ' + msg); failed++; }
-function section(title) { console.log('\n[' + title + ']'); }
+// --quiet / --summary：Stop hook 链用，正常路径只打一行 ✓ 汇总，失败才打明细
+const QUIET = process.argv.includes('--quiet') || process.argv.includes('--summary');
+let currentSection = null;
+let sectionFails = 0;
+const sectionResults = [];
+
+function pass(msg) {
+  if (QUIET) return; // quiet 模式抑制 PASS 明细，由末尾每项一行 ✓ 汇总
+  console.log('  PASS: ' + msg);
+}
+function fail(msg) {
+  if (currentSection) sectionFails++;
+  console.log('  FAIL: ' + msg);
+  failed++;
+}
+function section(title) {
+  if (currentSection !== null) sectionResults.push({ title: currentSection, fails: sectionFails });
+  currentSection = title;
+  sectionFails = 0;
+  if (!QUIET) console.log('\n[' + title + ']');
+}
 
 // ============================================================
 // 检查 1: manifest.json / timeline.json 存在性 + JSON 合法性
@@ -345,6 +363,19 @@ if (lineFail === 0 && lineWarn === 0) {
 // ============================================================
 // 汇总
 // ============================================================
+// quiet 模式：健康项每项一行 ✓ 汇总；失败项明细已在上文输出
+if (QUIET) {
+  sectionResults.push({ title: currentSection, fails: sectionFails });
+  console.log('');
+  sectionResults.forEach(function(r) {
+    if (r.fails === 0) {
+      console.log('  ✓ ' + r.title);
+    } else {
+      console.log('  ✗ ' + r.title + ' — ' + r.fails + ' 项失败');
+    }
+  });
+}
+
 console.log('');
 if (failed === 0) {
   console.log('=== 全部检查通过 ===');
