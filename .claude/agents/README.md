@@ -50,13 +50,8 @@ Task tool:
     审计文件: kb/技术/AI/大模型/Agent 与 MCP.md
     上下文: 本轮新写 500 行 / 总量 845 行 long-form
 
-    审计标准（对齐 kb-content-style skill）：
-    - Mermaid 优先画图（overview.html 渲染为 SVG）
-    - §N 编号从 1 连续递增
-    - demo 优先，反抽象化（像演示而非教科书）
-    - 中文文件名 = frontmatter title
-    - 行数 >1000 关注 / >1500 同样只是提示，不提案拆分
-    - 跨文件关联用 > 关联: 格式，双向链接
+    审计标准：kb-auditor 会在审计前自行 load kb-content-style skill（tools 含 Skill），无需主 agent 抄送摘要。
+    行数 >1000 关注 / >1500 同样只是提示，不提案拆分。
 
     按 4 维度走完，写 report 落 logs/audits/，return VERDICT 行
 ```
@@ -104,7 +99,7 @@ Task tool:
 
 | Agent | tools | 关键设计 |
 |---|---|---|
-| kb-auditor | `Read, Grep, Glob, Bash` | 无 Write/Edit（review-only），用 Bash heredoc 写 report |
+| kb-auditor | `Read, Grep, Glob, Bash, Skill` | 无 Write/Edit（review-only）；Skill 用于审计前自 load kb-content-style |
 | idea-extractor | `Read, Grep, Glob, WebFetch` | 无 Bash/Write/Edit，最严受限 |
 | plan-executor | `Read, Write, Edit, Bash, Grep, Glob, Task` | 唯一允许写代码的 agent；Task 用于嵌套 spawn implementer/reviewer |
 

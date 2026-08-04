@@ -105,7 +105,7 @@ ans-ai-auto-notes/
 
 | Subagent | 触发条件 | 关键约束 |
 |---|---|---|
-| **kb-auditor** | 写完深度笔记（≥300 行新内容）或单文件 ≥800 行后主动 spawn | spawn 时**必须把 `kb-content-style` 核心规则摘要传入 prompt**（Mermaid-first、§N 连续、demo 优先、文件名=标题），否则审计标准与写作标准脱节 |
+| **kb-auditor** | 写完深度笔记（≥300 行新内容）或单文件 ≥800 行后主动 spawn | review-only；审计前自行 load `kb-content-style` skill 获取审计标准（tools 含 Skill），无需手动抄送摘要 |
 | **idea-extractor** | 用户贴入长文/URL/大段文本 | 识别候选后由主 agent 按建议写入，extractor 自己不写 kb/ |
 | **plan-executor** | 用户说 "run plan X" / "执行 plan X" | 端到端跑 plan，task-by-task 嵌套 implementer |
 
