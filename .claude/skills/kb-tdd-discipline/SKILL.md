@@ -10,71 +10,35 @@ description: Use when modifying scripts/ or tests/, or fixing bugs in markdown r
 **MUST invoke when**:
 - 修改 `scripts/*.{sh,js}` 文件
 - 修改 `tests/*.test.js` 文件
-- 修复以下区域的 bug（错误趋向区域）：
-  - markdown 渲染链路（marked 配置、自定义 renderer 如 renderKbLink）
-  - 路径解析（resolveRelativeMd、build-index 扫描）
-  - frontmatter 解析（build-index.js）
-  - 静态校验脚本（check-overview.js、arch-lint.sh）
+- 修复 markdown 渲染、路径解析、frontmatter、静态校验脚本（错误趋向区域）
 
 ## 软 TDD 流程
 
-### 错误趋向区域：先红后绿
-1. **写一个失败测试**：能复现问题
-2. **跑测试确认失败**（红）— `node --test tests/xxx.test.js`
-3. **写最小实现**让测试通过
-4. **跑测试确认通过**（绿）
-5. **重构**（可选）
-6. **Commit**
-
-### Bug 修复：先复现再修
-1. 先在 `tests/` 加一个能复现该 bug 的失败测试
-2. 跑测试确认 fail（即 bug 真实存在）
-3. 修 code 让测试转绿
-4. Commit（msg 含 `fix: xxx`）
+1. 错误趋向区域**先红后绿**：先写失败测试（红）→ 最小实现（绿）→ 重构 → commit
+2. Bug 修复**先复现再修**：先加复现 test → 确认 fail → 修 code 转绿 → commit（`fix:`）
 
 ## 豁免（不强制 TDD）
 
-- 纯文本编辑：kb/*.md、CLAUDE.md、README 等内容修订
-- UI 样式调整：overview.html 的 CSS
-- 配置变更：settings.local.json、.gitignore
+纯文本（kb/*.md、CLAUDE.md、README）、CSS（overview.html）、配置（settings.local.json / .gitignore）。
 
-## 测试入口
+## 测试入口与组织
 
-- 推荐：`bash test.sh`（spec reporter）
-- 直接：`node --test tests/*.test.js`
-- 单文件：`node --test tests/lib.test.js`
-
-## 测试文件组织
-
-测试文件按"被测对象"命名 `<source>.test.js`，全部在 `tests/` 目录下（`ls tests/*.test.js` 查看当前全量，2026-07 起共 29 个）。核心分层：
-
-- `lib.test.js`、`build-index.test.js`、`build-timeline.test.js` — 数据构建链路
-- `link-renderer.test.js`、`anchor-check.test.js`、`backlinks.test.js` — 链接/渲染契约
-- `agent-log.test.js`、`agent-log-compliance.test.js`、`hook-logger.test.js`、`verify-claim.test.js` — hook 体系
-- `integration.test.js` — 全量 kb/ markdown 链接静态解析（兜底）
-
-**Node 中可用的纯逻辑**：统一放 `scripts/lib.js`（UMD 双导出，浏览器和 Node 都能加载）。
+- 入口：`bash test.sh`；单文件 `node --test tests/xxx.test.js`
+- `tests/` 下按被测对象命名 `<source>.test.js`（当前 36 个）。核心分层：数据构建（lib/build-index/build-timeline）、链接契约（link-renderer/anchor-check/backlinks）、hook 体系（agent-log/hook-logger/verify-claim/session-log）、质量结构（arch-lint/lint/content-quality/check-overview/integration）、规则一致性（auto-commit-skill/auto-save-discipline/rule-consistency/skill-mirror）。
 
 ## Push 前自动跑测试（双层 gate）
 
-1. **`scripts/git-hooks/pre-push`** — git 层硬拦截
-2. **`exit-check.sh` 的 auto-push 块** — Stop 时 ≥3 commits 未 push 时先跑 test 通过才 push
-
-**首次安装 hook**：`bash scripts/install-hooks.sh`（新机器克隆后跑一次）。
+`scripts/git-hooks/pre-push` 硬拦截 + `exit-check.sh` auto-push 时先跑 test。首次安装：`bash scripts/install-hooks.sh`。
 
 ## Rationalization Table（借口 vs 现实）
 
 | 借口 | 现实 |
 |---|---|
-| "改了脚本但没加测试，下次出 bug 不知道为什么" | 应先加 failing test 再改 code——没测试就是没验证过 |
-| "测试随便写一行，主要是为了 git 不报错" | 测试要真验证行为，不只是 `assert.ok(true)`，否则等于没测 |
-| "跳过 pre-push hook 因为测试'肯定能过'" | 不允许 `--no-verify`；"肯定能过"正是没跑过才会说的话 |
+| "改了脚本没加测试" | 先加 failing test 再改 code——没测试就是没验证 |
+| "测试随便写一行" | 要真验证行为，不只是 assert.ok(true) |
+| "跳过 pre-push 因为肯定能过" | 不允许 --no-verify；"肯定能过"正是没跑过才会说 |
 
 ## 自检 Checklist
 
-- [ ] 修改 scripts/ 时是否有对应 test 文件？
-- [ ] 修 bug 时是否先加复现 test？
-- [ ] 新逻辑是否走完整的红→绿→重构循环？
-- [ ] push 前 `bash test.sh` 全绿？
-
-详见 [CLAUDE.md 索引段](../../../CLAUDE.md)。
+- [ ] 改 scripts/ 有对应 test？修 bug 先加复现 test？
+- [ ] 走完整红→绿→重构？push 前 `bash test.sh` 全绿？

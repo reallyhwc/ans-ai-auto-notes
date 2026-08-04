@@ -1,6 +1,6 @@
 ---
 name: auto-commit-discipline
-description: Use when finishing any batch of file changes in this KB project (one logical topic complete). Also use before sending response to user when there are uncommitted changes. Quick reference for commit discipline — full rules in CLAUDE.md.
+description: Use when finishing any batch of file changes in this KB project (one logical topic complete). Also use before sending response to user when there are uncommitted changes.
 ---
 
 # Auto-Commit Discipline (Quick Reference)
@@ -10,18 +10,18 @@ description: Use when finishing any batch of file changes in this KB project (on
 ## 触发条件
 
 **MUST invoke when**:
-1. 完成一个逻辑主题的批量文件变更（如：一篇笔记沉淀、一个脚本写完、一组测试通过）
-2. 即将向用户发送响应但 `git status` 非 clean
-3. Stop hook 前（与 exit-check.sh 联动）
+1. 完成一个逻辑主题的批量文件变更（沉淀/脚本/测试）
+2. 响应前 `git status` 非 clean
 
-## 快速参考（详见 CLAUDE.md）
+## 核心规则
 
-- **Commit 格式**：Conventional Commits（`feat:` / `fix:` / `docs:` / `chore:` / `refactor:`）
-- **提交时机**：每个逻辑主题完成立即 commit，不等用户提醒
-- **自动 push 阈值**：≥3 commits 未 push → exit-check.sh 自动跑 test 后 push（含 pull --rebase 重试）
-- **永不违反**：永不 amend 已 push 的 commit、永不 --no-verify、永不 `git add -A` 全量加
+- **时机**：每个逻辑主题完成立即 commit，不等提醒
+- **格式**：Conventional Commits（`feat:` / `fix:` / `docs:` / `chore:` / `refactor:`）
+- **消息**：多行用 HEREDOC，末尾带 `Co-Authored-By: Claude`
+- **push 阈值**：≥3 commits 未 push → Stop hook 自动跑 test 后 push
+- **永不**：amend 已 push 的 commit、`--no-verify`、`git add -A` 全量加
 
-## HEREDOC Commit 示例（Skill 独有）
+## HEREDOC Commit 示例
 
 ```bash
 git commit -m "$(cat <<'EOF'
@@ -34,27 +34,17 @@ EOF
 )"
 ```
 
-## 自检 Checklist（提交前）
+## 自检 Checklist
 
 - [ ] `git diff --cached` 已 review
-- [ ] commit message 符合 Conventional Commits
-- [ ] 未包含敏感文件（.env / credentials / *.key）
-- [ ] 未跳过 hooks
-- [ ] 未 amend 已 push 的 commit
+- [ ] 未含敏感文件（.env / credentials / *.key）
+- [ ] 未跳 hooks / 未 amend 已 push
 
-## Rationalization Table（借口 vs 现实）
+## Rationalization Table
 
 | 借口 | 现实 |
 |---|---|
-| "我打包完成多件事后一起 commit" | 应该每个逻辑主题完成立即 commit，不攒批 |
-| "用户没催 commit，我先继续干别的" | 主动性在 AI 这边，不等提醒 |
-| `git commit --amend` 改已 push 的 commit | 永不——会破坏远端历史 |
+| "多件事一起 commit" | 每个逻辑主题完成立即 commit，不攒批 |
+| "用户没催，先干别的" | 主动性在 AI，不等提醒 |
+| `git commit --amend` 改已 push commit | 永不——破坏远端历史 |
 | `git add -A` 全量加 | 明确 `git add <具体文件>`，避免误提交敏感文件 |
-
-## 与其他 hook 的关系
-
-- `exit-check.sh [7/11]` 检查未 push commit 数量，≥3 自动 push（含 pull --rebase 重试）
-- `pre-push hook` 跑 test + mermaid 守恒检查兜底
-- `verify-claim.sh` (PostToolUse hook) 验证 kb/ 文件写入
-
-详见 [CLAUDE.md「Git 规则」章节](../../../CLAUDE.md)。
