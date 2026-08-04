@@ -88,3 +88,44 @@ test('listOpenPlans: 单引号包裹的 closed 状态正确识别', () => {
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+// 回归测试：frontmatter `status: completed (2026-06-08)` 曾被正则整段捕获，
+// 与 CLOSED_STATES 精确词比较失败，误报为开放 plan。
+test('listOpenPlans: frontmatter status 带半角括号日期后缀 → 视为 closed', () => {
+  withTempPlans({
+    'a.md': '---\nstatus: completed (2026-06-08)\n---\n',
+    'b.md': '---\nstatus: 进行中 (2026-06-01)\n---\n',
+  }, dir => {
+    const open = listOpenPlans(dir);
+    assert.equal(open.length, 1, '只有进行中的 plan 应视为开放');
+    assert.equal(path.basename(open[0].file), 'b.md');
+  });
+});
+
+test('listOpenPlans: frontmatter status 带全角括号日期后缀 → 视为 closed', () => {
+  withTempPlans({
+    'a.md': '---\nstatus: 已完成（2026-06-08）\n---\n',
+    'b.md': '---\nstatus: in-progress\n---\n',
+  }, dir => {
+    const open = listOpenPlans(dir);
+    const names = open.map(p => path.basename(p.file)).sort();
+    assert.deepEqual(names, ['b.md']);
+  });
+});
+
+test('extractStatus: 剥离括号日期后缀', () => {
+  assert.equal(extractStatus('---\nstatus: completed (2026-06-08)\n---\n'), 'completed');
+  assert.equal(extractStatus('---\nstatus: done (2026-06-08)\n---\n'), 'done');
+  assert.equal(extractStatus('---\nstatus: 已完成（2026-06-08）\n---\n'), '已完成');
+});
+
+test('listOpenPlans: "> 状态:" 段也剥离括号后缀', () => {
+  withTempPlans({
+    'a.md': '# Plan\n> 状态: completed (2026-06-08)\n',
+    'b.md': '# Plan\n> 状态: 进行中\n',
+  }, dir => {
+    const open = listOpenPlans(dir);
+    assert.equal(open.length, 1);
+    assert.equal(path.basename(open[0].file), 'b.md');
+  });
+});
