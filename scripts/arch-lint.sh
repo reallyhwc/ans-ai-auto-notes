@@ -27,18 +27,16 @@ echo "[1/15] Frontmatter 完整性 (title + description)..."
 
 while IFS= read -r -d '' file; do
   # 只检查 frontmatter 区域（前 20 行）
+  # 性能：原实现每文件 ~9 fork（head + 2×echo|grep -c + 2×awk 归一化），
+  # 改 head 一次 + 2× grep -q（herestring 单进程），每文件 3 fork，语义不变。
   HEAD=$(head -20 "$file")
-  HAS_TITLE=$(echo "$HEAD" | grep -c "^title:" 2>/dev/null || echo "0")
-  HAS_TITLE=$(echo "$HAS_TITLE" | awk '{print $1}')
-  HAS_DESC=$(echo "$HEAD" | grep -c "^description:" 2>/dev/null || echo "0")
-  HAS_DESC=$(echo "$HAS_DESC" | awk '{print $1}')
 
   # title 和 description 都必须存在
   MISSING=""
-  if [ "$HAS_TITLE" = "0" ] || [ "$HAS_TITLE" = "0 " ]; then
+  if ! grep -q "^title:" <<< "$HEAD" 2>/dev/null; then
     MISSING="title"
   fi
-  if [ "$HAS_DESC" = "0" ] || [ "$HAS_DESC" = "0 " ]; then
+  if ! grep -q "^description:" <<< "$HEAD" 2>/dev/null; then
     if [ -n "$MISSING" ]; then
       MISSING="$MISSING + description"
     else
@@ -61,8 +59,7 @@ echo ""
 echo "[2/15] 元信息头规范 (最后整理日期 + 来源)..."
 
 while IFS= read -r -d '' file; do
-  HAS_DATE=$(head -20 "$file" | grep -c "> 最后整理:" 2>/dev/null || echo 0)
-  if [ "$HAS_DATE" -eq 0 ]; then
+  if ! head -20 "$file" | grep -q "> 最后整理:" 2>/dev/null; then
     echo "  ⚠️  $file — 缺少「> 最后整理: YYYY-MM-DD」"
     WARN=$((WARN + 1))
   fi
