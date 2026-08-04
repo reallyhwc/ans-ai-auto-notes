@@ -1,0 +1,73 @@
+scripts/check-content-quality.sh
+  5308b147d45bbb44 26-27,32
+tests/arch-lint-check6.test.js
+  5308b147d45bbb44 17-27,36
+scripts/arch-lint.sh
+  5308b147d45bbb44 17-23,55,69,100,126,143,244-247,280,301,357,381-382,426-428,430,433-435,437-439,555
+tests/arch-lint-perf.test.js
+  5308b147d45bbb44 16-25
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.9",
+  "base_commit_sha": "ab735cf9d24b8804546fd30e5ccfc61bccc28601",
+  "prompts": {
+    "2502bd7f4765220b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b8d601be-be0e-4f3d-ac4c-ea12692046df",
+        "model": "glm-5.2"
+      },
+      "human_author": "xuhu",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 166,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "readme_en.md": {
+          "accepted_lines": 166
+        }
+      }
+    },
+    "5308b147d45bbb44": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "540545d5-8881-4a13-b709-b41754f1001a",
+        "model": "glm-5.2"
+      },
+      "human_author": "xuhu",
+      "messages": [],
+      "total_additions": 58,
+      "total_deletions": 31,
+      "accepted_lines": 65,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "tests/arch-lint-check6.test.js": {
+          "additions": 12,
+          "deletions": 1,
+          "accepted_lines": 12
+        },
+        "tests/arch-lint-perf.test.js": {
+          "additions": 10,
+          "deletions": 1,
+          "accepted_lines": 10
+        },
+        "logs/agent-runs/2026-08.jsonl": {
+          "additions": 1,
+          "accepted_lines": 8
+        },
+        "scripts/arch-lint.sh": {
+          "additions": 32,
+          "deletions": 22,
+          "accepted_lines": 32
+        },
+        "scripts/check-content-quality.sh": {
+          "additions": 3,
+          "deletions": 7,
+          "accepted_lines": 3
+        }
+      }
+    }
+  }
+}
