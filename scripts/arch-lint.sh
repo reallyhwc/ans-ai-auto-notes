@@ -279,25 +279,23 @@ done < "$KB_FILES"
 echo "  结果: $CASE_WARN 个大小写不一致"
 
 # ── 检查 7: 文件行数超标 ──
-# 知识笔记含大量 demo/Mermaid/代码块，单文件控制在 1000 行以内，超 1500 报错
+# 知识笔记含大量 demo/Mermaid/代码块，单文件行数提示关注，不强制拆分（拆分决策权归用户）
 echo ""
-echo "[7/15] 文件行数超标检查 (>1000 警告, >1500 错误)..."
+echo "[7/15] 文件行数提示检查 (>1000 关注, >1500 同样只提示)..."
 
 LINE_WARN=0
-LINE_ERR=0
 while IFS= read -r -d '' file; do
   LINES=$(wc -l < "$file" | awk '{print $1}')
   if [ "$LINES" -gt 1500 ]; then
-    echo "  ❌ $file — $LINES 行 (>1500，必须拆分)"
-    LINE_ERR=$((LINE_ERR + 1))
-    FAIL=$((FAIL + 1))
+    echo "  ⚠️  $file — $LINES 行 (>1500，超大，提示关注，不提案拆分)"
+    LINE_WARN=$((LINE_WARN + 1))
   elif [ "$LINES" -gt 1000 ]; then
-    echo "  ⚠️  $file — $LINES 行 (>1000，关注)"
+    echo "  ⚠️  $file — $LINES 行 (>1000，关注，不提案拆分)"
     LINE_WARN=$((LINE_WARN + 1))
   fi
 done < "$KB_FILES"
 
-echo "  结果: $LINE_ERR 个超标错误, $LINE_WARN 个警告"
+echo "  结果: $LINE_WARN 个行数提示（>1000/>1500 仅提示关注，拆分决策权归用户）"
 
 # ── 检查 8: Memory 文件 frontmatter 格式 ──
 # 检查 memory/*.md 的 frontmatter --- 分隔符是否正确闭合

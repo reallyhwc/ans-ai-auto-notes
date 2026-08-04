@@ -337,27 +337,26 @@ if (inlineFuncMatch) {
 
 // ============================================================
 // 检查 12: kb/ md 文件行数限制（CLAUDE.md 拆分阈值）
-// >1000 警告：开始关注；>1500 失败：必须拆分
+// >1000 关注 / >1500 同样只提示，不强制拆分（拆分决策权归用户）
 // ============================================================
-section('12/12 kb/ md 文件行数限制（>1000 警告 / >1500 失败）');
+section('12/12 kb/ md 文件行数提示（>1000 关注 / >1500 同样只提示）');
 let lineWarn = 0;
-let lineFail = 0;
 for (const p of allPaths) {
   const abs = path.join(ROOT, p);
   if (!fs.existsSync(abs)) continue;
   const lines = fs.readFileSync(abs, 'utf-8').split('\n').length;
   if (lines > 1500) {
-    fail(p + ' — ' + lines + ' 行 (>1500，必须拆分)');
-    lineFail++;
+    console.log('  WARN: ' + p + ' — ' + lines + ' 行 (>1500，超大，提示关注，不提案拆分)');
+    lineWarn++;
   } else if (lines > 1000) {
-    console.log('  WARN: ' + p + ' — ' + lines + ' 行 (>1000，建议关注)');
+    console.log('  WARN: ' + p + ' — ' + lines + ' 行 (>1000，提示关注，不提案拆分)');
     lineWarn++;
   }
 }
-if (lineFail === 0 && lineWarn === 0) {
+if (lineWarn === 0) {
   pass(allPaths.length + ' 个 md 文件全部 ≤1000 行');
-} else if (lineFail === 0) {
-  pass('无超 1500 行的文件（' + lineWarn + ' 个 >1000 警告）');
+} else {
+  console.log('  ⚠️ ' + lineWarn + ' 个文件 >1000 行（仅提示关注，不提案拆分）');
 }
 
 // ============================================================
