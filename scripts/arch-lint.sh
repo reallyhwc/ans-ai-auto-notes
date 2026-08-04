@@ -14,6 +14,13 @@ WARN=0
 echo ""
 echo "========== KB 架构 Linter =========="
 
+# ── 单次遍历：所有 kb/ md 文件清单，供检查 1/2/3/4/5/6/7/13 复用 ──
+# 此前 8 处各自独立 `find kb -name "*.md"` 全库扫描，改为顶部跑一次写入临时文件，
+# 各检查从同一清单读取，避免重复遍历。行为完全不变。
+KB_FILES=$(mktemp)
+trap 'rm -f "$KB_FILES" "${DEAD_LINKS:-}"' EXIT
+find kb -name "*.md" -print0 2>/dev/null > "$KB_FILES"
+
 # ── 检查 1: Frontmatter 完整性 ──
 echo ""
 echo "[1/15] Frontmatter 完整性 (title + description)..."
@@ -45,7 +52,7 @@ while IFS= read -r -d '' file; do
   else
     PASS=$((PASS + 1))
   fi
-done < <(find kb -name "*.md" -print0 2>/dev/null)
+done < "$KB_FILES"
 
 echo "  结果: $PASS 通过, $FAIL 失败"
 
@@ -59,7 +66,7 @@ while IFS= read -r -d '' file; do
     echo "  ⚠️  $file — 缺少「> 最后整理: YYYY-MM-DD」"
     WARN=$((WARN + 1))
   fi
-done < <(find kb -name "*.md" -print0 2>/dev/null)
+done < "$KB_FILES"
 
 echo "  结果: $WARN 个警告"
 
@@ -69,7 +76,6 @@ echo "[3/15] 交叉链接有效性..."
 
 LINK_WARN=0
 DEAD_LINKS=$(mktemp)
-trap 'rm -f "$DEAD_LINKS"' EXIT
 
 while IFS= read -r -d '' file; do
   FILE_DIR=$(dirname "$file")
@@ -91,7 +97,7 @@ while IFS= read -r -d '' file; do
       fi
     fi
   done < "$DEAD_LINKS"
-done < <(find kb -name "*.md" -print0 2>/dev/null)
+done < "$KB_FILES"
 
 # 3b) 含空格/& 的 .md 链接必须用 <尖括号> 包裹（CommonMark 严格解析）
 # 否则 marked.js 不识别为链接，页面看似有链接但实际无法跳转。
@@ -117,7 +123,7 @@ DUP_FOUND=0
 DUPS=$(
   while IFS= read -r -d '' file; do
     head -10 "$file" | grep "^title:" | sed 's/^title: *//;s/^"//;s/"$//'
-  done < <(find kb -name "*.md" -print0 2>/dev/null) | LC_ALL=C sort | LC_ALL=C uniq -d
+  done < "$KB_FILES" | LC_ALL=C sort | LC_ALL=C uniq -d
 )
 if [ -n "$DUPS" ]; then
   while IFS= read -r dup; do
@@ -134,7 +140,7 @@ echo ""
 echo "[5/15] CLAUDE.md 知识库结构 vs 磁盘一致性..."
 
 # 对比 kb/ 实际 md 数量和 INDEX.md 条目数量（不解析树形图，只做计数对比）
-KB_MD_COUNT=$(find kb -name "*.md" -type f 2>/dev/null | wc -l | awk '{print $1}')
+KB_MD_COUNT=$(tr '\0' '\n' < "$KB_FILES" | grep -c . )
 INDEX_COUNT=$(grep -c "^\- \[" INDEX.md 2>/dev/null || echo "0")
 
 echo "  kb/ 实际 md 文件: $KB_MD_COUNT, INDEX.md 条目: $INDEX_COUNT"
@@ -235,9 +241,10 @@ while IFS= read -r -d '' file; do
       get_dir_entries "$parent"
       entries="$DIR_ENTRIES_RESULT"
 
-      # 精确匹配：用一次 grep -F 做（编译好的二进制字符串匹配，比纯 bash 循环快得多，
-      # 常见情况——链接大小写本来就对——只多花这一次 fork）
-      if printf '%s\n' "$entries" | grep -qxF "$part"; then
+      # 精确匹配：纯 bash 整行匹配（零 fork）。kb/ 条目无 glob 特殊字符（[ ] * ?），
+      # 用换行包裹两端做整行 glob 匹配，避免 printf|grep 每个路径段 fork 两个进程
+      # （常见情况——链接大小写本来就对——每段只走这一次匹配）。
+      if [[ $'\n'"$entries"$'\n' == *$'\n'"$part"$'\n'* ]]; then
         current="$parent/$part"
         continue
       fi
@@ -270,7 +277,7 @@ while IFS= read -r -d '' file; do
 
     [ "$mismatch_found" -eq 1 ] && break  # 每个文件只报一次
   done
-done < <(find kb -name "*.md" -print0 2>/dev/null)
+done < "$KB_FILES"
 
 echo "  结果: $CASE_WARN 个大小写不一致"
 
@@ -291,7 +298,7 @@ while IFS= read -r -d '' file; do
     echo "  ⚠️  $file — $LINES 行 (>1000，关注)"
     LINE_WARN=$((LINE_WARN + 1))
   fi
-done < <(find kb -name "*.md" -print0 2>/dev/null)
+done < "$KB_FILES"
 
 echo "  结果: $LINE_ERR 个超标错误, $LINE_WARN 个警告"
 
@@ -347,6 +354,7 @@ fi
 
 # 9b) 扫描 .sh / .js 中的 npm / npx / yarn / pnpm 调用
 # 用 awk 去掉行尾注释后再匹配，避免"# 提到 npm"的误报
+# find 用 -prune 跳过 .git/node_modules/demos：-not -path 只是过滤结果仍会遍历（.git 44M 全走一遍）
 while IFS= read -r f; do
   # 跳过本文件（本身要提及这些关键字作为检测目标）
   [ "$(realpath "$f" 2>/dev/null)" = "$(realpath "$0" 2>/dev/null)" ] && continue
@@ -370,10 +378,8 @@ while IFS= read -r f; do
     DEPS_ISSUES=$((DEPS_ISSUES + 1))
     FAIL=$((FAIL + 1))
   fi
-done < <(find . \( -name "*.sh" -o -name "*.js" \) -type f \
-         -not -path "./node_modules/*" \
-         -not -path "./.git/*" \
-         -not -path "./demos/*" 2>/dev/null)
+done < <(find . \( -path ./.git -o -path ./node_modules -o -path ./demos \) -prune \
+         -o \( -name "*.sh" -o -name "*.js" \) -type f -print 2>/dev/null)
 
 if [ "$DEPS_ISSUES" -eq 0 ]; then
   echo "  ✓ 零依赖原则未被违反"
@@ -417,16 +423,20 @@ while IFS= read -r script; do
     HAS_IGNORE=1
   fi
   # 检查是否被引用（所有脚本都检查，用于正常孤儿检测 + 反向校验豁免必要性）
+  # 性能：此前对每个 (脚本×引用) 组合各 fork 一次 realpath + grep -q（~30×11×2 次 fork）。
+  # 改为：自引用用纯字符串比较（ref/script 都是相对根路径，无 ./ 前缀差异），
+  #       引用检查用一次 `grep -q pattern files...`（grep 命中即退，批量多文件单进程）。
   REFERENCED=0
+  REFS=""
   for ref in "${REFERENCING[@]}"; do
     [ -f "$ref" ] || continue
-    # 排除自引用
-    [ "$(realpath "$ref" 2>/dev/null)" = "$(realpath "$script" 2>/dev/null)" ] && continue
-    if grep -q "$SCRIPT_NAME" "$ref" 2>/dev/null; then
-      REFERENCED=1
-      break
-    fi
+    # 排除自引用（去 ./ 前缀后字符串相等，等价于 realpath 比较——REFERENCING 无符号链接）
+    [ "${ref#./}" = "${script#./}" ] && continue
+    REFS="$REFS $ref"
   done
+  if [ -n "$REFS" ] && grep -q "$SCRIPT_NAME" $REFS 2>/dev/null; then
+    REFERENCED=1
+  fi
   if [ $REFERENCED -eq 0 ] && [ -n "$GIT_HOOKS" ]; then
     if echo "$GIT_HOOKS" | xargs grep -l "$SCRIPT_NAME" 2>/dev/null | grep -q .; then
       REFERENCED=1
@@ -542,7 +552,7 @@ while IFS= read -r -d '' file; do
     echo "  ⚠️  $file — 章节编号不连续"
     NUM_GAP_WARN=$((NUM_GAP_WARN + 1))
   fi
-done < <(find kb -name "*.md" -print0 2>/dev/null)
+done < "$KB_FILES"
 
 if [ "$NUM_GAP_WARN" -eq 0 ]; then
   echo "  ✓ 所有 ## N. 编号连续无跳号"

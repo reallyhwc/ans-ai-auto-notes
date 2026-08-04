@@ -23,17 +23,13 @@ is_whitelisted() {
 }
 
 WARN_COUNT=0
+# 性能：此前每个文件 3 次 grep -c（mermaid/代码块/表格），改为 1 次 grep -q 合并判断，
+# 三条件任一命中即视为"有具象元素"。行为不变。
 while IFS= read -r -d '' file; do
   if is_whitelisted "$file"; then
     continue
   fi
-  HAS_MERMAID=$(grep -c '^```mermaid' "$file" 2>/dev/null)
-  HAS_CODE=$(grep -c '^```' "$file" 2>/dev/null)
-  HAS_TABLE=$(grep -cE '^\|.*\|' "$file" 2>/dev/null)
-  : "${HAS_MERMAID:=0}"
-  : "${HAS_CODE:=0}"
-  : "${HAS_TABLE:=0}"
-  if [ "$HAS_MERMAID" -eq 0 ] && [ "$HAS_CODE" -eq 0 ] && [ "$HAS_TABLE" -eq 0 ]; then
+  if ! grep -qE '^```mermaid|^```|^\|.*\|' "$file" 2>/dev/null; then
     echo "  ⚠️  $file — 缺少 mermaid / 代码块 / 表格 任一具象元素"
     WARN_COUNT=$((WARN_COUNT + 1))
   fi

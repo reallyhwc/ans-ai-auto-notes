@@ -14,6 +14,17 @@ function extractCheck6() {
   return match[0];
 }
 
+// 检查 6 现从顶部共享清单 $KB_FILES 读取（单次遍历重构），
+// 独立抽取运行时要先构造该清单，与真实 arch-lint.sh 顶部行为一致。
+const CHECK6_PREAMBLE = [
+  '#!/bin/bash',
+  'set -uo pipefail',
+  'KB_FILES=$(mktemp)',
+  "trap 'rm -f \"$KB_FILES\"' EXIT",
+  'find kb -name "*.md" -print0 2>/dev/null > "$KB_FILES"',
+  '',
+].join('\n');
+
 function runCheck6InTempKb(files) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'arch-lint-check6-'));
   for (const [relPath, content] of Object.entries(files)) {
@@ -22,7 +33,7 @@ function runCheck6InTempKb(files) {
     fs.writeFileSync(full, content);
   }
   const scriptFile = path.join(dir, 'check6.sh');
-  fs.writeFileSync(scriptFile, '#!/bin/bash\nset -uo pipefail\n' + extractCheck6());
+  fs.writeFileSync(scriptFile, CHECK6_PREAMBLE + extractCheck6());
   try {
     return execSync(`bash "${scriptFile}"`, { cwd: dir, encoding: 'utf8', timeout: 30000 });
   } finally {
