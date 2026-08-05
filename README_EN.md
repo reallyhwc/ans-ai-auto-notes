@@ -97,7 +97,7 @@ flowchart TD
 
 ### Editor Helpers
 
-- ✅ **split-doc.js**: semi-automated split of large files (>1500 lines triggers lint), preserves lead text + auto-renumbers + updates INDEX
+- ✅ **split-doc.js**: semi-automated split of large files (used when arch-lint flags line-count overflow), preserves lead text + auto-renumbers + updates INDEX
 
 ### 5 Project-Level Skills (Auto-Loaded)
 
@@ -107,7 +107,7 @@ flowchart TD
 | `kb-content-style` | Writing/editing any md under kb/ |
 | `kb-tdd-discipline` | Modifying scripts/ or tests/, or fixing markdown render/path resolve/lint bugs |
 | `arch-lint-fix-guide` | When arch-lint/preflight reports warnings or errors |
-| `build-index` | After adding/removing kb files (`/build-index` command) |
+| `build-index` | After adding/removing kb files (Claude auto-triggers / `/build-index`) |
 
 ## Subagent System (AI Collaboration Team)
 
@@ -115,7 +115,7 @@ The project registers 3 project-level Subagents (defined in `.claude/agents/`), 
 
 | Subagent | Responsibility | Trigger | Output |
 |---|---|---|---|
-| **kb-auditor** | Audits long-form kb notes for depth/chapters/links/visuals | Auto-spawned after ≥300 new lines or single file ≥800 lines | `logs/audits/*.md` + structured VERDICT |
+| **kb-auditor** | Audits long-form kb notes for depth/chapters/links/visuals | Auto-spawned after ≥300 new lines or single file ≥800 lines (loads kb-content-style audit standards itself) | `logs/audits/*.md` + structured VERDICT |
 | **idea-extractor** | Identifies KB sedimentation candidates from long text/URL (no disk write) | Auto-spawned when user pastes long articles/URLs | Structured EXTRACT-VERDICT + candidates |
 | **plan-executor** | End-to-end runs all tasks in a docs/superpowers/plans/*.md | When user says "run plan X" | Summary report + verdict |
 
@@ -216,7 +216,7 @@ Long-running tasks (e.g., "refactor entire Java directory") go in `docs/superpow
 When arch-lint warns a file is >1000 lines:
 
 ```bash
-node scripts/split-doc.js kb/技术/Java/jvm-gc.md --sections "GC 算法,GC 调优"
+node scripts/split-doc.js kb/<topic>/<file>.md --sections "Section A,Section B"
 ```
 
 Generates 2 new files + original keeps split-link hints + auto-rebuilds INDEX.md.

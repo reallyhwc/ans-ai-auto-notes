@@ -97,7 +97,7 @@ flowchart TD
 
 ### 编辑器辅助
 
-- ✅ **split-doc.js**：半自动拆分大文件（>1500 行触发 lint），保留 lead text + 自动重编号 + 更新 INDEX
+- ✅ **split-doc.js**：半自动拆分大文件（arch-lint 提示行数超限时使用），保留 lead text + 自动重编号 + 更新 INDEX
 
 ### 5 个项目级 skill（自动加载）
 
@@ -107,7 +107,7 @@ flowchart TD
 | `kb-content-style` | 写入/编辑 kb/ 下任何 md |
 | `kb-tdd-discipline` | 修改 scripts/ 或 tests/，或修 markdown 渲染/路径解析/lint bug |
 | `arch-lint-fix-guide` | arch-lint/preflight 报警告或错误时 |
-| `build-index` | 新增/删除 kb 文件后（`/build-index` 命令触发） |
+| `build-index` | 新增/删除 kb 文件后（Claude 自动触发 / `/build-index`） |
 
 ## Subagent 体系（AI 协作团队）
 
@@ -115,7 +115,7 @@ flowchart TD
 
 | Subagent | 职责 | 触发方式 | 产物 |
 |---|---|---|---|
-| **kb-auditor** | 审 long-form kb 笔记的深度/章节/链接/视觉化 | 写完 ≥300 行新内容或单文件 ≥800 行后主动 spawn | `logs/audits/*.md` + 结构化 VERDICT |
+| **kb-auditor** | 审 long-form kb 笔记的深度/章节/链接/视觉化 | 写完 ≥300 行新内容或单文件 ≥800 行后主动 spawn（自行 load kb-content-style 审计标准） | `logs/audits/*.md` + 结构化 VERDICT |
 | **idea-extractor** | 从长文/URL 识别 KB 沉淀候选（不写盘） | 用户贴入长文章/URL 时主动 spawn | 结构化 EXTRACT-VERDICT + candidates |
 | **plan-executor** | 端到端跑一个 docs/superpowers/plans/*.md 的所有 task | 用户说"run plan X"时 | 总报告 + verdict |
 
@@ -216,7 +216,7 @@ AI 会按这个背景调整回答风格、举例子时选你熟悉的领域。
 当 arch-lint 警告某文件 >1000 行：
 
 ```bash
-node scripts/split-doc.js kb/技术/Java/jvm-gc.md --sections "GC 算法,GC 调优"
+node scripts/split-doc.js kb/<主题>/<文件>.md --sections "节A,节B"
 ```
 
 会生成 2 个新文件 + 原文件保留拆分提示链接 + 自动重建 INDEX.md。
