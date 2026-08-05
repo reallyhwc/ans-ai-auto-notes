@@ -2,7 +2,7 @@
 
 # AI Auto Notes — 对话驱动的个人知识库
 
-> 与 AI 聊天，自动沉淀为结构化知识库。零手动整理，完全本地，75 篇笔记持续生长中。
+> 与 AI 聊天，自动沉淀为结构化知识库。零手动整理，完全本地，76 篇笔记持续生长中。
 
 [:books: 浏览知识库 →](INDEX.md) &nbsp;|&nbsp; [:bar_chart: 可视化导览](http://localhost:8765/overview.html)
 
@@ -14,7 +14,7 @@
 
 ## 🚀 想搭建属于你自己的知识库？
 
-本仓库的 `main` 分支是作者的个人知识库（含 75 篇笔记）。如果你想**用同样的架构搭建自己的知识库**，请使用 [`quickStart` 分支](https://github.com/reallyhwc/ans-ai-auto-notes/tree/quickStart)：
+本仓库的 `main` 分支是作者的个人知识库（含 76 篇笔记）。如果你想**用同样的架构搭建自己的知识库**，请使用 [`quickStart` 分支](https://github.com/reallyhwc/ans-ai-auto-notes/tree/quickStart)：
 
 ```bash
 # 1. Fork 本仓库，然后切到 quickStart 分支
@@ -36,7 +36,7 @@ claude
 
 - **自动提取**：AI 自动判断哪些内容值得记录，不等你提醒
 - **智能聚合**：同主题知识点追加到同一个文件，持续重组而非堆砌
-- **主动发散**：AI 不只被动回答，还会主动提议"要不要把 X 也记录下来？"
+- **主动沉淀**：AI 判断对话中的技术内容后直接写入 kb/，绝不询问"要不要沉淀"
 - **三层约束体系**：基于 Harness Engineering 理念，规则不仅写在 CLAUDE.md 里，更用 hooks 机械强制执行
 - **可视化导览**：一键启动本地预览页，支持分类浏览、时间线、全文搜索、词云、Mermaid 图表渲染
 - **零网络依赖**：所有前端资源（mermaid / marked / wordcloud2）固化到本地 vendor 目录，离线秒开
@@ -44,7 +44,7 @@ claude
 
 ## 知识库内容概览
 
-当前已积累 **75 篇**结构化笔记，覆盖以下领域：
+当前已积累 **76 篇**结构化笔记，覆盖以下领域：
 
 | 分类 | 代表笔记 |
 |------|----------|
@@ -82,7 +82,7 @@ claude
 
 | 层级 | 触发时机 | 做什么 |
 |------|---------|--------|
-| **约束层** | SessionStart | 环境体检 + 遗留变更提醒 + memory 过期检查（>14天）+ 架构 Linter（frontmatter / 死链 / 重复标题 / 行数 / 大小写一致性） |
+| **约束层** | SessionStart | 环境体检 + 遗留变更提醒 + memory 过期检查（>14天）+ 架构 Linter（15 项：frontmatter / 死链 / 重复标题 / 行数 / 大小写 / 章节编号 / anchor 存活等） |
 | **约束层** | Stop | Markdown lint + Git 状态 + 健康检查（12 项）+ Session 日志 + 权限审计 + 未 push 提醒（≥3 自动 push）+ 沉淀声明审计 + 内容质量 fast-path |
 | **文档层** | Stop → 文件 | 从 git diff 自动生成结构化 session 日志，同日多次累加 |
 | **文档层** | 跨 Session | Memory 分层（稳定层/项目层/流水层），所有记忆带时间戳，>14 天自动告警 |
@@ -176,11 +176,11 @@ bash scripts/arch-lint.sh     # 15 项 KB 架构检查
 
 | Skill | 类型 | 触发方式 | 作用 |
 |-------|------|---------|------|
-| **kb-content-style** | 参考型 | Claude 自动触发 | 写 kb/ 笔记时强制 Mermaid 优先、章节编号连续、中文文件名 = title |
+| **kb-content-style** | 参考型 | Claude 自动触发 | 写 kb/ 笔记时强制 Mermaid 优先、章节编号连续、中文文件名 = title（规则权威，细则在 reference.md） |
 | **kb-tdd-discipline** | 纪律型 | Claude 自动触发 | 改 scripts/tests 时强制红绿重构 + bug 复现测试 |
 | **auto-commit-discipline** | 纪律型 | Claude 自动触发 | 完成一批变更立即 commit，≥3 未 push 自动 push |
 | **arch-lint-fix-guide** | 参考型 | Claude 自动触发 | arch-lint.sh 15 项检查的修复指南 |
-| **build-index** | 任务型 | `/build-index` | 新增/删除 kb 文件后重建 manifest.json + INDEX.md |
+| **build-index** | 任务型 | Claude 自动触发 / `/build-index` | 新增/删除 kb 文件后重建 manifest.json + INDEX.md |
 
 ### Skill 开发纪律（SDD）
 
@@ -198,7 +198,7 @@ Skill 开发遵循 **SDD（Skill Development Discipline）**——把 TDD 应用
 
 | Subagent | 职责 | 触发方式 | 产物 |
 |----------|------|---------|------|
-| **kb-auditor** | 审 long-form kb 笔记的深度/章节/链接/视觉化 | 写完 ≥300 行新内容或单文件 ≥800 行后主动 spawn | `logs/audits/*.md` + 结构化 VERDICT |
+| **kb-auditor** | 审 long-form kb 笔记的深度/章节/链接/视觉化 | 写完 ≥300 行新内容或单文件 ≥800 行后主动 spawn（自行 load kb-content-style 审计标准） | `logs/audits/*.md` + 结构化 VERDICT |
 | **idea-extractor** | 从长文/URL 识别 KB 沉淀候选（不写盘） | 用户贴入长文章/URL 时主动 spawn | 结构化 EXTRACT-VERDICT + candidates |
 | **plan-executor** | 端到端跑 plan 文件的所有 task | 用户说 "run plan X" | `logs/plan-runs/*.md` + VERDICT |
 
@@ -208,11 +208,11 @@ Skill 开发遵循 **SDD（Skill Development Discipline）**——把 TDD 应用
 
 ## 定制
 
-详细规则、目录组织、文件拆分阈值、笔记风格规则均在 [CLAUDE.md](CLAUDE.md)。
+核心纪律在 [CLAUDE.md](CLAUDE.md)；文件组织、笔记风格、拆分阈值等**详细规则已收敛到 [kb-content-style skill](.claude/skills/kb-content-style/SKILL.md)**（细则在 reference.md）。
 
 - **修改个人背景** → 编辑 `CLAUDE.md` 中的"用户背景"
-- **调整知识库结构** → 修改 `CLAUDE.md` 中的目录规则、文件拆分阈值
-- **自定义笔记风格** → 修改 `CLAUDE.md` 中的"笔记风格规则"
+- **调整知识库结构 / 拆分阈值** → 修改 `.claude/skills/kb-content-style/` 的拆分规则
+- **自定义笔记风格** → 修改 `.claude/skills/kb-content-style/` 的笔记风格规则
 - **添加新分类** → 在 `kb/` 下新建目录，AI 会自动识别并归类
 
 ## 技术栈

@@ -2,7 +2,7 @@
 
 # AI Auto Notes — Conversation-Driven Personal Knowledge Base
 
-> Chat with AI, automatically distill into a structured knowledge base. Zero manual organizing, fully local, 75 notes and growing.
+> Chat with AI, automatically distill into a structured knowledge base. Zero manual organizing, fully local, 76 notes and growing.
 
 [:books: Browse Knowledge Base →](INDEX.md) &nbsp;|&nbsp; [:bar_chart: Visual Overview](http://localhost:8765/overview.html)
 
@@ -14,7 +14,7 @@ Every time you chat with Claude Code, the AI automatically classifies, summarize
 
 ## 🚀 Want to Build Your Own Knowledge Base?
 
-The `main` branch is the author's personal knowledge base (75 notes). If you want to **build your own using the same architecture**, use the [`quickStart` branch](https://github.com/reallyhwc/ans-ai-auto-notes/tree/quickStart):
+The `main` branch is the author's personal knowledge base (76 notes). If you want to **build your own using the same architecture**, use the [`quickStart` branch](https://github.com/reallyhwc/ans-ai-auto-notes/tree/quickStart):
 
 ```bash
 # 1. Fork this repo, then switch to quickStart branch
@@ -36,7 +36,7 @@ The `quickStart` branch retains the full feature architecture (visual overview, 
 
 - **Auto-Extraction**: AI automatically identifies what's worth recording, without waiting for your prompt
 - **Smart Aggregation**: Same-topic knowledge points are appended to the same file, continuously reorganized rather than piled up
-- **Proactive Divergence**: AI doesn't just passively answer—it proactively suggests "Want me to record X as well?"
+- **Proactive Capture**: AI directly writes technical content to kb/ without ever asking "should I save this?"
 - **Three-Layer Constraint System**: Based on Harness Engineering principles, rules aren't just written in CLAUDE.md—they're mechanically enforced via hooks
 - **Visual Overview**: One-click local preview with category browsing, timeline, full-text search, word cloud, and Mermaid diagram rendering
 - **Zero Network Dependency**: All frontend resources (mermaid / marked / wordcloud2) are vendored locally, instant offline access
@@ -44,7 +44,7 @@ The `quickStart` branch retains the full feature architecture (visual overview, 
 
 ## Knowledge Base Overview
 
-Currently accumulated **75** structured notes covering the following areas:
+Currently accumulated **76** structured notes covering the following areas:
 
 | Category | Representative Notes |
 |----------|---------------------|
@@ -82,7 +82,7 @@ Conversation Layer (AI real-time understanding) → CLAUDE.md project rules + AI
 
 | Layer | Trigger | What It Does |
 |-------|---------|--------------|
-| **Constraint** | SessionStart | Environment health check + stale changes reminder + memory expiry check (>14 days) + Architecture Linter (frontmatter / dead links / duplicate titles / line count / case consistency) |
+| **Constraint** | SessionStart | Environment health check + stale changes reminder + memory expiry check (>14 days) + Architecture Linter (15 checks: frontmatter / dead links / duplicate titles / line count / case / section numbering / anchor liveness, etc.) |
 | **Constraint** | Stop | Markdown lint + Git status + Health check (12 items) + Session log + Permission audit + Unpushed reminder (≥3 auto push) + Claim audit + Content quality fast-path |
 | **Documentation** | Stop → File | Auto-generate structured session log from git diff, appending for same-day multiple sessions |
 | **Documentation** | Cross-Session | Memory layered (stable/project/stream), all memories timestamped, >14 days auto-alert |
@@ -168,13 +168,51 @@ node scripts/check-overview.js # 12 health checks
 bash scripts/arch-lint.sh     # 15 KB architecture checks
 ```
 
+## Skill System (AI Capability Packs)
+
+The project adopts **progressive skill disclosure** — domain knowledge is packaged as semantically-triggerable capability units loaded on demand. See [Skills 渐进式披露架构](kb/技术/AI/Claude-Code/Skills%20渐进式披露架构.md).
+
+### The 5 Skills
+
+| Skill | Type | Trigger | Role |
+|-------|------|---------|------|
+| **kb-content-style** | Reference | Claude auto-triggers | Enforces Mermaid-first, continuous section numbering, Chinese filename = title when writing kb/ notes (authoritative rules; details in reference.md) |
+| **kb-tdd-discipline** | Discipline | Claude auto-triggers | Enforces red-green-refactor + bug-reproduction tests when modifying scripts/tests |
+| **auto-commit-discipline** | Discipline | Claude auto-triggers | Commits immediately after each batch of changes; auto-pushes ≥3 unpushed commits |
+| **arch-lint-fix-guide** | Reference | Claude auto-triggers | Fix guide for the 15 arch-lint.sh checks |
+| **build-index** | Task | Claude auto-trigger / `/build-index` | Rebuilds manifest.json + INDEX.md after adding/removing kb files |
+
+### Skill Development Discipline (SDD)
+
+Skill development follows **SDD (Skill Development Discipline)** — applying TDD to the documentation domain:
+
+1. **RED**: Run pressure scenarios with a subagent to observe baseline behavior without the skill
+2. **GREEN**: Write the minimal skill solving the observed problem
+3. **REFACTOR**: Plug new loopholes, refine the Rationalization Table
+
+See the "Skill 开发纪律" section in [CLAUDE.md](CLAUDE.md) and superpowers `writing-skills` skill.
+
+## Subagent System (AI Collaboration Team)
+
+The project registers 3 project-level subagents (defined in `.claude/agents/`), complementary to skills:
+
+| Subagent | Role | Trigger | Output |
+|----------|------|---------|--------|
+| **kb-auditor** | Reviews depth/sections/links/visualization of long-form kb notes | Spawned after ≥300 new lines or a single file ≥800 lines (loads kb-content-style audit standards itself) | `logs/audits/*.md` + structured VERDICT |
+| **idea-extractor** | Identifies KB candidates from long text/URLs (no writes) | Spawned when user pastes long articles/URLs | Structured EXTRACT-VERDICT + candidates |
+| **plan-executor** | Runs all tasks in a plan file end-to-end | User says "run plan X" | `logs/plan-runs/*.md` + VERDICT |
+
+**Relationship with skills**: Skills provide "how to write" standards (reference) and "what action to run" shortcuts (task); subagents handle long tasks that need independent execution — the three coexist complementarily.
+
+See [`.claude/agents/README.md`](.claude/agents/README.md) and [Subagent 机制与实战](kb/技术/AI/Claude-Code/子智能体（subagents）机制与实战.md).
+
 ## Customization
 
-Detailed rules, directory organization, file split thresholds, and note style rules are all in [CLAUDE.md](CLAUDE.md).
+Core discipline lives in [CLAUDE.md](CLAUDE.md); the detailed rules for file organization, note style, and split thresholds are **consolidated into the [kb-content-style skill](.claude/skills/kb-content-style/SKILL.md)** (details in reference.md).
 
 - **Modify personal background** → Edit "User Background" section in `CLAUDE.md`
-- **Adjust knowledge base structure** → Modify directory rules and file split thresholds in `CLAUDE.md`
-- **Customize note style** → Modify "Note Style Rules" section in `CLAUDE.md`
+- **Adjust KB structure / split thresholds** → Modify the split rules in `.claude/skills/kb-content-style/`
+- **Customize note style** → Modify the note-style rules in `.claude/skills/kb-content-style/`
 - **Add new categories** → Create new directories under `kb/`, AI will auto-detect and classify
 
 ## Tech Stack
