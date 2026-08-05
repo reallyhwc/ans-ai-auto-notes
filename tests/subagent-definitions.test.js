@@ -36,10 +36,10 @@ test('kb-auditor: frontmatter 含 name/description/tools', () => {
   assert.ok(frontmatter.tools, 'tools required');
 });
 
-test('kb-auditor: tools 白名单仅含 Read/Grep/Glob/Bash（review-only）', () => {
+test('kb-auditor: tools 白名单仅含 Read/Grep/Glob/Bash/Skill（review-only + 自 load skill）', () => {
   const { frontmatter } = parseFrontmatter(readAgent('kb-auditor'));
   const tools = frontmatter.tools.split(',').map(s => s.trim());
-  assert.deepEqual(tools.sort(), ['Bash', 'Glob', 'Grep', 'Read']);
+  assert.deepEqual(tools.sort(), ['Bash', 'Glob', 'Grep', 'Read', 'Skill']);
   assert.ok(!tools.includes('Edit'), 'Edit must not be in kb-auditor tools (review-only)');
   assert.ok(!tools.includes('Write') || tools.includes('Bash'),
     'Write only OK if Bash absent (we want auditor to write reports via Bash echo redirect, not Write tool)');
@@ -57,6 +57,20 @@ test('kb-auditor: body 含 VERDICT 输出契约 + logs/audits/ 路径', () => {
   const { body } = parseFrontmatter(readAgent('kb-auditor'));
   assert.match(body, /VERDICT:/);
   assert.match(body, /logs\/audits\//);
+});
+
+test('kb-auditor: body 含"审计前 load kb-content-style skill"契约（终结主 agent 手动抄标准）', () => {
+  const { body } = parseFrontmatter(readAgent('kb-auditor'));
+  assert.match(body, /kb-content-style/);
+  assert.match(body, /Skill 工具/);
+});
+
+test('每个 subagent description 为触发式（SDD：只写触发条件，不总结 workflow）', () => {
+  for (const name of ['kb-auditor', 'idea-extractor', 'plan-executor']) {
+    const { frontmatter } = parseFrontmatter(readAgent(name));
+    assert.match(frontmatter.description, /^(Use when|当.*时)/,
+      `${name} description 应以触发句式开头（Use when / 当...时）`);
+  }
 });
 
 test('plan-executor: frontmatter + 全工具白名单', () => {

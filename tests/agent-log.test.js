@@ -310,6 +310,23 @@ test('agent-log-hook main: 无实质工作 → 不写', () => {
   fs.rmSync(tmpDir, { recursive: true });
 });
 
+// 回归测试：main 前置短路——transcript 仅含文本（无 tool_use 块）→ 不 parse 直接跳过
+test('agent-log-hook main: 仅文本无 tool_use → 前置短路不写（大 transcript 免 parse）', () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agent-log-hook-'));
+  const fakeTranscript = path.join(tmpDir, 't.jsonl');
+  // 文本里提到 Edit 工具名，但没有任何 tool_use 块
+  fs.writeFileSync(fakeTranscript, [
+    '{"role":"user","content":"请用 Edit 工具修改文件","timestamp":"2026-06-02T00:00:00Z"}',
+    '{"role":"assistant","content":[{"type":"text","text":"好的，我用 Edit 完成"}],"timestamp":"2026-06-02T00:00:05Z","model":"claude-opus-4-7"}',
+  ].join('\n') + '\n');
+
+  const logFile = path.join(tmpDir, '2026-06.jsonl');
+  runHook('main', { transcript_path: fakeTranscript }, { AGENT_LOG_FILE: logFile });
+
+  assert.equal(fs.existsSync(logFile), false, '无 tool_use 的 transcript 应被前置短路跳过');
+  fs.rmSync(tmpDir, { recursive: true });
+});
+
 test('agent-log-hook: 无 transcript_path → 静默退出（不报错）', () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agent-log-hook-'));
   const logFile = path.join(tmpDir, '2026-06.jsonl');

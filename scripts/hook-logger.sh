@@ -25,18 +25,16 @@ END_MS=$(perl -MTime::HiRes=time -e 'print int(time*1000)' 2>/dev/null || echo 0
 DURATION_MS=$((END_MS - START_MS))
 TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-# 用 python3 写 JSON（通过 env var 传 command 避免引号注入）
-HOOK_CMD="$CMD" python3 -c "
-import json, os
-entry = {
-    'time': '$TIME',
-    'hook': '$HOOK_NAME',
-    'command': os.environ['HOOK_CMD'],
-    'exit_code': $EXIT_CODE,
-    'duration_ms': $DURATION_MS
-}
-with open('$LOG_FILE', 'a') as f:
-    f.write(json.dumps(entry) + '\n')
-" 2>/dev/null || true
+# 用 perl JSON::PP 写 JSON（通过 env var 传 command 避免引号注入）。
+# 此前用 python3：启动 ~100ms（负载下更甚），而 macOS 自带 perl 5.34 + 核心模块 JSON::PP，
+# perl 启动 ~5ms。仅 command 是任意字符串，用 JSON::PP 编码；time/hook 是安全字符、数字是整数。
+HOOK_NAME="$HOOK_NAME" TIME="$TIME" EXIT_CODE="$EXIT_CODE" DURATION_MS="$DURATION_MS" \
+HOOK_CMD="$CMD" LOG_FILE="$LOG_FILE" perl -MJSON::PP -e '
+  my $cmd = JSON::PP->new->encode($ENV{"HOOK_CMD"});
+  chomp($cmd);
+  my $line = qq({"time":"$ENV{TIME}","hook":"$ENV{HOOK_NAME}","command":$cmd,"exit_code":$ENV{EXIT_CODE},"duration_ms":$ENV{DURATION_MS}});
+  open my $fh, ">>", $ENV{LOG_FILE} or exit 1;
+  print $fh $line, "\n";
+' 2>/dev/null || true
 
 exit $EXIT_CODE

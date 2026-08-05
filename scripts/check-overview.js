@@ -35,9 +35,27 @@ const INDEX_MD_PATH = path.join(ROOT, 'INDEX.md');
 const TIMELINE_DIR = path.join(ROOT, 'timeline');
 
 let failed = 0;
-function pass(msg) { console.log('  PASS: ' + msg); }
-function fail(msg) { console.log('  FAIL: ' + msg); failed++; }
-function section(title) { console.log('\n[' + title + ']'); }
+// --quiet / --summary：Stop hook 链用，正常路径只打一行 ✓ 汇总，失败才打明细
+const QUIET = process.argv.includes('--quiet') || process.argv.includes('--summary');
+let currentSection = null;
+let sectionFails = 0;
+const sectionResults = [];
+
+function pass(msg) {
+  if (QUIET) return; // quiet 模式抑制 PASS 明细，由末尾每项一行 ✓ 汇总
+  console.log('  PASS: ' + msg);
+}
+function fail(msg) {
+  if (currentSection) sectionFails++;
+  console.log('  FAIL: ' + msg);
+  failed++;
+}
+function section(title) {
+  if (currentSection !== null) sectionResults.push({ title: currentSection, fails: sectionFails });
+  currentSection = title;
+  sectionFails = 0;
+  if (!QUIET) console.log('\n[' + title + ']');
+}
 
 // ============================================================
 // 检查 1: manifest.json / timeline.json 存在性 + JSON 合法性
@@ -319,32 +337,44 @@ if (inlineFuncMatch) {
 
 // ============================================================
 // 检查 12: kb/ md 文件行数限制（CLAUDE.md 拆分阈值）
-// >1000 警告：开始关注；>1500 失败：必须拆分
+// >1000 关注 / >1500 同样只提示，不强制拆分（拆分决策权归用户）
 // ============================================================
-section('12/12 kb/ md 文件行数限制（>1000 警告 / >1500 失败）');
+section('12/12 kb/ md 文件行数提示（>1000 关注 / >1500 同样只提示）');
 let lineWarn = 0;
-let lineFail = 0;
 for (const p of allPaths) {
   const abs = path.join(ROOT, p);
   if (!fs.existsSync(abs)) continue;
   const lines = fs.readFileSync(abs, 'utf-8').split('\n').length;
   if (lines > 1500) {
-    fail(p + ' — ' + lines + ' 行 (>1500，必须拆分)');
-    lineFail++;
+    console.log('  WARN: ' + p + ' — ' + lines + ' 行 (>1500，超大，提示关注，不提案拆分)');
+    lineWarn++;
   } else if (lines > 1000) {
-    console.log('  WARN: ' + p + ' — ' + lines + ' 行 (>1000，建议关注)');
+    console.log('  WARN: ' + p + ' — ' + lines + ' 行 (>1000，提示关注，不提案拆分)');
     lineWarn++;
   }
 }
-if (lineFail === 0 && lineWarn === 0) {
+if (lineWarn === 0) {
   pass(allPaths.length + ' 个 md 文件全部 ≤1000 行');
-} else if (lineFail === 0) {
-  pass('无超 1500 行的文件（' + lineWarn + ' 个 >1000 警告）');
+} else {
+  console.log('  ⚠️ ' + lineWarn + ' 个文件 >1000 行（仅提示关注，不提案拆分）');
 }
 
 // ============================================================
 // 汇总
 // ============================================================
+// quiet 模式：健康项每项一行 ✓ 汇总；失败项明细已在上文输出
+if (QUIET) {
+  sectionResults.push({ title: currentSection, fails: sectionFails });
+  console.log('');
+  sectionResults.forEach(function(r) {
+    if (r.fails === 0) {
+      console.log('  ✓ ' + r.title);
+    } else {
+      console.log('  ✗ ' + r.title + ' — ' + r.fails + ' 项失败');
+    }
+  });
+}
+
 console.log('');
 if (failed === 0) {
   console.log('=== 全部检查通过 ===');

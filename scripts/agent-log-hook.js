@@ -52,6 +52,19 @@ function main() {
   const transcriptPath = (mode === 'subagent' && stdin.agent_transcript_path) || stdin.transcript_path;
   if (!transcriptPath || !fs.existsSync(transcriptPath)) return;
 
+  // main 模式前置快速判断：大 session transcript 可达 MB 级，逐行 JSON.parse 很贵。
+  // 先只扫一次原始文本是否同时含 tool_use 块 + 写工具名（Edit/Write/NotebookEdit/Bash/Task），
+  // 无则直接退出。语义与 parseTranscript 的 has_substantive_work 完全一致（写工具名精确匹配），
+  // 只可能多跑 parse（文本里恰好提到工具名），绝不会漏报（真实 tool_use 必含 type + name 两字段）。
+  if (mode === 'main') {
+    try {
+      const raw = fs.readFileSync(transcriptPath, 'utf8');
+      if (!/"type":"tool_use"/.test(raw) || !/"name":"(?:Edit|Write|NotebookEdit|Bash|Task)"/.test(raw)) {
+        return;
+      }
+    } catch { return; }
+  }
+
   let parsed;
   try { parsed = parseTranscript(transcriptPath); } catch { return; }
 

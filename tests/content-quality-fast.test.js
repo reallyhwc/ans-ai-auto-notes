@@ -150,3 +150,44 @@ test('content-quality-fast: 合格文件 → 全部 ✓', () => {
     assert.doesNotMatch(out, /⚠️|❌/);
   });
 });
+
+// 回归测试：原 `git diff HEAD~1` 只覆盖最近 1 个 commit，多 commit session 会漏更早的 commit
+// 修复：基线优先 .last-checkpoint，退回"今天最早 commit 的父提交"，覆盖整个今日 session。
+test('content-quality-fast: 默认模式覆盖多 commit session + 未跟踪新文件', () => {
+  withTempKb({}, (dir) => {
+    const freshDate = recentDate;
+    function kbFile(title) {
+      return [
+        '---',
+        `title: ${title}`,
+        'description: Test file',
+        '---',
+        '',
+        `> 最后整理: ${freshDate} | 来源: 对话`,
+        '',
+        '## 1. 内容',
+        '',
+        '```js',
+        'console.log(1);',
+        '```',
+        // 故意缺交叉链接 → 每个文件都会报 ⚠️ 带路径，便于断言"被检查到"
+      ].join('\n');
+    }
+    // commit 1（首个 session commit）
+    const aPath = path.join(dir, 'kb/技术/Java/committed-a.md');
+    fs.mkdirSync(path.dirname(aPath), { recursive: true });
+    fs.writeFileSync(aPath, kbFile('A'));
+    execSync('git add -A && git commit -m "commit1"', { cwd: dir, stdio: 'pipe' });
+    // commit 2
+    const bPath = path.join(dir, 'kb/技术/Java/committed-b.md');
+    fs.writeFileSync(bPath, kbFile('B'));
+    execSync('git add -A && git commit -m "commit2"', { cwd: dir, stdio: 'pipe' });
+    // 未跟踪新文件
+    fs.writeFileSync(path.join(dir, 'kb/技术/Java/new-c.md'), kbFile('C'));
+
+    const out = runCheck(dir, {}); // 默认模式（非 CQF_CHECK_ALL）
+    assert.match(out, /committed-a\.md/, 'commit 1 的文件应被检查到');
+    assert.match(out, /committed-b\.md/, 'commit 2 的文件应被检查到');
+    assert.match(out, /new-c\.md/, '未跟踪新文件应被检查到');
+  });
+});

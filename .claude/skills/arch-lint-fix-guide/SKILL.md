@@ -96,7 +96,7 @@ bash scripts/arch-lint.sh 2>&1 | grep "大小写"
 3. 原文件加 `> 关联: ./新文件`
 4. 新文件加 `> 关联: ./原文件`
 
-> 阈值与判断方法的权威定义见 [kb-content-style skill](../kb-content-style/SKILL.md)（文件拆分规则一节），本节只覆盖"lint 报错后怎么改"。
+> 阈值与判断方法的权威定义见 [kb-content-style skill](../kb-content-style/reference.md)（文件拆分规则全文）。lint 把 >1500 标为错误只是机械阈值；按内容策略，拆分决策权归用户、AI 不擅自提案拆分（见 [SKILL.md](../kb-content-style/SKILL.md)）。本节只覆盖"lint 报错后怎么改"。
 
 ### 8. Memory 文件 frontmatter 格式
 

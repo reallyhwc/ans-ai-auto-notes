@@ -9,18 +9,30 @@ const path = require('path');
 
 const CLOSED_STATES = new Set(['已完成', 'completed', 'done', 'closed']);
 
+// 剥离状态值末尾的括号后缀（半角/全角），如 `completed (2026-06-08)` → `completed`、
+// `已完成（2026-06-08）` → `已完成`。此前 frontmatter `status: completed (2026-06-08)`
+// 被整段捕获，与 CLOSED_STATES 精确词比较失败，误报为开放 plan。
+function normalizeStatus(status) {
+  return (status || '')
+    .replace(/\s*[（(][^（()）]*[）)]\s*$/, '')
+    .trim();
+}
+
 function extractStatus(content) {
+  let status = '';
   if (content.startsWith('---')) {
     const end = content.indexOf('---', 3);
     if (end > 0) {
       const yaml = content.substring(3, end);
       const m = yaml.match(/^status:\s*["']?(.+?)["']?\s*$/m);
-      if (m) return m[1].trim();
+      if (m) status = m[1].trim();
     }
   }
-  const m = content.match(/^>\s*状态:\s*(.+)$/m);
-  if (m) return m[1].trim();
-  return '';
+  if (!status) {
+    const m = content.match(/^>\s*状态:\s*(.+)$/m);
+    if (m) status = m[1].trim();
+  }
+  return normalizeStatus(status);
 }
 
 function listOpenPlans(dir) {

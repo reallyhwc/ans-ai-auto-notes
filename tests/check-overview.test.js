@@ -94,3 +94,27 @@ test('check-overview.js: manifest.json 缺失时应 exit 1（检查 1 兜底）'
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+// 回归测试：Stop 链"只报失败"——--quiet 抑制 PASS 明细，健康项每项一行 ✓ 汇总
+test('check-overview.js: --quiet 健康路径输出精简（无 PASS 明细，逐项 ✓ 汇总）', () => {
+  const out = execSync('node scripts/check-overview.js --quiet', {
+    cwd: path.join(__dirname, '..'),
+    encoding: 'utf-8',
+    stdio: ['pipe', 'pipe', 'pipe'],
+    timeout: 15000,
+  });
+  assert.doesNotMatch(out, /  PASS: /, 'quiet 模式不应输出 PASS 明细');
+  assert.match(out, /✓ 1\/12/, 'quiet 模式应有第 1 项 ✓ 汇总');
+  assert.match(out, /✓ 12\/12/, 'quiet 模式应有最后一项 ✓ 汇总');
+  assert.match(out, /全部检查通过/, '健康路径仍应输出通过汇总');
+});
+
+test('check-overview.js: 无参数模式保持兼容（输出 PASS 明细）', () => {
+  const out = execSync('node scripts/check-overview.js', {
+    cwd: path.join(__dirname, '..'),
+    encoding: 'utf-8',
+    stdio: ['pipe', 'pipe', 'pipe'],
+    timeout: 15000,
+  });
+  assert.match(out, /  PASS: /, '默认模式应保留 PASS 明细');
+});

@@ -1,7 +1,6 @@
 ---
 name: build-index
 description: Use when adding or deleting kb/*.md files and the index needs rebuilding. Use after creating new kb/ markdown files or removing existing ones.
-disable-model-invocation: true
 allowed-tools:
   - Bash(node scripts/build-index.js)
   - Bash(grep -c * INDEX.md)

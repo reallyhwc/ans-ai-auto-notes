@@ -13,7 +13,16 @@ test('arch-lint.sh: 检查 6（链接路径大小写）应在 10 秒内完成（
   assert.ok(match, '应找到检查 6 的代码段');
 
   const tmpFile = '/tmp/check6-only.sh';
-  fs.writeFileSync(tmpFile, '#!/bin/bash\nset -uo pipefail\n' + match[0]);
+  // 检查 6 现从顶部共享清单 $KB_FILES 读取（单次遍历重构），独立运行前先构造该清单
+  const preamble = [
+    '#!/bin/bash',
+    'set -uo pipefail',
+    'KB_FILES=$(mktemp)',
+    "trap 'rm -f \"$KB_FILES\"' EXIT",
+    'find kb -name "*.md" -print0 2>/dev/null > "$KB_FILES"',
+    '',
+  ].join('\n');
+  fs.writeFileSync(tmpFile, preamble + match[0]);
 
   const start = Date.now();
   const output = execSync(
