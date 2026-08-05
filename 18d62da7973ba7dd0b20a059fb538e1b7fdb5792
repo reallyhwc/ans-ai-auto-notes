@@ -1,0 +1,28 @@
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.9",
+  "base_commit_sha": "18d62da7973ba7dd0b20a059fb538e1b7fdb5792",
+  "prompts": {
+    "5308b147d45bbb44": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "540545d5-8881-4a13-b709-b41754f1001a",
+        "model": "glm-5.2"
+      },
+      "human_author": "xuhu",
+      "messages": [],
+      "total_additions": 1,
+      "total_deletions": 2,
+      "accepted_lines": 1,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        ".claude/agents/README.md": {
+          "additions": 1,
+          "deletions": 2,
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}
