@@ -16,6 +16,7 @@
 - [Project: quickStart Branch](project-quickstart-branch.md) — quickStart 是 Harness KB 模板（单工具 Claude-Code），2026-08-01 从 main 移植全套 harness，SKIP 双镜像
 - [Feedback: Proactive Divergent Suggestions](feedback-proactive-divergent-suggestions.md) — 用户认可"小的发散性想法"作为知识库特色，AI应主动提议改进点而非被动执行指令
 - [Feedback: No Auto Split](feedback-no-auto-split.md) — 超 1000 行但规整的文件不擅自提案拆分，拆分决策权归用户，除非用户主动要求
+- [Feedback: Architecture Driven by Usage](feedback-architecture-evolution-driven-by-usage.md) — 架构演化由使用中产生的问题驱动，脱离业务量级的架构设计是 YY；路标可预埋、实现等触发
 - [Feedback: Auto-Commit After Changes](feedback-auto-commit.md) — AI必须在每批文件变更后立即git commit，不等提醒；退出时只提醒未push的commit
 - [Feedback: Zero NPM Deps](feedback-zero-npm-deps.md) — 项目坚持零 npm 依赖；优先 Node 内置 / vendoring / vanilla，引入 package.json 须用户确认（2026-05-18 两次确认）
 - [Feedback: Self-Review Before Next Task](feedback-self-review-before-next-task.md) — 多步任务完成后下个大动作前主动 self-review，不等用户提示（2026-05-18 review 出 4 个真实问题）
