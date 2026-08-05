@@ -1,0 +1,28 @@
+logs/agent-runs/2026-08.jsonl
+  5308b147d45bbb44 18-31
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.9",
+  "base_commit_sha": "e74589a5f39c2c4d71d891818e88fd2479b49c70",
+  "prompts": {
+    "5308b147d45bbb44": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "540545d5-8881-4a13-b709-b41754f1001a",
+        "model": "glm-5.2"
+      },
+      "human_author": "xuhu",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 14,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "logs/agent-runs/2026-08.jsonl": {
+          "accepted_lines": 14
+        }
+      }
+    }
+  }
+}
