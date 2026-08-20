@@ -3,7 +3,7 @@ title: "Claude Code 整体架构 & 工作流程"
 description: "整体架构、REPL循环、工具链、Hooks、上下文管理、完整数据流"
 ---
 
-> 最后整理: 2026-06-08 | 来源: 对话 + 官方文档
+> 最后整理: 2026-08-20 | 来源: 对话 + 官方文档
 
 > 关联: [harness-engineering](<./Harness Engineering：AI Agent 时代的工程范式.md>) — Claude Code 是 Harness Engineering 的代表性产品 | [claude-code-advanced-workflow](<./Claude Code 进阶工作流：从能用到高效.md>) — 配置与工作流实战 | [llm-agent-mcp](<../大模型/Agent 与 MCP.md>) — Agent/MCP 协议原理
 > 关联: [CLI Coding Agent 系统架构](<../应用/CLI Coding Agent 系统架构：从 REPL 到自主编程.md>) — Claude Code/Aider/Codex CLI 分层架构横向对比
@@ -455,6 +455,45 @@ Claude Code 迭代非常快（几乎每天一个小版本），以下是获取�
 | **本地更新** | `claude -v` 查版本 / `claude update` 更新 | 最直接 |
 
 > **实用技巧**：原生安装（`curl ... | bash`）会自动后台更新，Homebrew 需手动 `brew upgrade claude-code`。在 Claude Code 里直接问"最近有什么新功能"也是高效方式——AI 可以实时查阅官方文档。
+
+### 7. 配置来源与临时覆盖（--settings）
+
+settings 有多个来源，按优先级从高到低：
+
+| 优先级 | 来源 | 说明 |
+|--------|------|------|
+| 1 | **Managed（企业托管）** | 组织下发，最高优先，本地覆盖不了 |
+| 2 | **命令行参数（`--settings`）** | 本次进程的**临时会话覆盖** |
+| 3 | `.claude/settings.local.json` | 本机私有（权限白名单），gitignore 不进库 |
+| 4 | `.claude/settings.json` | 项目共享，随 git 走 |
+| 5 | `~/.claude/settings.json` | 用户级全局 |
+
+**核心能力：启动时指定一个 JSON 配置，只对本次会话生效，不写任何默认文件。**
+
+```bash
+claude --settings ./audit-session.json        # 文件路径
+claude --settings '{"permissions":{"deny":["Read(./.env)"]},"model":"sonnet"}'  # 内联 JSON 字符串
+```
+
+要点（v1.0.61 起支持）：
+
+- `--settings` 是**只读输入**：Claude Code 不回写该文件，也不碰 `~/.claude/settings.json`、项目 settings.json、settings.local.json —— 退出即失效，**git 零改动**
+- schema 与 settings.json 完全一致（permissions / hooks / env / model 都支持），文件要求 ≤ 2 MiB
+- **`permissions.allow/deny/ask` 是合并（union）不是替换**——`--settings` 只追加规则，不会清空现有 allow。想构造"干净"会话要叠加 `--setting-sources`：
+  ```bash
+  claude --settings ./my-session.json --setting-sources user --permission-mode plan
+  ```
+- 某些 key 只有 user / managed / `--settings` 能设（项目级 settings 会被忽略）：`autoMode`、`dialogExpiry`、`crossSessionInbound`、`pluginConfigs`——想在项目内做单次会话覆盖，`--settings` 是唯一途径
+- 要"绝对无痕"（连会话 transcript 都不写进 `~/.claude/`）：加 `--no-session-persistence`
+- 别与 `--dangerously-skip-permissions`（≡ bypassPermissions）混用，后者会跳过所有权限提示、盖过精细控制；要留切换口用 `--allow-dangerously-skip-permissions`
+
+**别混淆 `CLAUDE_CONFIG_DIR`**：它把整个 `~/.claude` 目录（settings + 会话历史 + plugins + 凭据）整体换掉，是"多账号沙盒"用途，与"单次覆盖"语义完全不同。
+
+**对本项目的价值**：项目 hook 体系在 `.claude/settings.json`（共享）+ `settings.local.json`（权限白名单）。若某次会话想临时加权限、或验证某 hook 开关效果，`--settings` 不会污染默认配置：
+
+```bash
+claude --settings ./audit-session.json --setting-sources user,local
+```
 
 ## 六、完整数据流：从你输入到我执行的完整路径
 
