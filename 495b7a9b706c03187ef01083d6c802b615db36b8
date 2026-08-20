@@ -1,0 +1,70 @@
+INDEX.md
+  faf0f41ac5e6978b 12,79,82-83,100,102
+"kb/技术/计算机基础/CAP 理论与工程选型.md"
+  faf0f41ac5e6978b 10,220
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.9",
+  "base_commit_sha": "495b7a9b706c03187ef01083d6c802b615db36b8",
+  "prompts": {
+    "faf0f41ac5e6978b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e6385508-9b6a-4052-8c40-5cd828a4f78e",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "xuhu",
+      "messages": [],
+      "total_additions": 961,
+      "total_deletions": 16,
+      "accepted_lines": 961,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "kb/技术/java/spring ioc、di 与 aop 核心原理.md": {
+          "additions": 268,
+          "deletions": 2,
+          "accepted_lines": 268
+        },
+        ".agents/skills/kb-content-style/skill.md": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        ".claude/skills/kb-content-style/skill.md": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "kb/技术/java/dubbo 与 rpc 框架横评.md": {
+          "additions": 190,
+          "deletions": 2,
+          "accepted_lines": 190
+        },
+        "kb/技术/java/热点账户高并发记账方案.md": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "index.md": {
+          "additions": 6,
+          "deletions": 3,
+          "accepted_lines": 6
+        },
+        "kb/技术/java/分布式事务全景.md": {
+          "additions": 484,
+          "deletions": 3,
+          "accepted_lines": 484
+        },
+        "INDEX.md": {
+          "additions": 6,
+          "deletions": 3,
+          "accepted_lines": 6
+        },
+        "kb/技术/计算机基础/CAP 理论与工程选型.md": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,54 @@
+.claude/memory-snapshot/MEMORY.md
+  faf0f41ac5e6978b 3,14-18
+.claude/memory-snapshot/project-macos-shell-constraints.md
+  faf0f41ac5e6978b 1-21
+.claude/memory-snapshot/feedback-trust-priority-then-execute.md
+  faf0f41ac5e6978b 1-19
+.claude/memory-snapshot/project-agents-skills-mirror.md
+  faf0f41ac5e6978b 1-16
+.claude/memory-snapshot/.allowlist
+  faf0f41ac5e6978b 10-12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.9",
+  "base_commit_sha": "daa524360831698be5eeab5ea67ce7078208a191",
+  "prompts": {
+    "faf0f41ac5e6978b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e6385508-9b6a-4052-8c40-5cd828a4f78e",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "xuhu",
+      "messages": [],
+      "total_additions": 65,
+      "total_deletions": 1,
+      "accepted_lines": 65,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        ".claude/memory-snapshot/.allowlist": {
+          "additions": 3,
+          "accepted_lines": 3
+        },
+        ".claude/memory-snapshot/MEMORY.md": {
+          "additions": 6,
+          "deletions": 1,
+          "accepted_lines": 6
+        },
+        ".claude/memory-snapshot/project-macos-shell-constraints.md": {
+          "additions": 21,
+          "accepted_lines": 21
+        },
+        ".claude/memory-snapshot/feedback-trust-priority-then-execute.md": {
+          "additions": 19,
+          "accepted_lines": 19
+        },
+        ".claude/memory-snapshot/project-agents-skills-mirror.md": {
+          "additions": 16,
+          "accepted_lines": 16
+        }
+      }
+    }
+  }
+}

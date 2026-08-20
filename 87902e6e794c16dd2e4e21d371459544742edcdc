@@ -1,0 +1,42 @@
+README.md
+  2502bd7f4765220b 20,156-157,192-193,212
+README_EN.md
+  2502bd7f4765220b 20,156-157,192-193,212
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.9",
+  "base_commit_sha": "87902e6e794c16dd2e4e21d371459544742edcdc",
+  "prompts": {
+    "2502bd7f4765220b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b8d601be-be0e-4f3d-ac4c-ea12692046df",
+        "model": "glm-5.2"
+      },
+      "human_author": "xuhu",
+      "messages": [],
+      "total_additions": 18,
+      "total_deletions": 9,
+      "accepted_lines": 18,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "README_EN.md": {
+          "additions": 6,
+          "deletions": 3,
+          "accepted_lines": 6
+        },
+        "README.md": {
+          "additions": 6,
+          "deletions": 3,
+          "accepted_lines": 6
+        },
+        "readme_en.md": {
+          "additions": 6,
+          "deletions": 3,
+          "accepted_lines": 6
+        }
+      }
+    }
+  }
+}

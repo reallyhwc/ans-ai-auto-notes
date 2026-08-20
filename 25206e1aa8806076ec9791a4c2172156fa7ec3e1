@@ -1,0 +1,57 @@
+AGENTS.md
+  2502bd7f4765220b 128,132-133,135-136,141,145
+bootstrap.sh
+  2502bd7f4765220b 39,41-42,44-54,56
+CLAUDE.md
+  2502bd7f4765220b 216,220-221,223-224,229,233
+.claude/settings.json
+  2502bd7f4765220b 3-14,17,25-55
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.9",
+  "base_commit_sha": "25206e1aa8806076ec9791a4c2172156fa7ec3e1",
+  "prompts": {
+    "2502bd7f4765220b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b8d601be-be0e-4f3d-ac4c-ea12692046df",
+        "model": "glm-5.2"
+      },
+      "human_author": "xuhu",
+      "messages": [],
+      "total_additions": 77,
+      "total_deletions": 40,
+      "accepted_lines": 85,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "CLAUDE.md": {
+          "additions": 7,
+          "deletions": 6,
+          "accepted_lines": 7
+        },
+        "bootstrap.sh": {
+          "additions": 15,
+          "deletions": 28,
+          "accepted_lines": 15
+        },
+        "logs/agent-runs/2026-08.jsonl": {
+          "additions": 1,
+          "accepted_lines": 8
+        },
+        ".claude/settings.json": {
+          "additions": 47,
+          "accepted_lines": 47
+        },
+        "AGENTS.md": {
+          "additions": 7,
+          "deletions": 6,
+          "accepted_lines": 7
+        },
+        "logs/agent-runs/2026-07.jsonl": {
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}

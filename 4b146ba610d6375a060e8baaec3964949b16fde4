@@ -1,0 +1,68 @@
+tests/fixtures/agent-log-transcript-with-summary.jsonl
+  faf0f41ac5e6978b 1-4
+scripts/lib-agent-log.js
+  faf0f41ac5e6978b 92,103-104,109-115,119-120,144-163,167
+tests/agent-log-compliance.test.js
+  faf0f41ac5e6978b 31,38,40,61,63
+scripts/agent-log-hook.js
+  faf0f41ac5e6978b 18,66-68,79,81-82
+scripts/check-agent-log-compliance.js
+  faf0f41ac5e6978b 23
+tests/agent-log.test.js
+  faf0f41ac5e6978b 8,150-203,231,239-250
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.9",
+  "base_commit_sha": "4b146ba610d6375a060e8baaec3964949b16fde4",
+  "prompts": {
+    "faf0f41ac5e6978b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e6385508-9b6a-4052-8c40-5cd828a4f78e",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "xuhu",
+      "messages": [],
+      "total_additions": 126,
+      "total_deletions": 15,
+      "accepted_lines": 126,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "scripts/check-agent-log-compliance.js": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "scripts/agent-log-hook.js": {
+          "additions": 7,
+          "deletions": 4,
+          "accepted_lines": 7
+        },
+        "tests/agent-log.test.js": {
+          "additions": 72,
+          "deletions": 2,
+          "accepted_lines": 72
+        },
+        "scripts/lib-agent-log.js": {
+          "additions": 33,
+          "deletions": 2,
+          "accepted_lines": 33
+        },
+        "logs/agent-runs/2026-07.jsonl": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "tests/agent-log-compliance.test.js": {
+          "additions": 5,
+          "deletions": 6,
+          "accepted_lines": 5
+        },
+        "tests/fixtures/agent-log-transcript-with-summary.jsonl": {
+          "additions": 4,
+          "accepted_lines": 4
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,42 @@
+CLAUDE.md
+  2502bd7f4765220b 31,33-39,41,46-48,132,220-221
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.9",
+  "base_commit_sha": "fbbe72cd937f80ae78a09cb1ed7f0cb345cbcf05",
+  "prompts": {
+    "2502bd7f4765220b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b8d601be-be0e-4f3d-ac4c-ea12692046df",
+        "model": "glm-5.2"
+      },
+      "human_author": "xuhu",
+      "messages": [],
+      "total_additions": 406,
+      "total_deletions": 8,
+      "accepted_lines": 406,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "logs/agent-runs/2026-08.jsonl": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        "docs/decisions.md": {
+          "additions": 386,
+          "accepted_lines": 386
+        },
+        "CLAUDE.md": {
+          "additions": 15,
+          "deletions": 8,
+          "accepted_lines": 15
+        },
+        "logs/agent-runs/2026-07.jsonl": {
+          "additions": 1,
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}

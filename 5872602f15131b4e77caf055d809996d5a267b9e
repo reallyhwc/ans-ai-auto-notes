@@ -1,0 +1,114 @@
+.claude/agents/idea-extractor.md
+  5308b147d45bbb44 3
+.claude/agents/plan-executor.md
+  5308b147d45bbb44 3
+tests/subagents.test.js
+  5308b147d45bbb44 13
+tests/subagent-definitions.test.js
+  5308b147d45bbb44 39,42,62-73
+.claude/agents/kb-auditor.md
+  5308b147d45bbb44 3-4,9-10,65
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.9",
+  "base_commit_sha": "5872602f15131b4e77caf055d809996d5a267b9e",
+  "prompts": {
+    "2502bd7f4765220b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b8d601be-be0e-4f3d-ac4c-ea12692046df",
+        "model": "glm-5.2"
+      },
+      "human_author": "xuhu",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 166,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "readme_en.md": {
+          "accepted_lines": 166
+        }
+      }
+    },
+    "5308b147d45bbb44": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "540545d5-8881-4a13-b709-b41754f1001a",
+        "model": "glm-5.2"
+      },
+      "human_author": "xuhu",
+      "messages": [],
+      "total_additions": 302,
+      "total_deletions": 308,
+      "accepted_lines": 302,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        ".agents/skills/build-index/SKILL.md": {
+          "deletions": 1
+        },
+        ".agents/skills/kb-content-style/SKILL.md": {
+          "additions": 20,
+          "deletions": 147,
+          "accepted_lines": 20
+        },
+        ".claude/skills/auto-commit-discipline/SKILL.md": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        ".claude/skills/kb-content-style/reference.md": {
+          "additions": 115,
+          "accepted_lines": 115
+        },
+        ".claude/skills/build-index/SKILL.md": {
+          "deletions": 1
+        },
+        ".claude/agents/kb-auditor.md": {
+          "additions": 5,
+          "deletions": 3,
+          "accepted_lines": 5
+        },
+        ".claude/agents/plan-executor.md": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        ".agents/skills/kb-content-style/reference.md": {
+          "additions": 115,
+          "accepted_lines": 115
+        },
+        ".agents/skills/auto-commit-discipline/SKILL.md": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        ".claude/agents/idea-extractor.md": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "tests/subagents.test.js": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        ".claude/skills/kb-content-style/SKILL.md": {
+          "additions": 20,
+          "deletions": 149,
+          "accepted_lines": 20
+        },
+        "tests/subagent-definitions.test.js": {
+          "additions": 16,
+          "deletions": 2,
+          "accepted_lines": 16
+        },
+        "logs/agent-runs/2026-08.jsonl": {
+          "additions": 6,
+          "accepted_lines": 6
+        }
+      }
+    }
+  }
+}

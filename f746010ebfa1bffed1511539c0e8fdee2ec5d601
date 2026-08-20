@@ -1,0 +1,60 @@
+bootstrap.sh
+  2502bd7f4765220b 60
+scripts/pretool-guard.sh
+  2502bd7f4765220b 3
+.codex/hooks.json
+  2502bd7f4765220b 28
+tests/arch-lint-perf.test.js
+  2502bd7f4765220b 6,8-10,26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.9",
+  "base_commit_sha": "f746010ebfa1bffed1511539c0e8fdee2ec5d601",
+  "prompts": {
+    "2502bd7f4765220b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b8d601be-be0e-4f3d-ac4c-ea12692046df",
+        "model": "glm-5.2"
+      },
+      "human_author": "xuhu",
+      "messages": [],
+      "total_additions": 11,
+      "total_deletions": 12,
+      "accepted_lines": 414,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "scripts/pretool-guard.sh": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        },
+        "tests/arch-lint-perf.test.js": {
+          "additions": 8,
+          "deletions": 5,
+          "accepted_lines": 5
+        },
+        "docs/decisions.md": {
+          "accepted_lines": 400
+        },
+        "logs/agent-runs/2026-08.jsonl": {
+          "accepted_lines": 5
+        },
+        "logs/agent-runs/2026-07.jsonl": {
+          "accepted_lines": 1
+        },
+        ".codex/hooks.json": {
+          "additions": 1,
+          "deletions": 5,
+          "accepted_lines": 1
+        },
+        "bootstrap.sh": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 1
+        }
+      }
+    }
+  }
+}

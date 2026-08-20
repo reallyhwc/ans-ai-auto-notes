@@ -1,0 +1,167 @@
+tests/agent-log-compliance.test.js
+  2502bd7f4765220b 69-98
+tests/session-log.test.js
+  2502bd7f4765220b 72-83
+scripts/verify-claim.sh
+  2502bd7f4765220b 3-4,66-67
+scripts/check-agent-log-compliance.js
+  2502bd7f4765220b 23-30,35,37-40
+scripts/agent-tail.js
+  2502bd7f4765220b 2
+tests/exit-check.test.js
+  2502bd7f4765220b 1-27
+scripts/rename-mapping.js
+  2502bd7f4765220b 1
+tests/verify-claim.test.js
+  2502bd7f4765220b 48,56
+exit-check.sh
+  2502bd7f4765220b 41-42,48
+tests/hook-contract.test.js
+  2502bd7f4765220b 47,68-69,83
+scripts/agent-report.js
+  2502bd7f4765220b 2
+scripts/agent-log.js
+  2502bd7f4765220b 2
+tests/hook-logger.test.js
+  2502bd7f4765220b 81-94
+scripts/session-log.sh
+  2502bd7f4765220b 48,55,70
+tests/arch-lint.test.js
+  2502bd7f4765220b 60-76
+scripts/lib-agent-log.js
+  2502bd7f4765220b 1,154-165,168-171,174,176-178,184
+tests/agent-log.test.js
+  2502bd7f4765220b 177,179,204-229
+scripts/hook-logger.sh
+  2502bd7f4765220b 17,24
+scripts/arch-lint.sh
+  2502bd7f4765220b 386,389-390,414-417,419,435-440,444-446,449
+scripts/agent-log-hook.js
+  2502bd7f4765220b 83
+scripts/split-doc.js
+  2502bd7f4765220b 2
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.9",
+  "base_commit_sha": "b5227645f52fb06f8c89a4239fec533ae832dd0e",
+  "prompts": {
+    "2502bd7f4765220b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b8d601be-be0e-4f3d-ac4c-ea12692046df",
+        "model": "glm-5.2"
+      },
+      "human_author": "xuhu",
+      "messages": [],
+      "total_additions": 149,
+      "total_deletions": 70,
+      "accepted_lines": 241,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "tests/verify-claim.test.js": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "tests/session-log.test.js": {
+          "accepted_lines": 12
+        },
+        "scripts/agent-tail.js": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "tests/exit-check.test.js": {
+          "additions": 27,
+          "accepted_lines": 27
+        },
+        "tests/agent-log.test.js": {
+          "accepted_lines": 54
+        },
+        "scripts/session-log.sh": {
+          "additions": 3,
+          "deletions": 3,
+          "accepted_lines": 3
+        },
+        "tests/arch-lint.test.js": {
+          "additions": 21,
+          "deletions": 4,
+          "accepted_lines": 17
+        },
+        "scripts/rename-mapping.js": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "scripts/check-agent-log-compliance.js": {
+          "additions": 13,
+          "deletions": 3,
+          "accepted_lines": 13
+        },
+        "scripts/lib-agent-log.js": {
+          "additions": 22,
+          "deletions": 1,
+          "accepted_lines": 22
+        },
+        "scripts/verify-claim.sh": {
+          "additions": 4,
+          "deletions": 3,
+          "accepted_lines": 4
+        },
+        "scripts/split-doc.js": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "logs/agent-runs/2026-07.jsonl": {
+          "accepted_lines": 1
+        },
+        "tests/hook-logger.test.js": {
+          "additions": 14,
+          "accepted_lines": 14
+        },
+        "exit-check.sh": {
+          "additions": 3,
+          "deletions": 3,
+          "accepted_lines": 3
+        },
+        "scripts/hook-logger.sh": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        },
+        "tests/hook-contract.test.js": {
+          "additions": 1,
+          "deletions": 1,
+          "accepted_lines": 4
+        },
+        "scripts/agent-log-hook.js": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "scripts/agent-report.js": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "scripts/arch-lint.sh": {
+          "additions": 19,
+          "deletions": 9,
+          "accepted_lines": 18
+        },
+        "scripts/agent-log.js": {
+          "additions": 1,
+          "accepted_lines": 1
+        },
+        "logs/agent-runs/2026-08.jsonl": {
+          "additions": 1,
+          "accepted_lines": 9
+        },
+        "logs/agent-runs/2026-06.jsonl": {
+          "deletions": 39
+        },
+        "tests/agent-log-compliance.test.js": {
+          "additions": 11,
+          "accepted_lines": 30
+        }
+      }
+    }
+  }
+}

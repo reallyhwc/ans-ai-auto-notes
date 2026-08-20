@@ -1,0 +1,29 @@
+logs/agent-runs/2026-07.jsonl
+  faf0f41ac5e6978b 41-53
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.9",
+  "base_commit_sha": "a02d8746683c98fd8232f8789de47f066787c979",
+  "prompts": {
+    "faf0f41ac5e6978b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e6385508-9b6a-4052-8c40-5cd828a4f78e",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "xuhu",
+      "messages": [],
+      "total_additions": 13,
+      "total_deletions": 0,
+      "accepted_lines": 13,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "logs/agent-runs/2026-07.jsonl": {
+          "additions": 13,
+          "accepted_lines": 13
+        }
+      }
+    }
+  }
+}

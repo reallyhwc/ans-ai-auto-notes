@@ -1,0 +1,51 @@
+memory/MEMORY.md
+  2502bd7f4765220b 16,18
+memory/feedback-no-auto-split.md
+  2502bd7f4765220b 1-21
+memory/project-quickstart-branch.md
+  2502bd7f4765220b 1-23
+memory/project-knowledge-base.md
+  2502bd7f4765220b 11,13-16,18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.9",
+  "base_commit_sha": "2e7dc943db3b2d9acfe7dff2486c59dec5e86bbe",
+  "prompts": {
+    "2502bd7f4765220b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b8d601be-be0e-4f3d-ac4c-ea12692046df",
+        "model": "glm-5.2"
+      },
+      "human_author": "xuhu",
+      "messages": [],
+      "total_additions": 52,
+      "total_deletions": 6,
+      "accepted_lines": 218,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "memory/project-knowledge-base.md": {
+          "additions": 6,
+          "deletions": 6,
+          "accepted_lines": 6
+        },
+        "memory/feedback-no-auto-split.md": {
+          "additions": 21,
+          "accepted_lines": 21
+        },
+        "memory/project-quickstart-branch.md": {
+          "additions": 23,
+          "accepted_lines": 23
+        },
+        "readme_en.md": {
+          "accepted_lines": 166
+        },
+        "memory/MEMORY.md": {
+          "additions": 2,
+          "accepted_lines": 2
+        }
+      }
+    }
+  }
+}

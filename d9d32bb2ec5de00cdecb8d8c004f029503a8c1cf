@@ -1,0 +1,57 @@
+scripts/content-quality-fast.sh
+  5308b147d45bbb44 13-16,20-46
+tests/content-quality-fast.test.js
+  5308b147d45bbb44 153-193
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.9",
+  "base_commit_sha": "d9d32bb2ec5de00cdecb8d8c004f029503a8c1cf",
+  "prompts": {
+    "2502bd7f4765220b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b8d601be-be0e-4f3d-ac4c-ea12692046df",
+        "model": "glm-5.2"
+      },
+      "human_author": "xuhu",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 166,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "readme_en.md": {
+          "accepted_lines": 166
+        }
+      }
+    },
+    "5308b147d45bbb44": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "540545d5-8881-4a13-b709-b41754f1001a",
+        "model": "glm-5.2"
+      },
+      "human_author": "xuhu",
+      "messages": [],
+      "total_additions": 78,
+      "total_deletions": 8,
+      "accepted_lines": 80,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "tests/content-quality-fast.test.js": {
+          "additions": 41,
+          "accepted_lines": 41
+        },
+        "scripts/content-quality-fast.sh": {
+          "additions": 37,
+          "deletions": 8,
+          "accepted_lines": 31
+        },
+        "logs/agent-runs/2026-08.jsonl": {
+          "accepted_lines": 8
+        }
+      }
+    }
+  }
+}

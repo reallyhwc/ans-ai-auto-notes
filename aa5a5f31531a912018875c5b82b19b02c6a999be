@@ -1,0 +1,41 @@
+docs/decisions.md
+  5308b147d45bbb44 70,450
+memory/feedback-no-auto-split.md
+  5308b147d45bbb44 6,13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.9",
+  "base_commit_sha": "aa5a5f31531a912018875c5b82b19b02c6a999be",
+  "prompts": {
+    "5308b147d45bbb44": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "540545d5-8881-4a13-b709-b41754f1001a",
+        "model": "glm-5.2"
+      },
+      "human_author": "xuhu",
+      "messages": [],
+      "total_additions": 13,
+      "total_deletions": 3,
+      "accepted_lines": 13,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "logs/agent-runs/2026-08.jsonl": {
+          "additions": 9,
+          "accepted_lines": 9
+        },
+        "docs/decisions.md": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        },
+        "memory/feedback-no-auto-split.md": {
+          "additions": 2,
+          "deletions": 2,
+          "accepted_lines": 2
+        }
+      }
+    }
+  }
+}
