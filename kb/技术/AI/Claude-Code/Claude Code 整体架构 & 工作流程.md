@@ -549,14 +549,16 @@ claude --bare --settings ./B.json -p "..."
 #!/bin/sh
 # ~/.claude/statusline.sh
 case "${ANTHROPIC_BASE_URL}" in
-  *netease*) exec raven statusline output ;;  # 公司网关 → 显示额度
-  *) exit 0 ;;                                 # 私人网关 → 静默
+  *deepseek*|*api.anthropic.com*) exit 0 ;;  # 私人网关 → 静默
+  *) exec raven statusline output ;;          # 其余（公司）→ 显示
 esac
 ```
 
 settings.json 指向脚本：`"command": "sh /Users/xxx/.claude/statusline.sh"`。
 
-判断依据是 `ANTHROPIC_BASE_URL` 的特征（公司 = `langbase.netease.com`，私人 = `api.deepseek.com` / `api.anthropic.com`）。要点：
+**关键坑：别用「含 netease」当公司环境信号。** `raven cc` / `raven claude` 启动时会拉起本地代理 `lunaBridge`（端口 3031），把 `ANTHROPIC_BASE_URL` 设成 `http://localhost:3031`（代理再转发到 `langbase.netease.com`），**并不含 netease**。所以正向判断 `*netease*` 会把公司环境也误判成「私人」而静默。稳妥做法是反向判断：**只对明确的私人网关（deepseek / 官方 anthropic.com）静默，其余默认显示**——公司是主要工作环境，额度展示有价值，漏展示比误展示更糟。
+
+要点：
 
 - statusLine 是**启动时读取**的，改完要重启 Claude Code 才生效
 - 脚本里 `exec` 直接替换进程，避免多一层 shell；`exit 0` 无输出即隐藏
