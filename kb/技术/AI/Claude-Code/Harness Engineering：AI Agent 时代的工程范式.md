@@ -840,3 +840,4 @@ Claude Code 会自己执行 bash 调用另一个 API，拿到结果后综合分�
 > 关联: [Claude Code 远程操控](<./Claude Code 远程操控：Remote Control 与 cc-connect.md>) — cc-connect 多 Bot 群聊
 > 关联: [Agent 与 MCP](<../大模型/Agent 与 MCP.md>) — MCP 协议、Skill 概念
 > 关联: [LLM 应用设计](<../应用/LLM 应用设计.md>) — 幻觉防控、可观测性
+> 关联: [Harness 与流程范式：SDD 落在哪一层](<../应用/Harness 与流程范式：SDD 落在哪一层.md>) — 区分结构轴（harness 基建）与时间轴（SDD/TDD 等流程范式），流程如何叠加在基建之上
