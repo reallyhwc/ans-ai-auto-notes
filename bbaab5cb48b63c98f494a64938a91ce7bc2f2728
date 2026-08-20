@@ -1,0 +1,36 @@
+"kb/技术/AI/AI-Coding/DSH（DeepSeek Harness）插件架构与循环调度.md"
+  e9244821cc9bd3b5 1-340
+INDEX.md
+  e9244821cc9bd3b5 13,15,17,23
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.9",
+  "base_commit_sha": "bbaab5cb48b63c98f494a64938a91ce7bc2f2728",
+  "prompts": {
+    "e9244821cc9bd3b5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d0844c80-03bf-4e73-9c64-0ec3a5979301",
+        "model": "deepseek-v4-flash"
+      },
+      "human_author": "xuhu",
+      "messages": [],
+      "total_additions": 344,
+      "total_deletions": 3,
+      "accepted_lines": 344,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "kb/技术/AI/AI-Coding/DSH（DeepSeek Harness）插件架构与循环调度.md": {
+          "additions": 340,
+          "accepted_lines": 340
+        },
+        "INDEX.md": {
+          "additions": 4,
+          "deletions": 3,
+          "accepted_lines": 4
+        }
+      }
+    }
+  }
+}
