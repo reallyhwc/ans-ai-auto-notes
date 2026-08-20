@@ -1,0 +1,30 @@
+"kb/技术/AI/Claude-Code/Claude Code 整体架构 & 工作流程.md"
+  25a1d0d0ca5d26bd 552-553,559-561
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.9",
+  "base_commit_sha": "7d194956b7bfcc2d028dd60feee51aefa689dabe",
+  "prompts": {
+    "25a1d0d0ca5d26bd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "63cd1aec-d99f-48e8-9221-e34903b3c7e4",
+        "model": "deepseek-v4-pro"
+      },
+      "human_author": "xuhu",
+      "messages": [],
+      "total_additions": 5,
+      "total_deletions": 3,
+      "accepted_lines": 5,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "kb/技术/AI/Claude-Code/Claude Code 整体架构 & 工作流程.md": {
+          "additions": 5,
+          "deletions": 3,
+          "accepted_lines": 5
+        }
+      }
+    }
+  }
+}
