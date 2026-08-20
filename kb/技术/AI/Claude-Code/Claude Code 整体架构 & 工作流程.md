@@ -526,6 +526,42 @@ claude --bare --settings ./B.json -p "..."
 
 **安全应对**：合法企业策略→别绕（压不过且违反合规），找 IT；真被恶意劫持→按安全事件处理：停用隔离→取证（`claude /doctor`、查各 settings mtime、shell rc 与 `ANTHROPIC_*`/`HTTPS_PROXY`/`NODE_EXTRA_CA_CERTS`）→轮换凭据→上报安全团队→全新机器从官方渠道重装，不复制被劫持环境的任何配置。
 
+### 9. statusLine 状态栏配置与环境感知
+
+底部状态栏（statusLine）是 Claude Code TUI 的一行自定义展示区，配置在 settings.json：
+
+```json
+"statusLine": { "type": "command", "command": "<shell 命令>" }
+```
+
+机制要点：
+
+- `command` 是一个 **shell 子进程**：Claude Code 派生子进程执行它，子进程**继承 Claude Code 进程的全部环境变量**（`ANTHROPIC_BASE_URL`、`ANTHROPIC_MODEL`、`ANTHROPIC_AUTH_TOKEN` 等），把 stdout 逐行渲染到底部状态栏——**输出什么就显示什么，无输出即不显示**。
+- 正因如此，statusline 可以做**环境感知**：在 command 里读环境变量做条件分支，按当前环境决定显示内容。
+
+**实战：第三方工具（raven statusline）与当前 LLM 网关解耦的坑**
+
+公司环境用 raven 工具，`raven statusline output` 会打印「月剩余额度：xx%」。但这条命令**自己独立登录公司 Raven 平台查额度，跟当前走哪套 LLM 网关（`ANTHROPIC_BASE_URL`）完全无关**——结果就是：即使用私人网关（DeepSeek / 官方）启动，底部也一直挂着公司额度，毫无意义。
+
+解法：把 statusline 命令包一层环境判断，公司网关才显示、私人网关静默：
+
+```sh
+#!/bin/sh
+# ~/.claude/statusline.sh
+case "${ANTHROPIC_BASE_URL}" in
+  *netease*) exec raven statusline output ;;  # 公司网关 → 显示额度
+  *) exit 0 ;;                                 # 私人网关 → 静默
+esac
+```
+
+settings.json 指向脚本：`"command": "sh /Users/xxx/.claude/statusline.sh"`。
+
+判断依据是 `ANTHROPIC_BASE_URL` 的特征（公司 = `langbase.netease.com`，私人 = `api.deepseek.com` / `api.anthropic.com`）。要点：
+
+- statusLine 是**启动时读取**的，改完要重启 Claude Code 才生效
+- 脚本里 `exec` 直接替换进程，避免多一层 shell；`exit 0` 无输出即隐藏
+- 思路通用：任何「只在某环境才想显示」的 statusline 片段（token 用量、网关标识、KPI），都能靠读环境变量做条件渲染
+
 ## 六、完整数据流：从你输入到我执行的完整路径
 
 ```mermaid
