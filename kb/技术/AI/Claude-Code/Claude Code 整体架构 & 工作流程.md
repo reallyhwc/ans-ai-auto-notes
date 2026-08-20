@@ -539,24 +539,24 @@ claude --bare --settings ./B.json -p "..."
 - `command` 是一个 **shell 子进程**：Claude Code 派生子进程执行它，子进程**继承 Claude Code 进程的全部环境变量**（`ANTHROPIC_BASE_URL`、`ANTHROPIC_MODEL`、`ANTHROPIC_AUTH_TOKEN` 等），把 stdout 逐行渲染到底部状态栏——**输出什么就显示什么，无输出即不显示**。
 - 正因如此，statusline 可以做**环境感知**：在 command 里读环境变量做条件分支，按当前环境决定显示内容。
 
-**实战：第三方工具（raven statusline）与当前 LLM 网关解耦的坑**
+**实战：多网关切换下的状态栏按需显示**
 
-公司环境用 raven 工具，`raven statusline output` 会打印「月剩余额度：xx%」。但这条命令**自己独立登录公司 Raven 平台查额度，跟当前走哪套 LLM 网关（`ANTHROPIC_BASE_URL`）完全无关**——结果就是：即使用私人网关（DeepSeek / 官方）启动，底部也一直挂着公司额度，毫无意义。
+在多套 LLM 网关之间切换时（如公司网关 vs 个人网关），statusline 展示的内容（token 用量、额度、KPI）往往只在某一套环境里有意义。而状态栏命令通常**独立持有自己的登录态，跟当前 `ANTHROPIC_BASE_URL` 指向哪套网关无关**——于是切换成个人网关后，底部仍挂着另一套环境的展示，毫无意义。
 
-解法：把 statusline 命令包一层环境判断，公司网关才显示、私人网关静默：
+解法：把 statusline 命令包一层环境判断，目标环境才显示、其余静默：
 
 ```sh
 #!/bin/sh
 # ~/.claude/statusline.sh
 case "${ANTHROPIC_BASE_URL}" in
-  *deepseek*|*api.anthropic.com*) exit 0 ;;  # 私人网关 → 静默
-  *) exec raven statusline output ;;          # 其余（公司）→ 显示
+  *personal-gateway*|*api.anthropic.com*) exit 0 ;;  # 个人网关 → 静默
+  *) exec <你的状态栏命令> ;;                         # 其余 → 显示
 esac
 ```
 
 settings.json 指向脚本：`"command": "sh /Users/xxx/.claude/statusline.sh"`。
 
-**关键坑：别用「含 netease」当公司环境信号。** `raven cc` / `raven claude` 启动时会拉起本地代理 `lunaBridge`（端口 3031），把 `ANTHROPIC_BASE_URL` 设成 `http://localhost:3031`（代理再转发到 `langbase.netease.com`），**并不含 netease**。所以正向判断 `*netease*` 会把公司环境也误判成「私人」而静默。稳妥做法是反向判断：**只对明确的私人网关（deepseek / 官方 anthropic.com）静默，其余默认显示**——公司是主要工作环境，额度展示有价值，漏展示比误展示更糟。
+**关键坑：别用「含某域名特征」当目标环境信号。** 很多启动器会拉起本地代理（如 `http://localhost:3031`），把 `ANTHROPIC_BASE_URL` 指到代理地址而非真实网关域名，正向匹配会漏判。稳妥做法是反向判断：**只对明确的静默对象（个人网关）做白名单，其余默认显示**——漏展示比误展示更糟。
 
 要点：
 
