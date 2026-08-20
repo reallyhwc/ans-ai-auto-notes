@@ -495,6 +495,37 @@ claude --settings '{"permissions":{"deny":["Read(./.env)"]},"model":"sonnet"}'  
 claude --settings ./audit-session.json --setting-sources user,local
 ```
 
+### 8. 配置被"劫持"时的覆盖边界与安全应对
+
+场景：公司/环境中默认配置被压成 A（可能是企业托管 managed，也可能只是 user/project 文件被改）。`--settings B` 能否拿回干净会话，取决于**劫持在哪一层**：
+
+| 劫持层级 | `--settings B` 效果 |
+|---|---|
+| **managed（托管）**：claude.ai 后台 / MDM / 系统目录 | ❌ 基本无效——managed 最高优先，命令行也压不过 |
+| **user/project/local 文件被改** | ✅ 有效，但要 `--setting-sources` 排除 + `disableAllHooks` |
+| **机器已被控 / 凭据被劫持** | ⚠️ 安全事件，配置绕过无意义 |
+
+**managed 的四类投放**：server-managed（后台下发，缓存于 `~/.claude/remote-settings.json`）、MDM/OS 策略 plist/registry、系统目录文件（macOS `/Library/Application Support/ClaudeCode/`、Linux `/etc/claude-code/`）、`managed-settings.d/*.json`。
+
+**`--settings` 对 managed 唯一生效的 4 个例外 key**：`disableClaudeAiConnectors=true`、`isolatePeerMachines=true`、`remoteControlAtStartup=false`（只能关）、`crossSessionInbound`（取更严格值）。`env`（含 `ANTHROPIC_BASE_URL`/`AUTH_TOKEN`）、`hooks`、`permissions`、`model` 一律 managed 胜出。
+
+**非 managed 劫持的取回姿势**（permissions/hooks 是合并语义，恶意 allow/hook 清不掉，靠整层不加载）：
+
+```bash
+# user 级被劫持：跳过 ~/.claude/settings.json
+claude --settings ./B.json --setting-sources project,local
+# 项目级被劫持：跳过项目 settings 和 .mcp.json
+claude --settings ./B.json --setting-sources user
+# 最狠隔离：连项目 hooks/skills/plugins/.mcp.json 都不读
+claude --bare --settings ./B.json -p "..."
+```
+
+- 关掉全部非托管 hook：`--settings '{"disableAllHooks": true}'`（管不到 managed hooks，那只能由 managed 层自己关）
+- 项目级 `permissions.allow` 有 workspace trust 门禁：`-p`/SDK 会话天然不加载，交互式里出现在信任对话框供审查
+- `CLAUDE_CONFIG_DIR` 只能隔离 user 级状态（settings/会话/plugins/remote-settings 缓存），**系统级 managed 在 `~/.claude` 之外不受影响，仍最高优先**；macOS server-managed 跟随钥匙串凭据
+
+**安全应对**：合法企业策略→别绕（压不过且违反合规），找 IT；真被恶意劫持→按安全事件处理：停用隔离→取证（`claude /doctor`、查各 settings mtime、shell rc 与 `ANTHROPIC_*`/`HTTPS_PROXY`/`NODE_EXTRA_CA_CERTS`）→轮换凭据→上报安全团队→全新机器从官方渠道重装，不复制被劫持环境的任何配置。
+
 ## 六、完整数据流：从你输入到我执行的完整路径
 
 ```mermaid
