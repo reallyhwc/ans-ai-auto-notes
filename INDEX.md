@@ -10,16 +10,17 @@
 - [外部参考链接](kb/实战/外部参考链接.md) — 优质外部技术文章、博客、演讲的链接汇总，附带核心要点
 - [知识管理工具对比](kb/实战/知识管理工具对比.md) — Obsidian/Notion/本项目方案 对比分析
 
-## 技术 (68 篇)
+## 技术 (69 篇)
 
-### AI (49 篇)
+### AI (50 篇)
 
-#### AI-Coding (5 篇)
+#### AI-Coding (6 篇)
 
 - [AI Coding 团队治理：从个人提效到团队工程化](kb/技术/AI/AI-Coding/AI Coding 团队治理：从个人提效到团队工程化.md) — 美团31万行代码AI重构实践：人人对齐→人机对齐方法论、Pre-PR机制、零排期重构、高阶模型审查低阶模型
 - [AI 时代的开发者角色进化：2026 年市场全景与职业重塑](kb/技术/AI/AI-Coding/AI 时代的开发者角色进化：2026 年市场全景与职业重塑.md) — 2026年AI开发范式四档市场全景（辅助编码→任务Agent→Spec驱动→全流程平台），Java开发者经验如何从'写代码'迁移到'质量把关+系统设计+Agent判断框架构建'，以及'还有多少Agent需要开发'的诚实回答
 - [AI 编程工具：CLI Agent 与 GUI IDE 全景对比](kb/技术/AI/AI-Coding/AI 编程工具：CLI Agent 与 GUI IDE 全景对比.md) — AI 编程工具全景对比：终端 Agent (Claude Code / Codex CLI / DeepSeek-TUI) 三方对比，以及 GUI IDE (Cursor / Windsurf) 的两种交互哲学
 - [AI 编程的递进路径：从古法编程到多 Agent 协作](kb/技术/AI/AI-Coding/AI 编程的递进路径：从古法编程到多 Agent 协作.md) — 从古法编程到多Agent协作6个Level、程序员未来展望
+- [DSH（DeepSeek Harness）插件架构与循环调度](kb/技术/AI/AI-Coding/DSH（DeepSeek Harness）插件架构与循环调度.md) — DeepSeek Harness 的'一切皆插件'机制拆解：Cordis 响应式依赖注入、agent-loop 事件驱动循环、性能开销分析、互发事件死循环边界
 - [从 Vibe Coding 到 Spec-Driven 到驾驭工程](kb/技术/AI/AI-Coding/从 Vibe Coding 到 Spec-Driven 到驾驭工程.md) — AI 编程三阶段演进：Vibe Coding（放马跑，爽但危险）→ Spec-Driven Development（契约约束）→ 驾驭工程/Harness Engineering（系统级自动约束），附本项目 Harness 实践拆解
 
 #### Claude-Code (17 篇)
