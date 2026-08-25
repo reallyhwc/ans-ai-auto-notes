@@ -25,3 +25,4 @@
 - [Feedback: RAG Threshold Reminder](feedback-rag-threshold-reminder.md) — 知识库 >50 篇时提醒启动 BM25 索引，>80 篇时提醒启动 MCP Server（规划详见 kb/技术/AI/应用/个人知识库接入 RAG 的规划.md）
 - [Feedback: Agent Log Patch](feedback-agent-log-patch.md) — agent-log 的 title/summary/outcome 由 hook 自动派生，仅自动摘要不准（结构化返回/误判 outcome）时才手动 patch
 - [Feedback: Spawn kb-auditor](feedback-spawn-kb-auditor.md) — long-form kb 笔记 ≥300 行改动 OR ≥800 行总量后主动 spawn kb-auditor，review-only 隔离 context
+- [Feedback: Design Data-Investigation First](feedback-design-data-investigation-first.md) — 设计技术方案/敲定识别规则前，必须先基于线上真实数据调研（OMMUSIC-3593553 踩坑）
