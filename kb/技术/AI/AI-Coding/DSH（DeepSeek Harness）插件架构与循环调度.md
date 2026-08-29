@@ -5,7 +5,7 @@ description: "DeepSeek Harness 的'一切皆插件'机制拆解：Cordis 响应�
 
 # DSH（DeepSeek Harness）插件架构与循环调度
 
-> 最后整理: 2026-08-20 | 来源: 对话 + DSH 源码分析
+> 最后整理: 2026-08-29 | 来源: 对话 + DSH 源码分析 + GitHub Releases 整理
 
 > 关联: [Claude Code 整体架构 & 工作流程](../Claude-Code/Claude Code%20整体架构%20&%20工作流程.md) — Claude Code 闭源 Harness 对照 | [Harness Engineering](../Claude-Code/Harness%20Engineering：AI%20Agent%20时代的工程范式.md) — Model + Harness = Agent | [AI 编程工具全景对比](AI%20编程工具：CLI%20Agent%20与%20GUI%20IDE%20全景对比.md) — 终端 Agent 选型
 
@@ -331,7 +331,53 @@ Spring 的 `ApplicationEventPublisher.publishEvent` + `@EventListener` **一模�
 
 ---
 
-## 6. 相关与延伸
+## 6. 版本演进与功能时间线
+
+> 数据来源: GitHub Releases + npm，整理于 2026-08-29
+
+| 版本 | 日期 | 定位 |
+|---|---|---|
+| 0.1.0-rc.6 | 08-13 | 首日公开版（核心架构见 §1-5） |
+| 0.1.0-rc.7 | 08-17 | 插件设置卡片 + 子代理 Job Panel |
+| 0.1.0-rc.8 | 08-19 | 多模态 + Profile Bundle + 子代理增强 |
+| 0.1.1-rc.1 | 08-21 | 视觉模型 + 沙箱加固 |
+| 0.1.1-rc.2 | 08-21 | 图片上传链路优化 |
+| 0.1.2-alpha.1 | 08-27 | 子代理/会话/SDK 大升级（未发 npm） |
+
+### 6.1 各版本关键功能
+
+**rc.7 — 插件能力外扩**
+- 插件可注册自己的设置卡片；Job Panel 统一管理 Codex/Claude Code 子代理任务
+- MCP/ACP 持久化图片附件；DeepSeek 模型新增 `low` 推理强度；`Code mode` → `PTC mode`
+
+**rc.8 — 多模态 + 子代理体系成型**
+- 原生图片请求、`/goal` `/plan` 图文输入、`@` 菜单引用文件和会话
+- Profile Bundle：子代理按需安装、非交互权限模式、多命名实例
+- `web_search` 并发查询；子代理 `reportDelivery` 唤醒父任务
+- SQLite 后端重写（性能/体积优化，**数据结构不兼容**）
+
+**rc.1/rc.2 — 视觉 + 安全**
+- 新增视觉模型 `DeepSeek-V4-Flash-Vision-Exp`
+- 修复 Bubblewrap 沙箱 `/proc/<pid>/root` 逃逸
+- 图片上传优先 Files API 并复用已传文件，自动缩放/转格式
+
+**0.1.2-alpha.1 — 子代理/会话/SDK 大版本（未发 npm）**
+- 子代理模型选择：授权范围内选提供方/模型/推理力度，启动时也可指定 + max output
+- ACP 补齐会话控制、模型设置、MCP、权限、取消
+- 会话流：过程内容折叠、精确 token 用量展示、字号/宽度可调、回合导航
+- 插件包名+版本随请求上报（默认开）；Session 日志增量上传（默认关）
+- APIProxy 移除 → 统一 `@Remote` 网关；headless 进度走 stderr、结果走 stdout
+
+### 6.2 扩展场景关注点（Java 后端视角）
+
+1. **Profile Bundle + 子代理模型配置** → 把 code review/排查/文档做成可复用子代理组合，启动时指定模型
+2. **插件自注册设置卡片** → 私有工具集成 UI 入口
+3. **`@Remote` 网关** → APIProxy 已移除，做集成统一走新通道
+4. **headless 模式** → 进度/结果分离，可接 CI 或 Java 服务自动化
+
+> ⚠️ rc.8 起 SQLite 数据结构不兼容，跨大版本升级前备份会话数据
+
+## 7. 相关与延伸
 
 - [Claude Code 整体架构 & 工作流程](../Claude-Code/Claude Code%20整体架构%20&%20工作流程.md) — 闭源 Harness 的 REPL 循环、Hooks、上下文管理，与 DSH 对照
 - [Harness Engineering：AI Agent 时代的工程范式](../Claude-Code/Harness%20Engineering：AI%20Agent%20时代的工程范式.md) — Model + Harness = Agent 的范式基础
