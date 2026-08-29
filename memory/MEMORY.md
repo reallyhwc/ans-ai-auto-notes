@@ -1,4 +1,4 @@
-- [User Profile](user-profile.md) — 28岁男性Java后端程序员，已婚未育，在读《我看见的世界》和《世界的逻辑》
+- [User Profile](user-profile.md) — 28岁男性Java后端程序员，已婚未育，在读《我看见的世界》和《世界的逻辑》；公司用 Obsidian 做日记/待办（人来写），本项目探索叠加 Obsidian 浏览层（AI 写）
 - [Project: Knowledge Base](project-knowledge-base.md) — AI对话驱动个人知识库，git+md双轨制，含拆分阈值
 - [Feedback: Note Style](feedback-note-style.md) — 笔记必须保留Demo示例，不能写成教科书定义
 - [Feedback: Exit Checklist](feedback-exit-checklist.md) — 用户说退出时必须先执行5项检查再结束
