@@ -202,7 +202,7 @@ flowchart LR
 LLM（大模型）:
   输入: 文本 → 输出: 文本
   用途: 生成回答、推理
-  例子: GPT-4, DeepSeek-V3, Qwen-Max
+  例子（截至 2026-09）: GPT-5.x, DeepSeek-V4, Qwen3-Max
   大小: 几百 GB，速度慢
 
 Embedding 模型:
