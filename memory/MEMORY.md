@@ -11,7 +11,7 @@
 - [Feedback: Timeline Completeness](feedback_timeline_completeness.md) — timeline 要记录所有变更（包括 bug 修复、配置变更），不只记"大件事"
 - [Feedback: FILE_INDEX Traversal](feedback-file-index-traversal.md) — FILE_INDEX 结构升级时必须 grep 全扫所有遍历函数（renderCategories/buildFileIndex/searchKB/checkServer），不能"修完报错的就停"
 - [Feedback: Tree Depth CSS Limit](feedback-tree-depth-css-limit.md) — 菜单嵌套 JS 递归无限制，但 CSS 视觉极限 ~5 层（sidebar 200px / margin-left 16px 累加）
-- [Project: Cross-Environment Workflow](cross-environment-workflow.md) — 公司Mac(Aone Copilot+Claude Opus)和个人Mac(Claude Code CLI)双环境维护，git同步
+- [Project: Cross-Environment Workflow](cross-environment-workflow.md) — 公司Mac(Aone Copilot+Claude Opus)、个人Mac(Claude Code CLI)、个人Mac(DSH Web GUI，技能目录为 .agents/skills)三环境维护，git同步；DSH 会话需先 export PATH="/opt/homebrew/bin:$PATH" 才有 node
 - [Project: Agents/Skills Mirror](project-agents-skills-mirror.md) — .claude/skills 与 .agents/skills 是双镜像，改 skill 必须两边同步（仅 CLAUDE.md↔AGENTS.md 引用名不同），否则 Codex 侧漂移
 - [Project: quickStart Branch](project-quickstart-branch.md) — quickStart 是 Harness KB 模板（单工具 Claude-Code），2026-08-01 从 main 移植全套 harness，SKIP 双镜像
 - [Feedback: Proactive Divergent Suggestions](feedback-proactive-divergent-suggestions.md) — 用户认可"小的发散性想法"作为知识库特色，AI应主动提议改进点而非被动执行指令

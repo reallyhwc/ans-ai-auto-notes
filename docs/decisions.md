@@ -451,6 +451,24 @@
 
 ---
 
+## ADR-005: 沙箱概念笔记归属「计算机基础」，DSH 实现细节留在 DSH 笔记
+
+- **日期**: 2026-09-11
+- **状态**: 接受
+- **背景**: 用户问「什么是沙箱环境」，内容横跨三个语境：① 应用代码链路上的业务隔离环境（环境/流量/数据/凭证四维）② Agent 运行时的工具沙箱（DSH 的 workspace-write、Seatbelt/bwrap runner）③ OS/语言级隔离原语（chroot/namespace/seccomp/Landlock；JVM SecurityManager 已废弃）。候选归属：
+  - (a) `kb/技术/AI/AI-Coding/` —— 因为最近接触沙箱是从 DSH/Codex 的 Agent 沙箱来的
+  - (b) `kb/技术/AI/应用/` —— 因为 sandbox/approval 属于 Harness 的「约束层」
+  - (c) `kb/技术/计算机基础/` —— 沙箱的本质是「隔离 + 最小权限」，属于操作系统/系统安全的基础概念，横向覆盖 OS 原语、容器、Agent 运行时
+- **决定**: (c)。新建 `kb/技术/计算机基础/沙箱（Sandbox）：从进程隔离到 Agent 运行时.md`；DSH 的源码级实现（能力 seam 拆分、逐调用策略、审批升权、permissionPresets）写进 `kb/技术/AI/AI-Coding/DSH（DeepSeek Harness）插件架构与循环调度.md` §7，两处互链。
+- **理由**:
+  - 概念笔记若放进 AI 子树，会诱发「沙箱 = Agent 的东西」的错误归类，未来业务环境沙箱 / 容器安全的笔记将无处安放
+  - 物理目录拆分优先于 frontmatter 分组（memory: physical-structure-over-metadata）
+  - 跨文件关联规则要求「同知识点多维度 → 各写各的侧重，不是复制」：概念/谱系/判据放计算机基础，DSH 的插件 seam 与配置细节放 DSH 笔记
+  - 先例：ADR-001 的 AI 五子目录只约束 AI 子树，不构成「AI 相关的一切都进 AI 子树」的规则
+- **关联**: [沙箱（Sandbox）：从进程隔离到 Agent 运行时](<../kb/技术/计算机基础/沙箱（Sandbox）：从进程隔离到 Agent 运行时.md>)
+
+---
+
 ## 新 ADR 模板
 
 ```markdown
