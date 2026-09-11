@@ -5,9 +5,9 @@ description: "把「沙箱」这个词拆成三种语境讲清楚：应用代码
 
 # 沙箱（Sandbox）：从进程隔离到 Agent 运行时
 
-> 最后整理: 2026-09-11 | 来源: 对话 + DSH 源码包 README（dsh-sandbox / dsh-fs-sandbox / dsh-sandbox-local / dsh-permission-presets / dsh-user-approval）+ Claude Code·Codex 文档 + 开放平台沙箱惯例整理
+> 最后整理: 2026-09-11 | 来源: 对话 + DSH 源码包 README（dsh-sandbox / dsh-sandbox-policy / dsh-sandbox-local / dsh-fs-sandbox / dsh-permission-presets / dsh-user-approval）+ Claude Code·Codex 文档 + 开放平台沙箱惯例整理
 
-> 关联: [DSH（DeepSeek Harness）插件架构与循环调度](<../../AI/AI-Coding/DSH（DeepSeek Harness）插件架构与循环调度.md>) — 沙箱在 DSH 里的源码级实现（§7 沙箱与权限双通道） | [Harness 与流程范式：SDD 落在哪一层](<../../AI/应用/Harness 与流程范式：SDD 落在哪一层.md>) — 沙箱/审批属于 Harness 的「约束层」 | [AI 编程工具：CLI Agent 与 GUI IDE 全景对比](<../../AI/AI-Coding/AI 编程工具：CLI Agent 与 GUI IDE 全景对比.md>) — Codex 的 OS 级沙箱与云端沙箱对照
+> 关联: [DSH（DeepSeek Harness）插件架构与循环调度](<../AI/AI-Coding/DSH（DeepSeek Harness）插件架构与循环调度.md>) — 沙箱在 DSH 里的源码级实现（§7 沙箱与权限：两条强制通道） | [Harness 与流程范式：SDD 落在哪一层](<../AI/应用/Harness 与流程范式：SDD 落在哪一层.md>) — 沙箱/审批属于 Harness 的「约束层」 | [AI 编程工具：CLI Agent 与 GUI IDE 全景对比](<../AI/AI-Coding/AI 编程工具：CLI Agent 与 GUI IDE 全景对比.md>) — Codex 的 OS 级沙箱与云端沙箱对照
 
 ## 0. 先给结论：你说的「沙箱」是哪一个
 
@@ -48,14 +48,14 @@ flowchart LR
 | **权限上限** | 域内能做的事实受限（只读、只能写工作区、只能调这几个接口） | 「沙箱账号」——但它其实是生产超管账号换了个名字 |
 | **可丢弃/可回滚** | 炸了就扔，不需要精细恢复 | 「预发环境」——它共享生产数据库，炸了要人肉修数据 |
 
-再加一条工程上的软约束：**失败必须朝"收紧"方向倒（fail-closed）**。DSH 的沙箱在这里做得很典型——后端不可用时它抛 `SANDBOX_UNAVAILABLE` 拒绝执行，而不是"悄悄不加限制地跑一下"：
+再加一条工程上的软约束：**强制执行的沙箱层应当 fail-closed（失败朝收紧方向倒）**。DSH 的命令沙箱在这里做得很典型——后端不可用时它抛 `SANDBOX_UNAVAILABLE` 拒绝执行，而不是"悄悄不加限制地跑一下"：
 
 ```text
 sandbox mode "<mode>" is requested but no sandbox backend is usable on this host;
 refusing to run the command unconfined.
 ```
 
-这句话值得记住：**宁可跑不了，也不要不受限地跑**。这是所有沙箱设计的默认姿态，也是它区别于"权限校验"的地方。
+**但别把 fail-closed 当成"沙箱的普遍现状"**——它是"强制执行层"应当具备的姿态，而不是每一层都做到了。两个真实反例：① 业务环境沙箱的典型故障恰恰是 **fail-open**（染色标丢了、MQ 出口没隔离 → 流量漏进生产，见 §4.4）；② DSH 的文件围栏自己也有一处 fail-open——「未组合 `ctx.sandboxPolicy` 服务时，后端不会实施约束」（`dsh-fs-sandbox` 已知限制）。所以正确的问法不是"有没有沙箱"，而是**每一层各自问一遍：它失败时朝哪边倒**（见 §7 第 2 问）。
 
 ## 2. 为什么叫 sandbox：概念的来历
 
@@ -86,12 +86,12 @@ ProcessBuilder pb = new ProcessBuilder("bwrap", "--ro-bind", "/", "/",
 |---|---|---|---|---|---|
 | **语言/运行时级** | JS iframe/Worker、WASM、Python 受限 builtins、JVM SecurityManager（已废弃） | 误用 API、越权调用 | 同进程内的原生逃逸、JNI/JDK 漏洞 | 极低 | 浏览器插件、表达式引擎、规则脚本 |
 | **syscall 级（同一内核）** | chroot、namespace + cgroup（容器）、seccomp-bpf、**Landlock**、**macOS Seatbelt**、Windows ACL 受限令牌 | 文件/网络/系统调用越界 | 内核漏洞逃逸；配置不完备时的旁路 | 低（毫秒级） | 容器部署、CI 任务、**Coding Agent 命令执行** |
-| **硬件虚拟化级** | microVM（Firecracker / Kata）、gVisor（用户态内核）、云函数 | 内核漏洞也难逃（多一层边界） | 侧信道等极端手段 | 中高（几十~几百毫秒） | 多租户云、跑不可信代码、云端 Agent 沙箱 |
+| **虚拟化 / 用户态内核级** | microVM（Firecracker / Kata）、gVisor（用户态内核）、云函数 | 内核漏洞也难逃（多一层边界） | 侧信道等极端手段 | 中高（几十~几百毫秒） | 多租户云、跑不可信代码、云端 Agent 沙箱 |
 
 两个 Java 后端容易踩的常识点：
 
-- **容器默认不是安全边界**。Docker 共享宿主内核，`--privileged`、挂载 `/var/run/docker.sock`、内核漏洞（Dirty Pipe 类）都能出去。容器解决的是"环境一致性"，安全隔离需要额外加固（drop capabilities、seccomp、rootless、user namespace）。
-- **同内核的路径级隔离是"围栏"不是"墙"**。DSH 的 fs 沙箱 README 自己就写明了这一点：*「威胁模型：策略围栏，而非内核边界」*——检查的是"可信代码处理模型给的路径"，属于策略级拦截；挡恶意代码要靠内核级 runner。
+- **容器默认不是安全边界**。Docker 共享宿主内核，`--privileged`、挂载 `/var/run/docker.sock`、内核漏洞（Dirty Pipe 类）都能出去。容器解决的是"环境一致性"，安全隔离需要额外加固：drop capabilities、`--security-opt no-new-privileges`、seccomp profile、只读 rootfs、非 root 运行、**永不挂 `docker.sock`**。
+- **同内核的路径级隔离是"围栏"不是"墙"**——chroot/namespace 到 Landlock/Seatbelt 都属于策略级拦截，挡恶意代码要靠内核级 runner（DSH 的 fs 侧 vs 命令侧就是这条分界线，见 §5.2）。
 
 ## 4. 语境一：应用代码链路上的「沙箱环境」
 
@@ -134,10 +134,16 @@ flowchart TB
 
 ```java
 // ① 染色标必须透传三类通道，缺一个就断链
-//    HTTP:  header（网关注入）
-//    RPC:   Dubbo attachment / Spring Cloud header —— 框架自动透传要显式确认
-//    MQ:    message property（不是 body！）
-// ② 异步线程池是最大盲点：ThreadLocal 不过线程池
+RpcContext.getContext().setAttachment("x-env", envTag);              // RPC：Dubbo，框架透传要显式确认
+Message msg = MessageBuilder.withPayload(body)
+        .setHeader("x-env", envTag).build();                          // MQ：走 message property，不是 body
+request.header("x-env", envTag);                                      // HTTP：网关 / Feign 注入
+
+// ② 异步线程池是最大盲点：普通 ThreadLocal 不过线程池，标就丢了
+ExecutorService sandboxPool = TtlExecutors.getTtlExecutorService(rawPool);  // TransmittableThreadLocal 装饰
+// 或显式传递：sandboxPool.submit(() -> sandboxScope.run(envTag, task))
+
+// ③ 数据层：影子表靠 SQL 改写（ShardingSphere shadow / MyBatis 拦截器），缓存 key 必须带环境前缀
 ```
 
 | 检查项 | 做法 | 漏了会怎样 |
@@ -145,7 +151,7 @@ flowchart TB
 | RPC 透传 | Dubbo `RpcContext.getContext().setAttachment("x-env","sandbox")` / 拦截器统一注入 | 下游回落生产逻辑，沙箱订单写进生产表 |
 | MQ 隔离 | 用独立 topic，或至少用 message property 让消费者自己过滤 | **沙箱消息被生产消费者消费**（最经典的事故） |
 | 异步线程 | `TransmittableThreadLocal` / 手动 decorate 线程池 | 主线程染色正常，异步分支丢标 |
-| 数据层 | 影子表中间件（SQL 解析改表名）+ 独立缓存前缀 | 缓存 key 没加环境前缀 → 读生产缓存"串味" |
+| 数据层 | 影子表（ShardingSphere shadow / MyBatis 拦截器改表名）+ 独立缓存前缀 | 缓存 key 没加环境前缀 → 读生产缓存"串味" |
 | 回调地址 | 第三方回调 URL 指向沙箱域名，别写死生产 | 沙箱链路把生产当回调目标 |
 | 第三方凭证 | 沙箱 key 存在配置中心沙箱 namespace | 用生产 key 发起了真实交易 |
 
@@ -160,7 +166,7 @@ flowchart TB
 
 ### 5.1 你在会话里看到的原文，就是策略本体
 
-DSH 每个会话的运行时上下文里都有一行"当前文件策略"，这不是文案，是**沙箱模式回显**。本会话的真实内容：
+DSH 每个会话的运行时上下文里都有一行"当前文件策略"，这不是文案，是**沙箱模式回显**。下面这段是 `workspace-write` 形态的原文（`dsh-sandbox-policy` README「模型体验」段；`read-only` / `danger-full-access` 各有同族回显）：
 
 ```markdown
 Current DSH file policy: workspace-write. Any available operation enforced by the DSH file
@@ -168,13 +174,15 @@ sandbox may modify files under the session workspace: "<workspace root>".
 Some platform temporary areas may also be writable.
 ```
 
-三种模式的完整语义（`SandboxMode` 词汇表）：
+三种模式的完整语义（`SandboxMode` 词汇表）。**注意这三个模式都只封"变更类操作"，读路径始终直接放行**——`read-only` 并不等于防数据外泄：
 
-| 模式 | 语义 | 对应审批策略（permissionPresets 默认组合） |
+| 模式 | 语义 | 产品层默认 preset 组合 |
 |---|---|---|
-| `read-only` | 任何变更类操作被结构化拒绝 | 部署默认值（**故障安全**：没有配置时就是它） |
-| `workspace-write` | 只能写工作区根 + 平台临时区（`/tmp`、`os.tmpdir()`） | `ask`（需要越权时问人） |
-| `danger-full-access` | 不加文件围栏 | `never`（不再问，也**不允许**申请升权） |
+| `read-only` | 任何变更类操作被结构化拒绝（读取仍放行） | **不构成 preset 条目**；它是插件级 `mode` 的默认值（故障安全） |
+| `workspace-write` | 只能写工作区根 + 平台临时区（`/tmp`、`os.tmpdir()`） | `workspace-write` + `ask`（preset 表的默认项 `defaultPreset`） |
+| `danger-full-access` | 不加文件围栏 | `danger-full-access` + `never`（preset 表内条目） |
+
+**两层默认别混淆**（这也是一处容易读岔的地方）：`dsh-sandbox-policy` 的插件级 `mode` 默认是 `read-only`（没配置就更严），而产品层 `defaultPreset` 默认是 `workspace-write` + `ask`（`dsh-permission-presets`）——所以正常安装的会话回显是 `workspace-write`，只有 preset 与配置都缺位时才会落到 `read-only`。preset 表里**没有** `read-only` 条目，preset 名与 mode 名撞车只是巧合。
 
 关键设计：**模式是逐调用（per-call）解析的，不是全局开关**。同一个 DSH 进程里，bash 工具可以按 `read-only` 跑，而某个受限子 agent 保持自己的状态目录可写——策略随调用传递，不挂在提供方上。
 
@@ -184,11 +192,10 @@ Some platform temporary areas may also be writable.
 
 | | 文件工具（`ctx.fs`） | 命令执行（`ctx.shell`） |
 |---|---|---|
-| 机制 | 进程内路径检查：规范化后判断目标是否在可写根下 | 重写 argv：`ctx.sandbox.confine(argv, policy)` 返回被包装的命令 |
-| 后端 | 无（可信代码里的策略判断） | Linux `bwrap` → 否则 Landlock launcher；macOS `sandbox-exec`/Seatbelt；Windows ACL 受限令牌 |
-| 强度 | **策略围栏**（agent 自己绕不过工具，但对抗性进程不在威胁模型内） | **内核边界**（进程及其子进程都在限制下） |
-| 失败姿态 | 结构化 `FS_SANDBOX_DENIED`，渲染为 `[sandbox: file access denied under <mode> mode]` | 无可用后端则抛 `SANDBOX_UNAVAILABLE`，**拒绝执行** |
-| 已知弱点 | TOCTOU（检查与系统调用之间替换祖先符号链接）——靠"写入前立即重新规范化"缩小，未消除 | Windows ACL 与旧内核 Landlock 只能报 `partial` 强制执行 |
+| 边界性质 | **进程内策略围栏**：路径规范化 + 包含关系判断。README 自述「威胁模型：策略围栏，而非内核边界」——它处理的是"可信代码手里的模型路径"，对抗性宿主进程不在威胁模型内 | **内核边界**：`ctx.sandbox.confine(argv, policy)` 包装出的进程及其派生进程全在限制下（Linux bwrap/Landlock、macOS Seatbelt、Windows ACL 受限令牌） |
+| 拒绝形式 | 结构化 `FS_SANDBOX_DENIED` → 渲染为 `[sandbox: file access denied under <mode> mode]` | 靠 stderr 的**拒绝方言**推断（没有结构化通道）；后端不可用则抛 `SANDBOX_UNAVAILABLE` |
+
+后端清单、`enforcement: partial`（Windows ACL / 旧内核 Landlock）、TOCTOU 残留风险等实现细节不在本文展开——见 [DSH 笔记 §7.3](<../AI/AI-Coding/DSH（DeepSeek Harness）插件架构与循环调度.md>)。
 
 两者共享同一个"可写集合"函数（`writableRoots`），保证 fs 围栏和 Seatbelt profile 不会各说各话——**这是防"分裂世界"的工程细节**：如果两边各算各的可写路径，就会出现"工具说能写、命令却被内核拒"的诡异现象。
 
@@ -217,7 +224,7 @@ flowchart TD
 
 - **能碰的**：会话工作区（不可变的 `SessionHeader.cwd`）+ 少量平台临时目录。
 - **碰不到的**：工作区之外的一切——`~/.ssh`、`~/.mws`、`/etc`、别的项目目录。
-- **典型体感**：想往 `~/.mws` 写配置会被拒，正确做法是改到工作区内，或者显式申请一次升权——**而不是换个工具（比如 base64 塞进别处）绕开围栏**。绕围栏这件事本身在工程上就等于把沙箱拆了。
+- **典型体感**：想往 `~/.mws` 写配置会被拒，正确做法是改到工作区内，或者显式申请一次升权——而不是换个工具把内容搬到别处（§8 末尾给了标准处理顺序）。
 
 对照另外两个 Agent：Codex 走的是更硬的路子（Seatbelt / Landlock / Seccomp 内核级隔离，另有"云沙箱"每个任务一个独立容器）；Claude Code 是权限三层（allow/deny/ask）+ 计划模式，`bypassPermissions` 官方建议只在容器内用。
 
@@ -239,28 +246,29 @@ flowchart TD
 拿到任何号称"沙箱"的东西，问这 5 个问题：
 
 1. **它隔离的是什么？** 四个维度（环境/流量/数据/凭证）各覆盖了哪些？——答不上来通常是"一套独立部署"而已。
-2. **越界时 fail-open 还是 fail-closed？** 安全设计必须 fail-closed；"backend 不可用就降级放行"等于没有沙箱。
-3. **边界在哪一层？** 进程内策略检查 ≠ 内核边界。写下它的威胁模型（DSH 的做法是直接写在 README 里）。
-4. **可写集合能穷举吗？** 列出所有可写路径/topic/表；列不出来说明爆炸半径不可控。
-5. **越权通道是否受限且留痕？** 一次性、限操作、进审计日志——三者缺一，沙箱就是橡皮图章。
+2. **越界时 fail-open 还是 fail-closed？** 逐层问，别只看某层（§1 的两个反例）。"backend 不可用就降级放行"的层等于没有沙箱。
+3. **边界在哪一层？** 进程内策略检查 ≠ 内核边界（§5.2 是现成的分界样本）。写下它的威胁模型——DSH 的做法是直接写在 README 里。
+4. **可写集合能穷举吗？** 列出所有可写路径 / topic / 表；列不出来说明爆炸半径不可控。
+5. **越权通道是否受限且留痕？** 一次性、限操作、进审计日志——三者缺一，沙箱就是橡皮图章。落地形态：染色标缺失告警、影子写监控、沙箱拒绝与升权事件入库。
 
 ## 8. 常见误解
 
 | 误解 | 现实 |
 |---|---|
-| "沙箱 = 虚拟机" | 容器类沙箱共享内核，只是 namespace 隔离；只有 microVM/gVisor 那层才是硬件/用户态内核级 |
+| "沙箱 = 虚拟机" | 容器类沙箱共享内核，只是 namespace 隔离；只有 microVM/gVisor 那层才是虚拟化 / 用户态内核级 |
 | "沙箱 = 测试环境" | 测试环境可能直连生产库；沙箱的核心是**受限**，不是**另开一套**。很多公司内部把预发叫"沙箱"，那是语境一的一种实现 |
-| "有沙箱就安全了" | 策略围栏 ≠ 内核边界；Landlock/Windows ACL 只报 `partial` 强制执行；macOS Seatbelt 依赖 Apple 已标注 deprecated 的 `sandbox-exec` |
+| "有沙箱就安全了" | 强制执行有强弱之分（`enforcement: partial`、依赖 deprecated 后端），文件侧围栏本身也不做内核级拦截——分界线见 §5.2 |
+| "Java 里的表达式引擎 / ClassLoader 隔离也算沙箱" | SpEL/OGNL 这类表达式引擎有大量 sandbox bypass 案例；`ClassLoader` 隔离只防误用不防恶意；反序列化 gadget 链同理。要跑不可信代码还是独立进程 + 容器/内核边界 |
 | "AI 被拒了就该全放开" | 升权是**一次性、按操作**的，不是关掉沙箱；`never` 策略下连申请都不允许，确定性拒绝 |
-| "只读模式随便跑" | 只读挡住了写，但挡不住信息泄露与资源消耗；对陌生仓库跑 agent 仍要配合网络与进程限制 |
+| "只读模式随便跑" | 只读挡住了**写**，但读路径完全放行（可能外泄）+ 挡不住资源消耗；对陌生仓库跑 agent 仍要配合网络与进程限制 |
 
 遇到 `[sandbox: file access denied under <mode> mode]` 的标准处理顺序：**① 改路径到工作区内** → ② 产物放 `os.tmpdir()` → ③ 确实必须外部路径时，显式申请一次升权（并说明理由）。不要试图用别的工具绕过去。
 
 ## 9. 相关与延伸
 
-- [DSH（DeepSeek Harness）插件架构与循环调度](<../../AI/AI-Coding/DSH（DeepSeek Harness）插件架构与循环调度.md>) §7 — 沙箱与审批在 DSH 里的源码级实现（seam 拆分、permissionPresets、会话事件持久化）
-- [Harness 与流程范式：SDD 落在哪一层](<../../AI/应用/Harness 与流程范式：SDD 落在哪一层.md>) — sandbox/approval 是 Harness「约束层」的两个旋钮
-- [AI 编程工具：CLI Agent 与 GUI IDE 全景对比](<../../AI/AI-Coding/AI 编程工具：CLI Agent 与 GUI IDE 全景对比.md>) — Codex 的 OS 级沙箱 / 云端沙箱与 Claude Code 权限模型对比
-- [CLI Coding Agent 系统架构：从 REPL 到自主编程](<../../AI/应用/CLI Coding Agent 系统架构：从 REPL 到自主编程.md>) — Safety Layer 在 Agent 架构中的位置
+- [DSH（DeepSeek Harness）插件架构与循环调度](<../AI/AI-Coding/DSH（DeepSeek Harness）插件架构与循环调度.md>) §7 — 沙箱与审批在 DSH 里的源码级实现（seam 拆分、permissionPresets、会话事件持久化）
+- [Harness 与流程范式：SDD 落在哪一层](<../AI/应用/Harness 与流程范式：SDD 落在哪一层.md>) — sandbox/approval 是 Harness「约束层」的两个旋钮
+- [AI 编程工具：CLI Agent 与 GUI IDE 全景对比](<../AI/AI-Coding/AI 编程工具：CLI Agent 与 GUI IDE 全景对比.md>) — Codex 的 OS 级沙箱 / 云端沙箱与 Claude Code 权限模型对比
+- [CLI Coding Agent 系统架构：从 REPL 到自主编程](<../AI/应用/CLI Coding Agent 系统架构：从 REPL 到自主编程.md>) — Safety Layer 在 Agent 架构中的位置
 - 开放平台沙箱：[支付宝环境升级说明](https://opendocs.alipay.com/common/097l48)、[微信支付沙箱功能升级](https://developers.weixin.qq.com/community/pay/doc/0002c437a1c6f00ba87ef1a1a5ec01)
 - Java 沙箱史：[JEP 411（deprecate SecurityManager）](https://openjdk.org/jeps/411)、[JEP 486（永久禁用）](https://openjdk.org/jeps/486)

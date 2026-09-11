@@ -14,7 +14,7 @@ lastUpdated: 2026-09-11
 
 **DSH 会话的操作差异（踩过）**：
 - `node` 不在 DSH 会话的 PATH 里（PATH 为 `/Applications/Raven DSH.app/.../node_modules/.bin:/usr/bin:/bin:/usr/sbin:/sbin`），跑项目脚本前需 `export PATH="/opt/homebrew/bin:$PATH"`，否则 `node scripts/build-index.js` / `bash test.sh` 直接 `command not found`
-- DSH 的文件沙箱默认 `workspace-write`：只能写会话工作区 + 平台临时目录；写 `~/.mws`、`~/.claude` 等外部路径会被拒（`[sandbox: file access denied under workspace-write mode]`），需显式申请一次升权
+- DSH 的文件沙箱有两层默认：产品层 `defaultPreset` 默认 `workspace-write` + `ask`（所以会话回显通常是 workspace-write），插件级 `mode` 默认是更严的 `read-only`；写会话工作区之外的路径（`~/.mws`、`~/.claude` 等）会被拒（`[sandbox: file access denied under workspace-write mode]`），需显式申请一次升权
 
 **Why:** 多个环境的会话历史不互通，git commits 是唯一的交接机制。错过近期的重构/规则变更会导致操作错误。
 

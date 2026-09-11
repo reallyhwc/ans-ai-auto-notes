@@ -5,7 +5,7 @@ description: "DeepSeek Harness 的'一切皆插件'机制拆解：Cordis 响应�
 
 # DSH（DeepSeek Harness）插件架构与循环调度
 
-> 最后整理: 2026-09-11 | 来源: 对话 + DSH 源码分析 + GitHub Releases 整理 + 沙箱插件包 README（dsh-sandbox / dsh-fs-sandbox / dsh-sandbox-local / dsh-permission-presets）
+> 最后整理: 2026-09-11 | 来源: 对话 + DSH 源码分析 + GitHub Releases 整理 + 沙箱插件包 README（dsh-sandbox / dsh-sandbox-policy / dsh-sandbox-local / dsh-fs-sandbox / dsh-permission-presets / dsh-user-approval）
 
 > 关联: [Claude Code 整体架构 & 工作流程](<../Claude-Code/Claude Code 整体架构 & 工作流程.md>) — Claude Code 闭源 Harness 对照 | [Harness Engineering](<../Claude-Code/Harness Engineering：AI Agent 时代的工程范式.md>) — Model + Harness = Agent | [AI 编程工具全景对比](<AI 编程工具：CLI Agent 与 GUI IDE 全景对比.md>) — 终端 Agent 选型 | [沙箱（Sandbox）：从进程隔离到 Agent 运行时](<../../计算机基础/沙箱（Sandbox）：从进程隔离到 Agent 运行时.md>) — 沙箱概念全景与三语境对照（本文 §7 是其 DSH 落地细节）
 
@@ -388,7 +388,7 @@ DSH 把"沙箱"拆成三块插件，任何一块都能换：
 | 角色 | 插件 | 职责 |
 |---|---|---|
 | **策略归属**（唯一真相） | `dsh-sandbox-policy` | 解析"每次调用的模式 + 工作区根"，向模型贡献 `sandbox:policy` 上下文 |
-| **执行后端** | `dsh-sandbox-local`（进程）、`dsh-fs-sandbox`（文件系统） | 各自消费同一份策略，不自己解析 mode/root |
+| **执行后端** | `dsh-sandbox-local`（进程，内核级 runner）、`dsh-fs-sandbox`（文件系统，只到进程内策略层，**无内核 runner**） | 各自消费同一份策略，不自己解析 mode/root |
 | **消费方** | `dsh-bash-sandbox`、`dsh-tool-fs` | 把拒绝渲染给模型、发起升权请求 |
 
 **为什么要"唯一归属"**：fs 工具和 bash 命令如果各自解析 `mode + workspaceRoot`，就会出现"文件工具说能写、bash 里却被内核拒绝"的分裂世界。所以 `writableRoots` 只有一个实现，Seatbelt profile 与 fs 围栏共用它。
@@ -401,7 +401,7 @@ type SandboxMode = 'read-only' | 'workspace-write' | 'danger-full-access';
 // 有效模式 = 显式授权 ?? fold(会话 sandbox/mode 事件) ?? 部署默认值（read-only，故障安全）
 ```
 
-- **部署默认是 `read-only`**——没配置就更严，而不是更松。
+- **插件级 mode 默认是 `read-only`**——没配置就更严，而不是更松（注意这跟产品层 preset 默认是两回事，见 §7.5）。
 - **逐会话持久化**：切换模式只是在会话日志里追加一条 `sandbox/mode` 事件，回放跨重启保留，两个会话绝不互相看见对方的模式。
 - **工作区根无需事件**：创建时写死的 `SessionHeader.cwd` 就是该会话每次调用的可写根（先做文件系统规范化，再词法归一化，所以 `symlink/..` 这类路径不会把授权算错）。
 
@@ -448,9 +448,11 @@ sequenceDiagram
 
 | Preset | sandbox/mode | approval/policy |
 |---|---|---|
-| `workspace-write`（默认） | `workspace-write` | `ask` |
-| `danger-full-access` | `danger-full-access` | `never` |
+| `workspace-write`（`defaultPreset`，产品层默认） | `workspace-write` | `ask` |
+| `danger-full-access`（表内条目，非默认） | `danger-full-access` | `never` |
 | `custom` | 用户手动调出的组合（**只能推导出来，不能被选中/持久化**） | — |
+
+> **preset 表里没有 `read-only` 条目**——`read-only` 是 `dsh-sandbox-policy` 的插件级 `mode` 默认值（§7.2），两者是两层默认：正常会话按产品层 `defaultPreset` 回显 `workspace-write`，只有在 preset 与配置都缺位时才落到 `read-only`。
 
 会话创建时把预设、模式、审批策略一起"钉"进会话，所以之后改设置不会影响已有会话。
 
@@ -459,8 +461,10 @@ sequenceDiagram
 1. **策略词汇只管文件操作**——网络、进程、系统调用、设备、凭据都不在 `SandboxMode` 里。
 2. **每会话只有一个可写根**（`SessionHeader.cwd`），额外可写根不在执行策略中。
 3. **fs 围栏是策略检查，不是内核边界**；对抗性宿主进程不在威胁模型内。
-4. **Seatbelt 依赖已被 Apple 标注 deprecated 的 `sandbox-exec`**，功能探测失败时执行会被拒绝（而不是降级放行）。
-5. **runner 选择在插件生命周期内缓存**——装了 `bwrap` 要重载插件才生效。
+4. **fs 后端未组合 `ctx.sandboxPolicy` 时不会实施约束**——这是 DSH 自己的一处 fail-open（策略归属方缺席即无围栏），与命令侧的 `SANDBOX_UNAVAILABLE` 拒绝执行形成对照。
+5. **拒绝报告是 stderr 方言、runner 诊断走带内通道**——受限子进程若刻意模仿 runner 的输出，可能造成可用性或诊断误归因（无法绕过约束，但会误导排障）。
+6. **Seatbelt 依赖已被 Apple 标注 deprecated 的 `sandbox-exec`**，功能探测失败时执行会被拒绝（而不是降级放行）。
+7. **runner 选择在插件生命周期内缓存**——装了 `bwrap` 要重载插件才生效。
 
 ## 8. 相关与延伸
 
