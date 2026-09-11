@@ -162,7 +162,7 @@ codex remote-control   → 远程 headless 操控（v0.130.0）
 codex cloud            → 云端沙箱执行 + 可视化 Dashboard
 ```
 
-这是三者中**执行形态最丰富**的。Claude Code 只有 CLI + IDE 扩展，DeepSeek-TUI 只有 TUI + HTTP serve。
+这是三者中**执行形态最丰富**的。Claude Code 以 CLI + IDE 扩展为主（也能以 MCP Server 形态被别的 Agent 调用，见下表），DeepSeek-TUI 以 TUI + HTTP serve 为主。
 
 **2. Cloud Sandbox（云端沙箱）**：每次任务在云端独立容器中执行，完全不碰本地文件系统。结果需要你显式批准才合并回来。这对于审查第三方代码、处理不可信 PR 特别有用。
 
@@ -213,7 +213,7 @@ RLM:   任务1 ↘
 | Terminal-Bench | 65.4% | **77.3%** | — |
 | 吞吐速度 | ~100 tok/s | **240-1000+ tok/s** | 取决于 API |
 | 上下文窗口 | 200K-1M | 200K-1M | **1M**（全系统一） |
-| 图片输入 | ✅ | ✅ | ❌（纯文本） |
+| 图片输入 | ✅ | ✅ | ⚠️ 见下注（2026-05 记录为纯文本） |
 | **二、安全相关** | | | |
 | 安全模型 | 权限 allow/deny/ask | **OS 内核级沙箱** | 模式 Plan/Agent/YOLO |
 | 沙箱技术 | 权限沙箱 | Seatbelt/Landlock/Seccomp | Seatbelt/Landlock（v0.8+） |
@@ -239,13 +239,16 @@ RLM:   任务1 ↘
 | MCP 协议 | 客户端 | 客户端 + Server | 客户端 + Server |
 | Skills/Hooks | ✅ | ✅ hooks 系统 | ✅ 跨工具兼容 |
 | LSP 诊断 | ❌ | ❌ | ✅ 编辑后实时检查 |
-| Provider 灵活性 | 仅 Anthropic | 仅 OpenAI | **9 个 Provider** |
+| Provider 灵活性 | 官方 仅 Anthropic（可经兼容层接 DeepSeek V4，见下文「模型接入」） | 仅 OpenAI | **9 个 Provider** |
 | **六、成本** | | | |
 | 订阅费 | $20-200/月 | $20/月起 | 0 |
 | 单次任务 | $30-60 | $40-80 | **¥2-10** |
 | 月重度使用 | $150-200 | $150-200 | **¥50-100** |
 
 ---
+
+
+> ⚠️ **DeepSeek-TUI 与 DSH 的关系（库内待澄清）**：本文的 DeepSeek-TUI 是 2026-05 记录的那款终端编码 Agent；2026-08-13 开源的 [DSH（DeepSeek Harness）](<./DSH（DeepSeek Harness）插件架构与循环调度.md>) 是 DeepSeek 的 Agent 运行框架本身，生态里还有多个社区 TUI 前端。两者是否同一产品线，本库尚无权威交代——**若同源，上表「图片输入」一行应随 DSH rc.8 的原生图片请求改为 ✅**；若不同产品，引用时请注明各自版本。
 
 ## 6. 用 DeepSeek V4 时的兼容性
 
