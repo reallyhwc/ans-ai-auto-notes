@@ -1,6 +1,6 @@
 ---
 title: "Hooks 事件全景与拦截机制"
-description: "Claude Code 全部 30+ hook 事件按类别清单、阻断三档机制、配置层级合并、PreToolUse 完整示例、subagent/skill 内的 hook"
+description: "Claude Code 全部 30 个 hook 事件按类别清单、阻断三档机制、配置层级合并、PreToolUse 完整示例、subagent/skill 内的 hook"
 ---
 
 # Hooks 事件全景与拦截机制

@@ -36,8 +36,8 @@ graph TB
     end
 
     subgraph "云端"
-        API["Claude API<br/>大模型推理]
-        CACHE["Prompt Cache<br/>上下文缓存]
+        API["Claude API<br/>大模型推理"]
+        CACHE["Prompt Cache<br/>上下文缓存"]
     end
 
     T --> CLI
@@ -321,7 +321,7 @@ Plugins（插件）— 最大的扩展能力
 ├── 当前会话历史（逐轮累加）
 └── 你的最新输入
 
-总窗口：~200K tokens（约等于 15 万字）；Sonnet 4.5+ 起企业/Pro 用户可用 1M tokens
+总窗口：~200K tokens（约等于 15 万字）；自 Sonnet 4.5 起提供 1M tokens 长上下文（企业/Pro 用户），当前主力模型见 [Claude Code 2026 上半年新特性](<./Claude Code 2026 上半年新特性与项目实践.md>)
 
 超出时怎么办？
 → 自动压缩旧对话为摘要

@@ -121,8 +121,8 @@ flowchart TD
 {
   "hooks": {
     "SessionStart": [
-      { "command": "python3 scripts/preflight.py", "timeout": 10 },
-      { "command": "python3 scripts/arch_lint.py", "timeout": 10 }
+      { "command": "bash scripts/preflight.sh", "timeout": 10 },
+      { "command": "bash scripts/arch-lint.sh", "timeout": 10 }
     ]
   }
 }
@@ -391,7 +391,7 @@ flowchart TD
 | **文档层** | `memory/*.md` | 跨 session | 所有记忆文件带 `lastUpdated` 时间戳，>14 天未更新自动告警 |
 
 **Memory 淘汰机制**：
-- 所有 13 个 memory 文件已添加 `lastUpdated` 字段
+- `memory/` 下全部文件都已添加 `lastUpdated` 字段（数量随开发增长，不写死）
 - SessionStart 时自动检查：超过 14 天未更新的标记"可能过期"
 - MEMORY.md 为稳定层（月级 review），单个 `*.md` 为项目层（周级维护）
 - session-logs 为流水层（日级写入，只供查阅）

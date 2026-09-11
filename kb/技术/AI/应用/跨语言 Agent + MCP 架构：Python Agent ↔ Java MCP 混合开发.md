@@ -59,8 +59,9 @@ MCP 通信走 **stdio**（标准输入输出）或 **HTTP**（Streamable HTTP）
 
 ### 配置
 
+Python Agent 项目的 `.mcp.json`（JSON 不支持注释，这里单独写成说明）：
+
 ```json
-// Python Agent 项目的 .mcp.json
 {
   "mcpServers": {
     "order-service": {

@@ -303,7 +303,7 @@ graph LR
 
 | 特性 | 原因 |
 |------|------|
-| Dynamic Workflows | 当前 63 篇 KB，规模不需要数十~数百 agent 编排 |
+| Dynamic Workflows | 当前 KB 规模（80 篇量级）不需要数十~数百 agent 编排，先手工编排；规模再上一个量级时重新评估 |
 | Agent Teams 常态化 | 单人项目，token 成本 ROI 不合算 |
 | /code-review --comment | 不是代码项目，不产 PR review |
 
