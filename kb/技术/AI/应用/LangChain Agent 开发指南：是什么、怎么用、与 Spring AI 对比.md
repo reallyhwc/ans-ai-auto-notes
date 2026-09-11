@@ -5,7 +5,7 @@ description: "LangChain 核心六件套（Model I/O/Chain/Tool/Memory/Agent/Call
 
 # LangChain Agent 开发指南
 
-> 最后整理: 2026-05-26 | 来源: 对话讨论
+> 最后整理: 2026-09-11 | 来源: 对话讨论
 
 > 关联: [agent-development-practice](<./Agent 开发实战：选型、框架与思维转换.md>) — Spring AI Agent 开发（Java 路线）
 > 关联: [agent-patterns](<./Agent 四大设计范式（深度展开）.md>) — Agent 四大范式深度展开
@@ -21,7 +21,7 @@ LangChain:  "我给你标准化的零件（Chain/Tool/Memory/Prompt），
             你自己决定怎么组装，我帮你管流水线"
 ```
 
-Spring AI 的 [Demo A](<./Agent 开发实战：选型、框架与思维转换.md>) 只需要 1 行代码跑 ReAct 循环。LangChain 做同样的事需要 ~30 行——但每一行你都看得到在干什么，每一环都可以替换。
+Spring AI 的 [Demo A](<./Agent 开发实战：选型、框架与思维转换.md>) 只需要 1 行代码跑 ReAct 循环。LangChain 做同样的事需要 ~20 行（加上记忆/多工具编排约 30-40 行）——但每一行你都看得到在干什么，每一环都可以替换。
 
 ---
 
@@ -114,6 +114,8 @@ result = chain.invoke({"input": "你好"})
 | `ConversationBufferMemory` | 全量保留 | 短对话，简单直接 |
 | `ConversationSummaryMemory` | LLM 做摘要压缩 | 长对话，省 token |
 | `ConversationBufferWindowMemory` | 滑动窗口，保留最近 K 轮 | 平衡成本与上下文 |
+
+> ⚠️ **2026 现状**：上面三个 `ConversationBuffer*Memory` 是 LangChain 0.x 的旧抽象，官方已弃用并迁到 langchain-community；LangGraph 时代用 **checkpointer + Store** 做短期/长期记忆。同样，`from langchain.agents import create_react_agent` 也已移到 `langgraph.prebuilt.create_react_agent`。本文示例保留旧写法以便与 Spring AI 对照阅读，新项目请按官方现行 API 写。
 
 ---
 
@@ -440,7 +442,7 @@ print(chain.invoke({'concept': 'Java 的 GC'}).content)
 | `ChatClient` | `AgentExecutor` | LangChain 显式配置，Spring AI 自动 |
 | `FunctionCallback` | `@tool` 装饰器 | 几乎一样 |
 | `.call().content()` | `executor.invoke()` | LangChain 需显式组装 Agent |
-| `ChatMemoryAdvisor` | `ConversationBufferMemory` | LangChain 多种策略可选 |
+| `MessageChatMemoryAdvisor` | `ConversationBufferMemory`（旧版 API） | LangChain 多种策略可选 |
 | Spring Boot AutoConfig | 无 | LangChain 全手动组装 |
 | `@Tool` (MCP) | langchain-mcp-adapters | 都支持 MCP |
 

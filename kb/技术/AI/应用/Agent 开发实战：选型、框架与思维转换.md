@@ -75,14 +75,14 @@ graph LR
 @Component
 public class OrderTools {
     @Tool(description = "查询订单详情，包括状态、金额、物流信息")
-    public OrderInfo queryOrder(@Param("订单号") String orderId) {
+    public OrderInfo queryOrder(@ToolParam(description = "订单号") String orderId) {
         return orderService.getById(orderId);
     }
     
     @Tool(description = "发起退款申请")
     public RefundResult applyRefund(
-        @Param("订单号") String orderId,
-        @Param("退款原因") String reason) {
+        @ToolParam(description = "订单号") String orderId,
+        @ToolParam(description = "退款原因") String reason) {
         return refundService.apply(orderId, reason);
     }
 }
@@ -184,14 +184,14 @@ public Result applyRefund(@RequestBody RefundRequest req) {
 
 ```java
 @Tool(description = "查询订单详情，返回状态、金额、签收时间")
-public OrderInfo queryOrder(@Param("订单号") String orderId) {
+public OrderInfo queryOrder(@ToolParam(description = "订单号") String orderId) {
     return orderService.getById(orderId);
 }
 
 @Tool(description = "发起退款，仅限已签收且在7天内的订单")
 public RefundResult applyRefund(
-    @Param("订单号") String orderId,
-    @Param("退款原因") String reason) {
+    @ToolParam(description = "订单号") String orderId,
+    @ToolParam(description = "退款原因") String reason) {
     // 业务校验仍然在工具内部！
     Order order = orderService.getById(orderId);
     if (order.getStatus() != DELIVERED) 
@@ -1070,7 +1070,9 @@ Agent 框架拦截 → 路由到对应的 MCP Server:
 
 根据工具数量，MCP Tool 有两种加载策略：
 
-**策略一：全量注入 — Claude Code / Aone Copilot 当前使用的方式**
+**策略一：全量注入 — 2026 年上半年的老行为（Aone Copilot 仍在用）**
+
+> ⚠️ Claude Code 之后改成了 **Tool Search：默认按需加载**（启动只注入工具名，用到才拉 schema），见 [MCP 集成实战 §8](<../Claude-Code/MCP 集成实战（含 Spring AI）.md>)。下面这段描述的是它改之前、以及工具数可控的自研 Agent 仍在用的策略。
 
 以 Aone Copilot 为例，注册的工具约 30-40 个（read_file、file_replace、codebase_search、各 MCP 工具等），每个 schema 约 200 token，总计约 6000-8000 token。对 200K 上下文窗口来说完全可以接受，所以每轮 LLM 调用都全量注入：
 
@@ -1112,7 +1114,7 @@ Agent 启动
      3. LLM 在 30 个里选 → 准确率高
 ```
 
-**本质上 MCP Tool 和 Skill 都可以按需加载**，但目前 Claude Code / Aone Copilot 这类开发者工具因为工具数量可控，采用的是全量注入策略。
+**本质上 MCP Tool 和 Skill 都可以按需加载**，但目前 Aone Copilot 这类工具数量可控的自研 Agent 仍采用全量注入；Claude Code 已改为 Tool Search 按需加载。
 
 #### 全景对比：Skill vs MCP Tool 的加载方式
 

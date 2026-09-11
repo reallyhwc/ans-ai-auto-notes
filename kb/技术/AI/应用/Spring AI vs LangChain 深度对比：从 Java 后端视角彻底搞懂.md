@@ -5,7 +5,7 @@ description: "JPA vs JdbcTemplate 类比、同一场景 Spring AI(20行) vs Lang
 
 # Spring AI vs LangChain 深度对比
 
-> 最后整理: 2026-05-26 | 来源: 对话讨论
+> 最后整理: 2026-09-11 | 来源: 对话讨论
 
 > 关联: [agent-development-practice](<./Agent 开发实战：选型、框架与思维转换.md>) — Spring AI Agent 开发实战
 > 关联: [langchain-agent-guide](<./LangChain Agent 开发指南：是什么、怎么用、与 Spring AI 对比.md>) — LangChain Agent 开发指南
@@ -55,12 +55,12 @@ JdbcTemplate:
 ```java
 // ===== 你写的全部代码 =====
 @Tool(description = "查询订单详情")
-public OrderInfo queryOrder(@Param("订单号") String orderId) {
+public OrderInfo queryOrder(@ToolParam(description = "订单号") String orderId) {
     return orderService.getById(orderId);  // ← 工具1
 }
 
 @Tool(description = "发起退款")
-public RefundResult refund(@Param("订单号") String orderId) {
+public RefundResult refund(@ToolParam(description = "订单号") String orderId) {
     return refundService.apply(orderId);  // ← 工具2
 }
 

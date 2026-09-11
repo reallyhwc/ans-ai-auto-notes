@@ -5,9 +5,9 @@ description: "Claude Code/OpenClaw/Hermes Agent 技术栈拆解，为什么顶�
 
 # 主流 Agent 产品技术栈解剖
 
-> 最后整理: 2026-05-26 | 来源: Claude Code 源码分析 + 对话讨论
+> 最后整理: 2026-09-11 | 来源: Claude Code 源码分析 + 对话讨论
 
-> 关联: [ai-agent-tools](<./AI Agent 工具生态.md>) — Hermes vs OpenClaw 功能对比
+> 关联: [AI Agent 工具生态](<./AI Agent 工具生态.md>) — Hermes vs OpenClaw 功能对比 | [Claude Code 整体架构 & 工作流程](<../Claude-Code/Claude Code 整体架构 & 工作流程.md>) — 单一产品的深度拆解（含权限模式与 hooks）
 > 关联: [agent-development-practice](<./Agent 开发实战：选型、框架与思维转换.md>) — Agent 开发四大范式与框架选型
 > 关联: [spring-ai-vs-langchain](<./Spring AI vs LangChain 深度对比：从 Java 后端视角彻底搞懂.md>) — Spring AI vs LangChain 深度对比
 
@@ -65,6 +65,8 @@ description: "Claude Code/OpenClaw/Hermes Agent 技术栈拆解，为什么顶�
 │  由模型自己决定压缩什么                            │
 └──────────────────────────────────────────────────┘
 ```
+
+> ⚠️ **口径注记**：上图这组权限枚举取自特定版本的源码分析，各版本的级别数与命名都会变；[CLI Coding Agent 系统架构](<./CLI Coding Agent 系统架构：从 REPL 到自主编程.md>) 篇按权限模型讲的 allow/deny/ask 三层是同一套系统的另一种切面。引用具体级别时请注明版本。
 
 ### TAOR 循环：一个 `while(true)` 就是全部
 
@@ -199,6 +201,6 @@ OpenClaw:
   自研帮你从 1 到 100（产品级质量）
 ```
 
-> 关联: [ai-agent-tools](<./AI Agent 工具生态.md>) — Hermes vs OpenClaw 功能对比
+> 关联: [AI Agent 工具生态](<./AI Agent 工具生态.md>) — Hermes vs OpenClaw 功能对比 | [Claude Code 整体架构 & 工作流程](<../Claude-Code/Claude Code 整体架构 & 工作流程.md>) — 单一产品的深度拆解（含权限模式与 hooks）
 > 关联: [spring-ai-vs-langchain](<./Spring AI vs LangChain 深度对比：从 Java 后端视角彻底搞懂.md>) — 两个 Agent 框架的深度对比
 > 关联: [agent-ops-and-resilience](<./Agent 应用运维与韧性：架构之外的生存指南.md>) — Agent 运维与韧性

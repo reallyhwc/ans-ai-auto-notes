@@ -68,7 +68,7 @@ public Object logToolCall(ProceedingJoinPoint pjp) {
 
 // 方案 B：注册 ChatClient 的 advisor/observer
 var chatClient = ChatClient.builder(model)
-    .defaultAdvisors(new ChatMemoryAdvisor(memory))
+    .defaultAdvisors(new MessageChatMemoryAdvisor(memory))
     .defaultTools(tools)
     .build();
 // Spring AI 1.1+ 内置了 ChatClientObservationConvention，
