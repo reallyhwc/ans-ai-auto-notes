@@ -3,7 +3,9 @@ title: Spring IOC、DI 与 AOP 核心原理
 description: Spring 核心机制详解：IoC（控制反转）设计思想、DI（依赖注入）三种方式、Bean 生命周期、AOP（面向切面编程）动态代理原理，含完整代码 Demo 和 Mermaid 图
 ---
 
-> 最后整理: 2026-07-08 | 来源: 对话讲解
+# Spring IOC、DI 与 AOP 核心原理
+
+> 最后整理: 2026-09-11 | 来源: 对话讲解
 
 > 关联: [[./JVM 内存模型与垃圾回收.md]] — Bean 的创建/销毁依赖 JVM 堆内存管理 | [[./Dubbo 与 RPC 框架横评.md]] — §6.6 对比 Spring AOP 代理与 Dubbo RPC 代理
 
@@ -247,8 +249,8 @@ sequenceDiagram
 ```
 
 关键节点：
-- **第 5 步**：AOP 代理在此创建（`AbstractAutoProxyCreator` 把 Bean 包成代理）
-- **第 7 步**：此时 Bean 才算真正可用
+- **第 5 步**（`postProcessBeforeInitialization`）：初始化**前**回调，此时依赖已注入但 `@PostConstruct` 还没跑，可以改写 Bean
+- **第 7 步**（`postProcessAfterInitialization`）：初始化**后**回调，**AOP 代理在此创建**（`AbstractAutoProxyCreator` 把 Bean 包成代理，见 §6）；到这一步 Bean 才算真正可用
 - 第 5-6-7 步是面试最爱问的三个扩展点
 
 ### 5.1 实践 Demo：自定义 BeanPostProcessor
@@ -456,9 +458,7 @@ flowchart TD
 
 ### 7.1 Spring AOP 什么时候失效？
 
-1. **同类内部调用**：`this.methodB()` 没走代理，AOP 不生效 → 解决：注入自己或抽到另一个 Bean
-2. **方法非 public**：CGLIB 代理只能拦截 public 方法
-3. **异常被吞**：`@Transactional` 只对 RuntimeException 回滚，checked exception 不回滚（除非指定 `rollbackFor`）
+AOP 失效的场景与 `@Transactional` 失效**高度重合**（声明式事务本身就是 AOP 代理的产物），所以这里不再重复列一遍——完整清单和逐个 Demo 见 [§9 @Transactional 失效的 8 种场景](#9-transactional-失效的-8-种场景)，重点盯前 4 条（同类内部调用 / 非 public 方法 / 异常被 try-catch 吞掉 / 异常类型不对）。
 
 ### 7.2 循环依赖与三级缓存
 
@@ -577,7 +577,7 @@ public BService(AService aService) { }  // 构造器就要 A
 > 以下为 Spring 进阶机制专题，建立在上述 IoC/DI/AOP 基础之上。
 
 相关：
-- [[热点账户高并发记账方案.md]] — Spring 事务管理在高并发场景的应用
+- [[./热点账户高并发记账方案.md]] — Spring 事务管理在高并发场景的应用
 - [[./JVM 内存模型与垃圾回收.md]] — Bean 的创建/销毁依赖 JVM 堆内存管理
 
 ---

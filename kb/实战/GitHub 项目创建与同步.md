@@ -5,7 +5,7 @@ description: "SSH key 配置、仓库初始化、CI 基础"
 
 # GitHub 项目创建与同步
 
-> 最后整理: 2026-05-05 | 来源: 多轮对话实操踩坑
+> 最后整理: 2026-09-11 | 来源: 多轮对话实操踩坑
 
 > 关联: [overview.html 踩坑记录](<./overview.html 踩坑记录.md>) — 本项目可视化导览页维护踩坑
 
@@ -99,7 +99,10 @@ git push
 
 ```gitignore
 # Claude Code
-.claude/        ← settings.local.json 含 API key，绝对不能提交
+# 注意：.gitignore 只有"行首"的 # 才是注释，行尾内联 # 会被当成 pattern 的一部分，
+# 导致整行失效 —— 所以说明必须单独占一行
+# settings.local.json 含 API key，绝对不能提交
+.claude/
 .worktrees/
 
 # IDE

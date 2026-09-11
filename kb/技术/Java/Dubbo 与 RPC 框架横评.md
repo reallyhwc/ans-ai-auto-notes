@@ -3,7 +3,9 @@ title: "Dubbo 与 RPC 框架横评"
 description: "Dubbo 核心架构、调用链路、3.x 新特性，以及 gRPC/OpenFeign/Thrift/Kitex 等主流 RPC 框架对比选型"
 ---
 
-> 最后整理: 2026-07-08 | 来源: AI 对话自动沉淀
+# Dubbo 与 RPC 框架横评
+
+> 最后整理: 2026-09-11 | 来源: AI 对话自动沉淀
 
 > 关联: [[./Spring IOC、DI 与 AOP 核心原理.md]] — §6.6 对比 Spring AOP 代理与 Dubbo RPC 代理（同源 JDK 动态代理，invoke 内部行为不同）
 
@@ -241,8 +243,19 @@ for (Invoker invoker : invokers) {
 
 ```
 // A(5) B(3) C(2)，不是 AAAAABBBCC 这样粗暴
-// 而是 A B A C A B A B A C 平滑分布
+// 而是 A B C A A B A C B A 平滑分布
 // 算法：每轮 current += weight，选最大，最大 -= totalWeight
+// 手推（totalWeight=10，current 初值 0/0/0）：
+//   [5,3,2]→A   [-5,3,2]
+//   [0,6,4]→B   [0,-4,4]
+//   [5,-1,6]→C  [5,-1,-4]
+//   [10,2,-2]→A [0,2,-2]
+//   [5,5,0]→A(并列取先到者) [-5,5,0]
+//   [0,8,2]→B   [0,-2,2]
+//   [5,1,4]→A   [-5,1,4]
+//   [0,4,6]→C   [0,4,-4]
+//   [5,7,-2]→B  [5,-3,-2]
+//   [10,0,0]→A  [0,0,0] ← 一轮结束，状态归零后循环
 ```
 
 ### LeastActiveLoadBalance（最少活跃数）
@@ -352,7 +365,7 @@ Netty Boss Group(接受连接) → Worker Group(读写+编解码)
 // 高并发可加连接：<dubbo:reference connections="3" />
 ```
 
-> 关联: ./distributed-transaction.md | ./rocketmq-internals.md | [[./Spring IOC、DI 与 AOP 核心原理.md]]
+> 关联: [分布式事务全景](<./分布式事务全景.md>) — RPC 调用是分布式事务各方案（2PC/TCC/Saga）的执行载体 | [RocketMQ 底层实现原理](<./RocketMQ 底层实现原理.md>) — 事务消息是最终一致型分布式事务的常用实现 | [[./Spring IOC、DI 与 AOP 核心原理.md]]
 
 ---
 

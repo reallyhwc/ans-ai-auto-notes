@@ -5,7 +5,7 @@ description: "从 Producer 到 Broker 存储到 Consumer 的全链路底层机�
 
 # RocketMQ 底层实现原理
 
-> 最后整理: 2026-07-29 | 来源: 对话讲解
+> 最后整理: 2026-09-11 | 来源: 对话讲解
 
 > 关联: [spring-ai](<./Spring AI.md>) — Java 技术栈
 
@@ -77,7 +77,7 @@ Topic: OrderTopic
 
 ### Queue 选择策略
 
-详见 [§2.3](#23-队列选择策略)：
+详见 [§2.3](#2-3-队列选择策略)：
 - **默认**：轮询（Round-Robin），`sendWhichQueue.getAndIncrement() % queueSize`
 - **故障规避**：某 Broker 超时/失败 → 短时间内跳过该 Broker 的所有 Queue（latencyFaultTolerance）
 - **顺序消息**：自定义 MessageQueueSelector → 同一 businessKey hash 到同一 Queue
@@ -193,7 +193,7 @@ graph TB
 
 ### 回查机制深度拆解：时间线、丢弃判定与兜底策略
 
-> 关联：详见 [§5.2](#52-事务消息half-message) 事务消息完整流程
+> 关联：详见 [§5.2](#5-2-事务消息-half-message) 事务消息完整流程
 
 #### 回查四步完整链路
 
@@ -389,7 +389,7 @@ Consumer 没提交 offset → Broker 认为消息未消费 → Rebalance 后该 
 
 ### Push vs Pull 与消费点位重置
 
-**名义 Push，底层 Pull（长轮询）。** Consumer 发 Pull 请求，Broker hold 住最长 15s，有消息立刻返回。
+**名义 Push，底层 Pull（长轮询）。** Consumer 发 Pull 请求，Broker hold 住最长 15s，有消息立刻返回（两个时间参数的区分见 [§4.1](#4-1-两种消费模式)）。
 
 ```mermaid
 sequenceDiagram
@@ -718,7 +718,7 @@ sequenceDiagram
     alt 有新消息
         B-->>C: 返回消息列表 + 下次 offset
     else 暂无消息
-        Note over B: hold 住请求（挂起 5s）
+        Note over B: hold 住请求（最长挂起 15s）
         Note over B: 有新消息到达 → 立即唤醒
         B-->>C: 返回消息列表
     end
@@ -726,6 +726,17 @@ sequenceDiagram
     Note over C: 消费 → 提交 offset
     C->>B: PullMessage(topic, queueId, offset=105)
 ```
+
+**长轮询的两个时间参数别混——源码里是两个独立常量**（`DefaultMQPushConsumerImpl`）：
+
+| 常量 | 默认值 | 谁在等 | 含义 |
+|------|--------|--------|------|
+| `BROKER_SUSPEND_MAX_TIME_MILLIS`（客户端把它作为 Pull 请求的 `suspendTimeoutMillis` 发给 Broker） | **15s** | Broker | Broker 最多把这条 Pull 请求挂起 15s：期间有新消息立刻唤醒返回，到点仍无消息则返回空 |
+| `CONSUMER_TIMEOUT_MILLIS_WHEN_SUSPEND` | **30s** | Consumer | 客户端等待 Broker 响应的最长超时，必须大于 Broker 挂起时长，否则客户端先超时、请求白挂 |
+
+另外长轮询不是必然开启：Broker 侧 `longPollingEnable=false` 时退化为短轮询，挂起时长改用 `shortPollingTimeMills`（默认 1s）。
+
+一句话记：**"Broker hold 多久"= 15s（可被请求头覆盖），"Consumer 等多久"= 30s，两个数字回答的是两个不同的问题。**
 
 ### 4.2 Consumer 负载均衡（Rebalance）
 
@@ -1020,10 +1031,10 @@ flowchart LR
 
 | 环节 | 丢消息场景 | 防护机制 | 详见 |
 |------|-----------|---------|------|
-| 生产端 | 网络超时消息未到 Broker | 同步发送 + 自动重试 | [§2.4](#24-三种发送模式) |
-| 存储端 | 机器断电 Page Cache 丢数据 | 同步刷盘 + 主从同步复制 | [§3.5](#35-刷盘策略) + [§5.5](#55-主从同步ha-机制) |
-| 消费端 | Consumer 宕机没处理完 | 消费确认 + 16 次重试 + 死信队列 | [§4.4](#44-消费失败与重试) |
-| 分布式事务 | 本地事务成功但消息未投递 | Half Message + 回查 + 事务记录表 | [§5.2](#52-事务消息half-message) |
+| 生产端 | 网络超时消息未到 Broker | 同步发送 + 自动重试 | [§2.4](#2-4-三种发送模式) |
+| 存储端 | 机器断电 Page Cache 丢数据 | 同步刷盘 + 主从同步复制 | [§3.5](#3-5-刷盘策略) + [§3 主从同步（HA 机制）](<./RocketMQ 高级消息机制（延迟·顺序·高可用）.md#3-主从同步-ha-机制>) |
+| 消费端 | Consumer 宕机没处理完 | 消费确认 + 16 次重试 + 死信队列 | [§4.4](#4-4-消费失败与重试) |
+| 分布式事务 | 本地事务成功但消息未投递 | Half Message + 回查 + 事务记录表 | [§5.2](#5-2-事务消息-half-message) |
 
 **生产环境推荐配置**：异步刷盘 + 同步复制（SYNC_MASTER）——兼顾吞吐和安全。RocketMQ 的可靠性是"防丢链"——单独任何一个环节都有漏洞，但多环节组合后丢消息概率极低。
 

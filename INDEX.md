@@ -21,7 +21,7 @@
 - [AI 时代的开发者角色进化：2026 年市场全景与职业重塑](kb/技术/AI/AI-Coding/AI 时代的开发者角色进化：2026 年市场全景与职业重塑.md) — 2026年AI开发范式四档市场全景（辅助编码→任务Agent→Spec驱动→全流程平台），Java开发者经验如何从'写代码'迁移到'质量把关+系统设计+Agent判断框架构建'，以及'还有多少Agent需要开发'的诚实回答
 - [AI 编程工具：CLI Agent 与 GUI IDE 全景对比](kb/技术/AI/AI-Coding/AI 编程工具：CLI Agent 与 GUI IDE 全景对比.md) — AI 编程工具全景对比：终端 Agent (Claude Code / Codex CLI / DeepSeek-TUI) 三方对比，以及 GUI IDE (Cursor / Windsurf) 的两种交互哲学
 - [AI 编程的递进路径：从古法编程到多 Agent 协作](kb/技术/AI/AI-Coding/AI 编程的递进路径：从古法编程到多 Agent 协作.md) — 从古法编程到多Agent协作6个Level、程序员未来展望
-- [DSH（DeepSeek Harness）插件架构与循环调度](kb/技术/AI/AI-Coding/DSH（DeepSeek Harness）插件架构与循环调度.md) — DeepSeek Harness 的'一切皆插件'机制拆解：Cordis 响应式依赖注入、agent-loop 事件驱动循环、性能开销分析、互发事件死循环边界
+- [DSH（DeepSeek Harness）插件架构与循环调度](kb/技术/AI/AI-Coding/DSH（DeepSeek Harness）插件架构与循环调度.md) — DeepSeek Harness 的'一切皆插件'机制拆解：Cordis 响应式依赖注入、agent-loop 事件驱动循环、性能开销分析、互发事件死循环边界、版本演进与功能时间线、沙箱与权限两条强制通道
 - [从 Vibe Coding 到 Spec-Driven 到驾驭工程](kb/技术/AI/AI-Coding/从 Vibe Coding 到 Spec-Driven 到驾驭工程.md) — AI 编程三阶段演进：Vibe Coding（放马跑，爽但危险）→ Spec-Driven Development（契约约束）→ 驾驭工程/Harness Engineering（系统级自动约束），附本项目 Harness 实践拆解
 
 #### Claude-Code (17 篇)
@@ -34,21 +34,21 @@
 - [Harness Engineering：AI Agent 时代的工程范式](kb/技术/AI/Claude-Code/Harness Engineering：AI Agent 时代的工程范式.md) — Harness Engineering(驾驭工程)：Agent=Model+Harness、六项核心能力、四阶段成长路径、双LLM交叉校验四种实现方式
 - [Headless 模式与 Agent SDK](kb/技术/AI/Claude-Code/Headless 模式与 Agent SDK.md) — Claude Code 非交互模式：-p 参数全清单、--bare 启动模式、output-format 结构化输出、stream-json 事件类型、CI 集成模式、Agent SDK 关系、headless vs 自建 Agent 选型
 - [Hooks 事件全景与拦截机制](kb/技术/AI/Claude-Code/Hooks 事件全景与拦截机制.md) — Claude Code 全部 30+ hook 事件按类别清单、阻断三档机制、配置层级合并、PreToolUse 完整示例、subagent/skill 内的 hook
-- [MCP 集成实战（含 Spring AI）](kb/技术/AI/Claude-Code/MCP 集成实战（含 Spring AI）.md) — MCP 协议在 Claude Code 中的接入：四种 transport 对比、三级 scope 优先级、配置命令、Spring AI MCP server 实战接入、OAuth、Tool Search 优化、调试与坑
+- [MCP 集成实战（含 Spring AI）](kb/技术/AI/Claude-Code/MCP 集成实战（含 Spring AI）.md) — MCP 协议在 Claude Code 中的接入：四种 transport 对比、五级 scope 优先级、配置命令、Spring AI MCP server 实战接入、OAuth、Tool Search 优化、调试与坑
 - [Plugins 插件体系](kb/技术/AI/Claude-Code/Plugins 插件体系.md) — Claude Code plugin 系统：与 standalone 配置的边界、目录结构、manifest schema、能打包的资源、安装方式、marketplace 机制、版本管理、迁移路径
 - [Skills 渐进式披露架构](kb/技术/AI/Claude-Code/Skills 渐进式披露架构.md) — Skills 的三层渐进式披露机制、token 经济学、frontmatter 全字段、生命周期、动态 context 注入、与 commands/subagent 的边界
 - [Superpowers TDD Skill 工作流拆解](kb/技术/AI/Claude-Code/Superpowers TDD Skill 工作流拆解.md) — TDD 是什么、Superpowers 在其中的角色、LLM 工具调用链详细拆解
 - [从 Sub-Agent 到 Multi-Agent 的工程指南](kb/技术/AI/Claude-Code/从 Sub-Agent 到 Multi-Agent 的工程指南.md) — Multi-Agent 四种设计模式（Sub-Agents/Skills/Handoffs/Router）、升级决策阶梯、Supervisor 模式详解、生产环境部署实例、Claude Code 本地 sub-agent 与生产 agent 的本质区别、知识库项目选型分析
 - [任务型 Skills（斜杠命令）实战](kb/技术/AI/Claude-Code/任务型 Skills（斜杠命令）实战.md) — 任务型 Skill 的核心机制、参数传递、!command 动态注入、Skill 内 Hooks、七步设计清单、命名空间组织，以及与参考型/SubAgent 的边界
 - [子代理专题总结与综合案例](kb/技术/AI/Claude-Code/子代理专题总结与综合案例.md) — 子代理六讲知识体系的两层能力模型（Sub-Agents 结构化分工 vs Agent Teams 认知协作）、四种子代理使用模式、电商大促支付超时五阶段综合案例、贯穿始终的工程方法论、假期思考题
-- [子智能体（subagents）机制与实战](kb/技术/AI/Claude-Code/子智能体（subagents）机制与实战.md) — subagent 的定位、与 skill/Agent SDK 的区分、四级 scope 优先级、frontmatter 全字段、三种调用方式、独立 context 机制、协作链路、fork/worktree/persistent memory 进阶、permissionMode 风险与降险配套、skills 预加载 vs 嵌套 spawn 取舍、常见 subagent 配方（数据库查询分析器/code-reviewer/test-runner）
+- [子智能体（subagents）机制与实战](kb/技术/AI/Claude-Code/子智能体（subagents）机制与实战.md) — subagent 的定位、与 skill/Agent SDK 的区分、五级 scope 优先级、frontmatter 全字段、三种调用方式、独立 context 机制、协作链路、fork/worktree/persistent memory 进阶、permissionMode 风险与降险配套、skills 预加载 vs 嵌套 spawn 取舍、常见 subagent 配方（数据库查询分析器/code-reviewer/test-runner）
 - [并行探索与流水线编排](kb/技术/AI/Claude-Code/并行探索与流水线编排.md) — 子代理的两种编排模式——并行探索（Fan-out/Fan-in）与流水线编排（Pipeline），含独立性判定、交接契约设计、失败回退策略、混合模式决策树、编排者四种介入形式
 
 #### 基础 (3 篇)
 
-- [CNN（卷积神经网络）](kb/技术/AI/基础/CNN（卷积神经网络）.md) — 图像处理专用网络，卷积+池化
-- [RNN（循环神经网络）](kb/技术/AI/基础/RNN（循环神经网络）.md) — 序列数据处理，LSTM/GRU
-- [Transformer](kb/技术/AI/基础/Transformer.md) — 自注意力机制，现代大模型底座
+- [CNN（卷积神经网络）](kb/技术/AI/基础/CNN（卷积神经网络）.md) — CNN 从卷积核滑动、池化到特征分层：直观理解卷积如何看图、经典结构拆解、卷积核如何学会检测特征，以及 ImageNet/AlexNet 的历史时刻
+- [RNN（循环神经网络）](kb/技术/AI/基础/RNN（循环神经网络）.md) — RNN 靠共享权重在时间维度反复使用处理序列：单步计算与梯度问题、LSTM/GRU 的进化、以及为什么 Transformer 要抛弃串行传递
+- [Transformer](kb/技术/AI/基础/Transformer.md) — Transformer 自注意力机制拆解：QKV 公式、多头注意力、位置编码、Block 结构、三类架构，以及 O(n²) 的计算代价与 Flash Attention/Mamba 等现代优化，附 CNN/RNN 横向对比
 
 #### 大模型 (8 篇)
 
@@ -56,10 +56,10 @@
 - [LLM（大语言模型）](kb/技术/AI/大模型/LLM（大语言模型）.md) — 核心原理：架构、因果推理、逐字生成、KV Cache
 - [MCP 协议：AI 界的 USB-C](kb/技术/AI/大模型/MCP 协议：AI 界的 USB-C.md) — MCP协议实现内幕：JSON-RPC通信、stdio OS层细节、服务发现、Spring AI集成、@Tool注解机制
 - [Prompt 与 RAG](kb/技术/AI/大模型/Prompt 与 RAG.md) — Prompt工程、RAG、向量数据库/Milvus、Embedding、LangChain
-- [多模态 LLM](kb/技术/AI/大模型/多模态 LLM.md) — LLM+视觉编码器，图片/音频输入理解
+- [多模态 LLM](kb/技术/AI/大模型/多模态 LLM.md) — 多模态 LLM 如何看图：视觉编码器 ViT + 投影层把图片对齐到文本 embedding 空间，与纯文本 LLM 的输入输出对比及典型模型（GPT/Claude/Gemini/Qwen-VL）
 - [微调与 LoRA：让通用模型学你的领域](kb/技术/AI/大模型/微调与 LoRA：让通用模型学你的领域.md) — LLM微调基础：全量微调vs LoRA、具体客服案例、成本对比
 - [本地部署 LLM](kb/技术/AI/大模型/本地部署 LLM.md) — Ollama安装使用+进阶玩法(API/Embedding/Modelfile/Web UI)、小模型推荐
-- [生成式 AI](kb/技术/AI/大模型/生成式 AI.md) — 扩散模型：图片/视频/音频生成原理
+- [生成式 AI](kb/技术/AI/大模型/生成式 AI.md) — 扩散模型如何生成图片/视频/音频：为什么像素不能像文本那样逐字预测、破坏再修复的训练与采样过程、与 LLM 自回归路线的对比及融合方向
 
 #### 应用 (16 篇)
 
@@ -99,7 +99,7 @@
 
 ### 编程语言 (1 篇)
 
-- [Go 与 TypeScript 快速对比](kb/技术/编程语言/Go 与 TypeScript 对比.md) — Go 和 TypeScript 语言特性、生态、典型用例对比，含 Qoder CLI 从 Go 重构到 TypeScript 的动机推测
+- [Go 与 TypeScript 对比](kb/技术/编程语言/Go 与 TypeScript 对比.md) — Go 和 TypeScript 语言特性、生态、典型用例对比，含 Qoder CLI 从 Go 重构到 TypeScript 的动机推测
 
 ### 计算机基础 (5 篇)
 

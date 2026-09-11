@@ -3,7 +3,9 @@ title: ADR 架构决策记录
 description: Architecture Decision Record——把架构/分类决策按固定格式记成编号条目，让 AI 在分类摇摆时有先例可循
 ---
 
-> 最后整理: 2026-08-01 | 来源: 对话讲解 + 本项目 docs/decisions.md 实践
+# ADR 架构决策记录
+
+> 最后整理: 2026-09-11 | 来源: 对话讲解 + 本项目 docs/decisions.md 实践
 
 ## ADR 是什么
 

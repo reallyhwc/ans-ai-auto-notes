@@ -5,15 +5,17 @@ description: "Spring 生态 LLM 集成，流式/非流式调用"
 
 # Spring AI
 
-> 最后整理: 2026-05-04 | 来源: 多轮对话
+> 最后整理: 2026-09-11 | 来源: 多轮对话
 
-## 一句话定位
+> 关联: [Spring AI vs LangChain 深度对比：从 Java 后端视角彻底搞懂](<../AI/应用/Spring AI vs LangChain 深度对比：从 Java 后端视角彻底搞懂.md>) — 同为 Java 侧 LLM 集成框架的横向对比与选型
+
+## 1. 一句话定位
 
 Spring AI 是 Spring 生态的 LLM 集成框架，用熟悉的 Spring 范式接入各种大模型——`ChatClient` 统一调用、`Function Calling` 注册为 Bean、`Flux` 支持流式输出。
 
 ---
 
-## 1. ChatClient：流式 vs 非流式
+## 2. ChatClient：流式 vs 非流式
 
 Spring AI 的 `ChatClient` 同时支持两种模式，底层切换只需要改一个方法名：
 

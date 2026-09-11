@@ -5,14 +5,16 @@ description: "overview.html 维护过程中踩过的坑 & 解决方案"
 
 # overview.html 维护踩坑记录
 
-> 最后整理: 2026-05-07 | 来源: 多轮对话排错
+> 最后整理: 2026-09-11 | 来源: 多轮对话排错
 
 > 关联: [GitHub 项目创建与同步](<./GitHub 项目创建与同步.md>) — 项目基础设施（仓库管理 + CI）
 > 关联: [知识管理工具对比](<./知识管理工具对比.md>) — 本项目方案 vs Obsidian/Notion 的定位差异
 
 ## 一句话定位
 
-overview.html 是知识库的可视化导览页，通过嵌入式 KB_DATA（JS 对象）存储所有 .md 文件的完整内容。维护过程中踩过的坑记录在此，避免重复翻车。
+overview.html 是知识库的可视化导览页。**现状（架构已替换）**：它自身不内嵌任何知识内容，而是运行时 `fetch` 构建产物 `manifest.json`（分类树 + 文件元信息）和 `timeline.json`（时间线），渲染逻辑在 `scripts/lib.js` + `scripts/app.js` 中，正文由本地 HTTP 服务器（`./serve.sh`，端口 8765）现读 `kb/` 下的 .md。
+
+> 📌 阅读提示：**第 1~5 节记录的是旧「内嵌 KB_DATA 快照」架构下的坑**（当时确实需要人工同步快照），该架构已被运行时 fetch 取代，这些坑不会再复现；**第 6~7 节**是 FILE_INDEX 结构升级 / path 过期类问题，排查思路对 `manifest.json` 时代依然适用。
 
 ---
 
@@ -58,25 +60,23 @@ if (!file || !file.content) return;  // 静默返回，什么都不做
 
 ---
 
-## 3. .md 更新后 HTML 嵌入内容不会自动同步
+## 3. .md 更新后 HTML 嵌入内容不会自动同步（历史坑，架构已替换）
 
 **现象**：llm.md 拆分为 3 个文件时，cnn.md、rnn.md、transformer.md 末尾追加了交叉引用链接。但 overview.html 中嵌入的是旧版内容（缺少这些链接）。
 
-**根因**：overview.html 的 KB_DATA 是 .md 内容的**一次性快照**，不是实时读取。因为 `file://` 协议下 `fetch()` 被 CORS 阻止，只能将内容嵌入到 `<script>` 标签中。
+**当时的根因**：overview.html 的 KB_DATA 是 .md 内容的**一次性快照**，不是实时读取。因为 `file://` 协议下 `fetch()` 被 CORS 阻止，只能将内容嵌入到 `<script>` 标签中。
 
-**教训**：
+**现状（已改为运行时 fetch，此坑不复现）**：overview.html 只 fetch `manifest.json` / `timeline.json`，页面通过本地 HTTP 服务器访问，绕开了 `file://` 的 CORS 限制。于是维护纪律也随之变化：
+
+- 改 .md 内容 → **不需要**动 overview.html，刷新浏览器即生效（旧纪律"必须同步嵌入内容"已作废）
+- 新增 / 删除 .md 文件 → 跑 `node scripts/build-index.js` 重建 `manifest.json` 与 `INDEX.md`
+- overview.html 与 scripts/ 里**不允许**再有内联 KB_DATA 残留，由 `scripts/check-overview.js` 第 11 项"overview.html 无内联 JS 残留"机械兜底
+
+**历史教训（当年架构下成立，留档备查）**：
 - 任何修改 .md 文件的操作后，必须同步更新 overview.html 中对应的嵌入内容
 - 校验脚本需要用 `vm.runInContext` 解析 KB_DATA 后与 .md 原文比对，而不是做简单的字符串查找（因为 JSON 转义会导致 false positive）
 
-**当前嵌入文件清单（8 个）**：
-- kb/技术/java/spring-ai.md
-- kb/技术/ai/cnn.md
-- kb/技术/ai/rnn.md
-- kb/技术/ai/transformer.md
-- kb/技术/ai/llm.md
-- kb/技术/ai/llm-prompt-rag.md
-- kb/技术/ai/llm-agent-mcp.md
-- kb/读书笔记/我看见的世界.md
+**关于"当前嵌入文件清单（8 个）"**：那是旧架构的记录，列的是 `kb/技术/java/spring-ai.md`、`kb/技术/ai/{cnn,rnn,transformer,llm,llm-prompt-rag,llm-agent-mcp}.md`、`kb/读书笔记/我看见的世界.md` 这批**小写英文路径，现已全部不存在**（KB 已统一为中文文件名）。当前文件清单的唯一数据源是 `manifest.json`，不要再按那份清单核对。
 
 ---
 
@@ -136,7 +136,7 @@ htmlSource = htmlSource.replace(oldEscaped, newEscaped);
 > ```
 > 把所有遍历它的函数找出来，逐一确认是否需要同步升级。本次第 1 个 bug 修完后就停了，结果用户点击 → 报 #2 → 修完搜索 → 又是 #3 → 改完打开页面 → 又是 #4。**4 处都是独立症状但同一类根因，第一次就该一并修干净。**
 
-**自动化检测**：本次踩坑后沉淀了 `scripts/check-overview.js`，5 项检查中有专门一项"buildFileIndex/searchKB/renderCategories 三者输出一致性"，下次类似问题会被自动捕获。`exit-check.sh` 也已扩展为在退出前调用此脚本。
+**自动化检测**：本次踩坑后沉淀了 `scripts/check-overview.js`。该脚本现已扩展到 **12 项检查**（数据文件存在性 / manifest path 实存 / timeline link 实存 / INDEX 与 manifest 双向同步 / timeline 与磁盘双向同步 / git 暂存区 `.tmp-*` 残留 / overview.html 脚本引用完整性（防白屏）/ `scripts/app.js` 存在性 / 目录结构与磁盘一致性 / kb frontmatter title / 无内联 JS 残留 / kb 行数提示），其中"遍历多个函数输出是否一致"的思路被保留下来，下次类似问题会被自动捕获。`exit-check.sh` 也已扩展为在退出前调用此脚本。
 
 **验证方法升级**（针对历史第 4 节"内容一致性校验"）：
 

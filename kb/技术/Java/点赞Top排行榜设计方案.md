@@ -5,9 +5,9 @@ description: "点赞/热度排行榜的系统设计：Redis ZSet 直写 → 定�
 
 # 点赞Top排行榜设计方案
 
-> 最后整理: 2026-07-01 | 来源: 面试题拆解
+> 最后整理: 2026-09-11 | 来源: 面试题拆解
 
-> 关联: [[./Redis 常用数据类型与使用场景.md]] — ZSet 底层实现
+> 关联: [[./Redis 常用数据类型与使用场景.md]] — ZSet 底层实现 | [[./MySQL B+树索引实现原理.md]] — 冷数据 ranking_snapshot 表的索引设计
 
 ---
 
@@ -22,17 +22,28 @@ flowchart LR
 
 不同规模需要不同架构，面试的关键是**分层回答，展示递进思维**。
 
+**全文 Key 命名约定**（各方案共用同一套前缀，方便对照）：
+
+| Key | 类型 | 含义 |
+|-----|------|------|
+| `hot:ranking` | ZSet | 方案一：实时直写的点赞排行榜 |
+| `hot:ranking:cache` | ZSet | 方案二：定时任务算好、供读路径直取的榜单快照 |
+| `hot:ranking:today` | ZSet | 方案四：当天窗口的热门榜（Flink 实时写入） |
+| `hot:ranking:v1` / `hot:ranking:v2` | ZSet | 双 Buffer 交替写入，用于无锁切换榜单版本 |
+| `article:{id}:likes` | String | 文章原始点赞计数（`INCR`） |
+| `article:{id}:liked_users` | Set | 点过赞的用户集合（去重） |
+
 ---
 
 ## 2. 方案一：Redis ZSet 直写（小规模，< 1 万篇文章）
 
 ```java
 // 点赞
-redis.zincrby("hot:articles", 1, "article:42");
+redis.zincrby("hot:ranking", 1, "article:42");
 
 // 取 Top 100
 Set<ZSetOperations.TypedTuple<String>> top =
-    redis.zrevrangeWithScores("hot:articles", 0, 99);
+    redis.zrevrangeWithScores("hot:ranking", 0, 99);
 // → [{article:42=89320}, {article:17=78100}, ...]
 ```
 
@@ -43,12 +54,12 @@ sequenceDiagram
     participant Redis as Redis ZSet
 
     User->>API: POST /like {articleId:42}
-    API->>Redis: ZINCRBY hot:articles 1 "article:42"
+    API->>Redis: ZINCRBY hot:ranking 1 "article:42"
     Redis-->>API: score = 89231
     API-->>User: OK
 
     User->>API: GET /top?n=100
-    API->>Redis: ZREVRANGE hot:articles 0 99 WITHSCORES
+    API->>Redis: ZREVRANGE hot:ranking 0 99 WITHSCORES
     Redis-->>API: [...]
     API-->>User: Top 100 列表
 ```
@@ -120,14 +131,14 @@ void rebuildRanking() {
 **Hacker News 算法的简化版**：
 
 ```java
-// score = 点赞数 / (发布时间 + 2)^1.5
+// score = 点赞数 / (已发布小时数 + 2)^1.5
 double calculateScore(long likes, long publishTimeSeconds) {
     double hoursOld = (System.currentTimeMillis() / 1000.0 - publishTimeSeconds) / 3600.0;
     return likes / Math.pow(hoursOld + 2, 1.5);
 }
 
 // 每次点赞更新 score
-redis.zincrby("hot:articles", deltaScore, "article:42");
+redis.zincrby("hot:ranking", deltaScore, "article:42");
 ```
 
 ```mermaid
@@ -157,7 +168,7 @@ flowchart TD
     subgraph "数据层"
         direction TB
         subgraph "热数据（Redis）"
-            ZSet_Hot["hot:today<br/>（当天热门）"]
+            ZSet_Hot["hot:ranking:today<br/>（当天热门）"]
             String["article:42:likes = 12345<br/>（原始计数）"]
         end
         subgraph "冷数据（MySQL）"
@@ -233,9 +244,9 @@ Long result = redis.eval(lua,
 
 | 边界场景 | 影响 | 解决方案 |
 |----------|------|---------|
-| **文章被删除** | 排行榜出现无效文章 | 删除事件触发 `ZREM hot:articles article:42` |
+| **文章被删除** | 排行榜出现无效文章 | 删除事件触发 `ZREM hot:ranking article:42` |
 | **大 V 瞬间万赞** | 单 key 并发竞争 + 带宽打满 | 批量聚合 + MQ 削峰 + 异步更新 |
-| **定时任务执行超时** | 排行榜不更新 | 双 Buffer：`ranking:v1` 和 `ranking:v2` 交替写入，无锁切换 |
+| **定时任务执行超时** | 排行榜不更新 | 双 Buffer：`hot:ranking:v1` 和 `hot:ranking:v2` 交替写入，无锁切换 |
 | **Redis 内存满** | 排行榜消失 | 设置淘汰策略 + 冷热分离（只缓存 Top 1000） |
 | **刷赞脚本** | 排行榜失实 | 频率限制 + 设备指纹 + 图灵验证 + 风控规则 |
 | **跨机房部署** | Redis Cluster slot 迁移 | 排行榜 key 加 hash tag 固定 slot |

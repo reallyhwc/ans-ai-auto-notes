@@ -3,7 +3,11 @@ title: Redis 常用数据类型与使用场景
 description: Redis 五大基本类型（String/List/Set/Hash/ZSet）的底层实现、使用场景、常用命令，ZSet 跳表原理及双结构设计，含 Bitmap/HyperLogLog/GEO/Stream 简表
 ---
 
-> 最后整理: 2026-06-07 | 来源: 与 Claude Code 对话
+# Redis 常用数据类型与使用场景
+
+> 最后整理: 2026-09-11 | 来源: 与 Claude Code 对话
+
+> 关联: [[./MySQL B+树索引实现原理.md]] — 跳表 vs B+ 树（内存结构 vs 磁盘结构） | [[./点赞Top排行榜设计方案.md]] — ZSet 排行榜的工程落地 | [[../计算机基础/满二叉树判定算法.md]] — 树形结构判定的算法基础
 
 ## 1. 五大基本类型概览
 
@@ -12,7 +16,7 @@ flowchart TD
     Redis[Redis 数据类型] --> String["String<br/>───<br/>最基础，SDS 实现"]
     Redis --> List["List<br/>───<br/>quicklist（3.2+）"]
     Redis --> Set["Set<br/>───<br/>hashtable / intset"]
-    Redis --> Hash["Hash<br/>───<br/>ziplist → hashtable"]
+    Redis --> Hash["Hash<br/>───<br/>listpack → hashtable"]
     Redis --> ZSet["ZSet（Sorted Set）<br/>───<br/>skiplist + hashtable"]
 
     String --> S1[计数器 / 分布式锁 / 缓存]
@@ -21,6 +25,20 @@ flowchart TD
     Hash --> H1[对象存储 / 购物车]
     ZSet --> Z1[排行榜 / 延迟队列]
 ```
+
+> **版本注记（Redis 7.0+）**：紧凑编码的底层结构已由 **ziplist 换成 listpack**（Redis 7.0 起 ziplist 被 listpack 取代），配置名随之改动，默认值不变：
+>
+> | 配置（≤ 6.2） | 配置（7.0+） | 默认值 |
+> |---|---|---|
+> | `hash-max-ziplist-entries` | `hash-max-listpack-entries` | 512 |
+> | `hash-max-ziplist-value` | `hash-max-listpack-value` | 64 |
+> | `list-max-ziplist-size` | `list-max-listpack-size` | -2 |
+> | `zset-max-ziplist-entries` | `zset-max-listpack-entries` | 128 |
+> | `zset-max-ziplist-value` | `zset-max-listpack-value` | 64 |
+>
+> Set 还有一对 Redis 7.2 才引入的 `set-max-listpack-entries`（默认 128）+ `set-max-listpack-value`（默认 64）：小整数集合用 intset，小非整数集合用 listpack，再大才转 hashtable。
+>
+> 下文涉及源码/历史资料处仍会出现 ziplist 字样，理解为"同一角色的紧凑编码"即可。
 
 ---
 
@@ -54,7 +72,7 @@ SET lock:order:1001 1 NX EX 10  # 分布式锁（NX=不存在才设，EX=10秒�
 
 ## 3. List — quicklist 实现
 
-底层在 **Redis 3.2 后统一为 quicklist**（`linkedlist` + `ziplist` 的混合体）。一个 quicklist 节点里挂一个 ziplist——兼顾内存紧凑和双向遍历性能。
+底层在 **Redis 3.2 后统一为 quicklist**：一个 quicklist 节点里挂一个紧凑编码的连续内存块（Redis 7.0 前是 **ziplist**，7.0+ 是 **listpack**），节点之间用双向指针串起来——兼顾内存紧凑和双向遍历性能。
 
 ```bash
 LPUSH queue:tasks "task1" "task2"   # 左边进
@@ -77,21 +95,21 @@ BLPOP queue:tasks 5                 # 阻塞等待，超时 5 秒
 ```
 [quicklist]
    │
-   ├── quicklistNode[0] → ziplist (存多个元素，连续内存)
-   ├── quicklistNode[1] → ziplist
-   └── quicklistNode[2] → ziplist
+   ├── quicklistNode[0] → listpack (存多个元素，连续内存)
+   ├── quicklistNode[1] → listpack
+   └── quicklistNode[2] → listpack
 ```
 
-- **ziplist** 是紧凑的连续内存，元素少时节省指针开销
+- **listpack / ziplist** 是紧凑的连续内存，元素少时节省指针开销
 - **linkedlist** 双向指针，插入删除 O(1)
-- quicklist 两者结合：每个节点是 ziplist，节点之间用指针相连
-- `list-max-ziplist-size` 控制每个 ziplist 最多存多少元素
+- quicklist 两者结合：每个节点是 listpack（7.0+）/ ziplist（≤ 6.2），节点之间用指针相连
+- `list-max-listpack-size`（7.0+；≤ 6.2 叫 `list-max-ziplist-size`）控制每个节点最多存多少元素
 
 ---
 
 ## 4. Set — hashtable / intset
 
-底层：元素全为整数且数量少时用 **intset**（有序整数数组，二分查找），否则用 **hashtable**（value 全为 NULL 的字典）。
+底层：元素全为整数且数量少时用 **intset**（有序整数数组，二分查找）；Redis 7.2+ 起小规模的非整数集合还会先用 **listpack**；再超出阈值才转 **hashtable**（value 全为 NULL 的字典）。
 
 ```bash
 SADD user:1001:tags "java" "spring" "redis"
@@ -113,13 +131,14 @@ SDIFF user:1001:tags user:1002:tags   # → {"spring"} 差集
 ### 编码切换条件
 
 - **intset → hashtable**：元素数量 > `set-max-intset-entries`（默认 512）或出现非整数元素
+- **listpack → hashtable**（7.2+）：非整数元素数 > `set-max-listpack-entries`（默认 128）或单元素长度 > `set-max-listpack-value`（默认 64 字节）
 - intset 查询是二分 O(log N)，但插入要移动数组 O(N)，所以小集合用 intset
 
 ---
 
-## 5. Hash — ziplist / hashtable
+## 5. Hash — listpack / hashtable
 
-底层：字段少 + 值短时用 **ziplist**（连续内存，field-value 交替存），超出阈值转 **hashtable**。
+底层：字段少 + 值短时用 **listpack**（7.0+；≤ 6.2 为 ziplist，连续内存，field-value 交替存），超出阈值转 **hashtable**。
 
 ```bash
 HSET user:1001 name "张三" age 28 city "杭州"
@@ -132,7 +151,7 @@ HGETALL user:1001             # 取全部字段
 
 | 场景 | 命令 | 说明 |
 |------|------|------|
-| 用户信息缓存 | `HSET / HGET` | 比 `String(JSON)` 省内存（ziplist），且支持按字段读写 |
+| 用户信息缓存 | `HSET / HGET` | 比 `String(JSON)` 省内存（listpack），且支持按字段读写 |
 | 购物车 | `HSET cart:1001 sku:123 2` | 用户→商品→数量 |
 | 计数器分组 | `HINCRBY stats:20260607 pv 1` | 当天 PV/UV 存在同一个 key 下 |
 
@@ -143,14 +162,14 @@ String 方式:  user:1001:name → "张三"    (一个 key 一个 value，元数
               user:1001:age  → "28"
               user:1001:city → "杭州"
 
-Hash 方式:    user:1001 → {name:"张三", age:28, city:"杭州"}  (一个 key，ziplist 紧凑)
+Hash 方式:    user:1001 → {name:"张三", age:28, city:"杭州"}  (一个 key，listpack 紧凑)
 ```
 
 小对象用 Hash 比 String 可节省 30-50% 内存。
 
 ### 编码切换条件
 
-- **ziplist → hashtable**：字段数 > `hash-max-ziplist-entries`（默认 512）或单个 field/value 长度 > `hash-max-ziplist-value`（默认 64 字节）
+- **listpack → hashtable**：字段数 > `hash-max-listpack-entries`（7.0+；≤ 6.2 为 `hash-max-ziplist-entries`，默认 512）或单个 field/value 长度 > `hash-max-listpack-value`（默认 64 字节）
 
 ---
 
@@ -190,12 +209,12 @@ Level 0:  1 → 3 → 5 → 7 → 8 → 9 → 12 → NULL
 ```
 
 - Level 0 是完整的有序链表
-- Level 1 从每两个节点抽一个上来，组成"快车道"
-- Level 2 进一步抽样
+- Level 1 是 Level 0 的抽样（示意图为了看清结构按约 1/2 画）
+- Level 2 继续往上抽样；Redis 实际的抽样概率是 `ZSKIPLIST_P = 0.25`（约 1/4，见下文"层数随机生成算法"）
 
 **查 7 的过程**：Level 2 从 1 跳到 9（> 7，过头了）→ 降一层 → Level 1 从 1 跳到 5（≤ 7，前进）→ 到 9（> 7，过头）→ 降一层 → Level 0 从 5 走到 7。3 步 vs 原始链表 5 步，数据量大时受益指数级放大。
 
-**插入**：随机生成节点层数（每层 50% 概率升级，类似抛硬币），复杂度 O(log N)。
+**插入**：随机生成节点层数（每层以 `ZSKIPLIST_P` 的概率升级，Redis 取 **0.25**，不是教科书默认的 0.5），复杂度 O(log N)。
 
 #### ZSet 的双结构设计
 
@@ -213,9 +232,9 @@ flowchart TD
 - 范围查询 / 排名 → 跳表 O(log N + M)，M 为返回元素数
 - 查排名 → 跳表每个节点维护 span（跨度），累加得到 O(log N)
 
-## 2026-07-01 - 跳表实现细节补充
+### 跳表实现细节补充（2026-07-01）
 
-### zskiplistNode 结构（Redis 源码）
+#### zskiplistNode 结构（Redis 源码）
 
 ```c
 // server.h
@@ -236,7 +255,7 @@ typedef struct zskiplist {
 } zskiplist;
 ```
 
-### span 的作用：O(log N) 获取排名
+#### span 的作用：O(log N) 获取排名
 
 `span` 是 Redis 跳表 vs 通用跳表最大的区别。它记录从当前节点到下一个节点"跳过了多少个 Level 0 的节点"。
 
@@ -252,12 +271,13 @@ Level 0:  [1]→[3]→[5]→[7]→[8]→[9]→[12]→NULL
 排名 = 沿途 span 累加。不需要遍历计数，O(log N)。
 ```
 
-### 层数随机生成算法
+#### 层数随机生成算法
 
 ```c
 // t_zset.c
 #define ZSKIPLIST_P 0.25      // Redis 选 0.25，不是标准的 0.5
-#define ZSKIPLIST_MAXLEVEL 32 // 最多 32 层（足够支撑 2^32 个节点）
+#define ZSKIPLIST_MAXLEVEL 32 // 最多 32 层（P=0.25 时第 k 层期望节点数 = N·0.25^(k-1)，
+                              //  32 层可支撑约 4^31 ≈ 2^62 个节点，远超实际规模）
 
 int zslRandomLevel(void) {
     int level = 1;
@@ -269,52 +289,17 @@ int zslRandomLevel(void) {
 
 **为什么 P=0.25？** 期望层数 = 1/(1-0.25) ≈ 1.33。大多数节点只有 1-2 层，内存效率高。P=0.5 时期望 2 层，每层多存一倍指针，但查询只快一点点。antirez 选了更省内存的 0.25。
 
-### 跳表 vs B+ 树（MySQL InnoDB 索引）
+#### 跳表 vs B+ 树（MySQL InnoDB 索引）
 
-**一句话结论：B+ 树为磁盘设计，跳表为内存设计。** 两者都是 O(log N)，但优化方向完全不同。
+**一句话结论：B+ 树为磁盘设计，跳表为内存设计。** 两者都是 O(log N)，但优化目标相反——MySQL 要的是"一次 I/O 读 16KB，一页过滤掉几百个 key"，所以必须矮胖；Redis 数据全在内存、没有 I/O 概念，跳表实现更简单（t_zset.c 几百行 C）、出了 bug 好排查，所以不需要 B+ 树。
 
-```mermaid
-flowchart TD
-    subgraph B加树["B+ 树（MySQL InnoDB）"]
-        direction TB
-        B1["目标：减少磁盘 IO"] --> B2["一个节点 16KB 存几百个 key<br/>高度极矮（千万行 ~3 层）"]
-        B2 --> B3["一次查询 1-3 次磁盘 IO"]
-        B3 --> B4["叶子双向链表 → 范围扫描"]
-        B4 --> B5["插入可能触发页分裂<br/>维护成本高"]
-    end
+完整的双场景对比图、逐维对比表和"为什么两边不互换"的理由，见 [MySQL B+树索引实现原理](<./MySQL B+树索引实现原理.md#6-为什么-mysql-不用跳表-redis-不用-b-树>) §6。
 
-    subgraph 跳表["跳表（Redis ZSet）"]
-        direction TB
-        S1["目标：实现简单 + 内存操作"] --> S2["每个节点一个值<br/>层数随机（抛硬币）"]
-        S2 --> S3["比较全在内存，极快"]
-        S3 --> S4["层级指针天然有序"]
-        S4 --> S5["插入只改相邻指针<br/>无页分裂"]
-    end
-```
+#### 编码切换
 
-逐项对比：
-
-| 维度 | B+ 树 | 跳表 |
-|------|-------|------|
-| **设计目标** | 为磁盘优化，减少 I/O | 为内存优化，实现简单 |
-| **节点结构** | 一页 16KB 含几百个 key + 子节点指针 | 一个节点一个值 + 多层 forward 指针 |
-| **树高度** | 极矮（千万行 ~3 层） | 约 log N（内存中无所谓） |
-| **查询过程** | 根→非叶→叶，每层二分 | 最高层开始，逐层向右+下降 |
-| **范围查询** | 到叶子后沿双向链表扫 | 找到起点沿 Level 0 链表扫 |
-| **插入成本** | 可能页分裂 + 调整父节点 | 改相邻指针 + 随机生成层数 |
-| **空间占用** | 页内 ~15/16 填充（InnoDB 默认） | 每节点多存 level 个指针 |
-| **代码量** | ~几千行 C | ~几百行 C（t_zset.c） |
-| **适用场景** | 磁盘 DB 索引、文件系统 | 内存数据结构、缓存、排行榜 |
-
-**为什么 MySQL 不用跳表、Redis 不用 B+ 树？**
-
-- **MySQL 场景**：数据在磁盘，一次 IO 读 16KB。B+ 树一个节点恰好一页，一次 IO 过滤掉几百个 key。跳表一个节点一个值，跨页查询 = 大量随机 IO，在磁盘上是灾难。
-- **Redis 场景**：数据全在内存，没有磁盘 IO 概念。跳表比 B+ 树实现简单太多，出 bug 好排查。antirez：_"All the operations are O(log N), the code is simple, and the data structure is easy to debug."_
-
-### 编码切换
-
-- **ziplist → skiplist+hashtable**：元素数 > `zset-max-ziplist-entries`（默认 128）或 member 长度 > `zset-max-ziplist-value`（默认 64 字节）
-- 少量元素时直接用 ziplist 省内存
+- **listpack → skiplist+hashtable**：元素数 > `zset-max-listpack-entries`（默认 128）或 member 长度 > `zset-max-listpack-value`（默认 64 字节）
+  - Redis ≤ 6.2 时这两个配置名为 `zset-max-ziplist-entries` / `zset-max-ziplist-value`，底层结构是 ziplist
+- 少量元素时直接用 listpack 省内存
 
 ---
 
@@ -443,14 +428,22 @@ redisTemplate.expire(lockKey, 30, TimeUnit.SECONDS);    // 没执行到 → 永�
 
 ```java
 RLock lock = redissonClient.getLock("lock:order:" + orderId);
+boolean locked = false;
 try {
-    if (lock.tryLock(10, 30, TimeUnit.SECONDS)) {  // 等 10s，锁 30s
+    locked = lock.tryLock(10, 30, TimeUnit.SECONDS);  // 等 10s，锁 30s
+    if (locked) {
         doSomething();
     }
+} catch (InterruptedException e) {
+    Thread.currentThread().interrupt();
 } finally {
-    lock.unlock();  // 只删自己的锁（UUID + 线程 ID 校验）
+    if (locked) {
+        lock.unlock();  // 只删自己的锁（UUID + 线程 ID 校验）
+    }
 }
 ```
+
+> ⚠️ **别写 `finally { lock.unlock(); }`**：`tryLock` 返回 `false`（没抢到锁）时当前线程并不持有锁，此时 `unlock()` 会抛 `IllegalMonitorStateException`。必须像上面那样用 `locked` 标志位把解锁圈在"确实拿到锁"的分支里。
 
 **Redisson 做了什么：**
 
@@ -593,7 +586,7 @@ unlock 同时调用 `cancelExpirationRenewal()` 从 `EXPIRATION_RENEWAL_MAP` 移
 | 锁持有者标识 | `UUID:threadId` | UUID 区分 JVM，threadId 区分线程 |
 | 可重入 | Hash value 计数 | 加锁 +1，解锁 -1，归零才 DEL |
 | JVM 崩溃兜底 | 看门狗是 JVM 内线程 → 崩了自然停 → 30s 后过期 | 无需"停止看门狗"这个动作 |
-| 不启动看门狗的条件 | 显式指定了 `leaseTime` | 用户说"60s 够了"就不再续期 |
+| 不启动看门狗的条件 | 显式指定了 `leaseTime`（`leaseTime > 0`） | 源码里 `locks.forEach` 前先判断 `leaseTime > 0`：指定了就只 `pexpire(leaseTime)`，不调 `scheduleExpirationRenewal` → 租期由调用方接管，锁到点自动过期。只有 `tryLock()` / `tryLock(waitTime, unit)` 这类不传 leaseTime 的写法才启动看门狗 |
 
 **RedLock 争议**：Redis 作者提出多节点过半加锁，但 Martin Kleppmann 指出缺乏 fencing token、时钟跳跃会导致两个客户端同时持锁。实践中：一致性要求极高时用 ZooKeeper/etcd，一般场景 Redisson 足够。
 
@@ -715,8 +708,10 @@ public User getUser(Long id) {
 
     // 第三层：分布式锁（防击穿）
     RLock lock = redissonClient.getLock("lock:user:" + id);
+    boolean locked = false;
     try {
-        if (lock.tryLock(3, 30, TimeUnit.SECONDS)) {
+        locked = lock.tryLock(3, 30, TimeUnit.SECONDS);
+        if (locked) {
             // 双重检查
             user = (User) redisTemplate.opsForValue().get("user:" + id);
             if (user != null) return user;
@@ -727,8 +722,10 @@ public User getUser(Long id) {
                     30 + ThreadLocalRandom.current().nextInt(60), TimeUnit.MINUTES);
             }
         }
+    } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
     } finally {
-        lock.unlock();
+        if (locked) lock.unlock();   // 没抢到锁绝不能 unlock，否则 IllegalMonitorStateException
     }
     return user;
 }
@@ -793,10 +790,10 @@ GEORADIUS shops 120.2 30.3 5 km WITHDIST
 | 数据类型 | 默认编码 | 内部编码（少量数据时） | 核心特点 |
 |---------|---------|---------------------|---------|
 | String | raw / embstr | int | SDS，二进制安全 |
-| List | quicklist | — | ziplist + linkedlist 混合 |
-| Set | hashtable | intset | 值全为 NULL 的字典 |
-| Hash | hashtable | ziplist | field-value 交替存 |
-| ZSet | skiplist + dict | ziplist | 双结构共享节点 |
+| List | quicklist | — | listpack（7.0+）/ ziplist（≤6.2）+ linkedlist 混合 |
+| Set | hashtable | intset / listpack | 值全为 NULL 的字典 |
+| Hash | hashtable | listpack（≤6.2 为 ziplist） | field-value 交替存 |
+| ZSet | skiplist + dict | listpack（≤6.2 为 ziplist） | 双结构共享节点 |
 
 ---
 
@@ -1082,7 +1079,7 @@ redLock.tryLock();  // 同时往三台独立机器写同一个 key，≥2 成功
 |---|---|---|---|
 | **代码** | `redissonClient.getLock("key")` | `redissonClient.getLock("key")` | `new RedissonRedLock(l1, l2, l3)` |
 | **锁写几台** | 1 | 1（路由决定哪台） | N（所有独立节点） |
-| **看门狗** | ✅ | ✅ | ✅（每台独立续期） |
+| **看门狗** | ✅（`tryLock()` 不传 leaseTime 时） | ✅（同上） | ✅（同上，每台独立续期） |
 | **用过概率** | 100% | Cluster 用户 | ~0% |
 | **安全性** | 主机挂 = 锁丢 | Master 挂 + 异步复制 = 可能丢 | 少数节点挂 = 锁不丢 |
 | **单 key QPS** | = 单机 | = 单机 | < 单机 |
@@ -1141,12 +1138,21 @@ RLock lock3 = c3.getLock("lock:transfer:1001");
 RedissonRedLock redLock = new RedissonRedLock(lock1, lock2, lock3);
 
 // ===== 第四步：加锁 =====
+boolean locked = false;
 try {
-    if (redLock.tryLock(500, 30000, TimeUnit.MILLISECONDS)) {
+    // 显式传了 leaseTime=30s → 锁 30s 后自动过期，Redisson 不启动看门狗
+    locked = redLock.tryLock(500, 30000, TimeUnit.MILLISECONDS);
+    if (locked) {
         transferMoney();  // ≥2/3 成功 → 业务执行
     }
+} catch (InterruptedException e) {
+    Thread.currentThread().interrupt();
 } finally {
-    redLock.unlock();  // 三台全解
+    // 坑：RedissonMultiLock.unlock() 的实现是 locks.forEach(Lock::unlock)，
+    //     会把所有 RLock 都解一遍；没抢到锁时 RedissonLock 会抛
+    //     IllegalMonitorStateException("attempt to unlock lock, not locked by current thread")
+    //     → 所以同样必须判 locked，不能裸写在 finally 里
+    if (locked) redLock.unlock();
 }
 ```
 
@@ -1169,7 +1175,7 @@ sequenceDiagram
     R3-->>App: ERR ❌
 
     Note over App: ≥2/3 成功 → 加锁成功
-    Note over R1,R2: 看门狗分别对 R1、R2 独立续期
+    Note over R1,R2: 代码显式传了 leaseTime=30s → 不启动看门狗，锁 30s 后自动过期
 ```
 
 **RedissonRedLock 内部关键逻辑**（`RedissonMultiLock.tryLock`）：
@@ -1213,4 +1219,4 @@ RedissonRedLock redLock = new RedissonRedLock(
 ---
 
 相关：
-- [[热点账户高并发记账方案.md]] — Redis 在高并发场景下的应用
+- [[./热点账户高并发记账方案.md]] — Redis 在高并发场景下的应用
