@@ -15,6 +15,7 @@
 - [Project: Agents/Skills Mirror](project-agents-skills-mirror.md) — .claude/skills 与 .agents/skills 是双镜像，改 skill 必须两边同步（仅 CLAUDE.md↔AGENTS.md 引用名不同），否则 Codex 侧漂移
 - [Project: quickStart Branch](project-quickstart-branch.md) — quickStart 是 Harness KB 模板（单工具 Claude-Code），2026-08-01 从 main 移植全套 harness，SKIP 双镜像
 - [Feedback: Proactive Divergent Suggestions](feedback-proactive-divergent-suggestions.md) — 用户认可"小的发散性想法"作为知识库特色，AI应主动提议改进点而非被动执行指令
+- [Feedback: No Unilateral Rule Relaxation](feedback-no-unilateral-rule-relaxation.md) — 不得擅自松绑用户既有纪律；弱化类改动必须单独立项说明代价，且不得以"规则与现实不符"为由调规则（2026-09-11 timeline 口径松绑被否决并回退）
 - [Feedback: No Auto Split](feedback-no-auto-split.md) — 超 1000 行但规整的文件不擅自提案拆分，拆分决策权归用户，除非用户主动要求
 - [Feedback: Architecture Driven by Usage](feedback-architecture-evolution-driven-by-usage.md) — 架构演化由使用中产生的问题驱动，脱离业务量级的架构设计是 YY；路标可预埋、实现等触发
 - [Feedback: No Fake File Claim](feedback-no-fake-file-claim.md) — 说"已写入/已沉淀"前必须 Read 验证文件真实存在，禁止口头沉淀（exit-check [8/11] 的执法依据）
