@@ -7,8 +7,7 @@ description: 贝叶斯定理直觉理解、先验/后验/证据、HIV检测经�
 
 > 最后整理: 2026-09-11 | 来源: 基础概念讲解
 
-> 关联: [LLM（大语言模型）](<../AI/大模型/LLM（大语言模型）.md>) — 大模型原理（贝叶斯思想在 Transformer 注意力机制中的体现）
-> 关联: [Transformer](<../AI/基础/Transformer.md>) — 自注意力机制（概率视角理解 token 预测）
+> 关联: [LLM（大语言模型）](<../AI/大模型/LLM（大语言模型）.md>) — 大模型原理（贝叶斯思想在 Transformer 注意力机制中的体现） | [Transformer](<../AI/基础/Transformer.md>) — 自注意力机制（概率视角理解 token 预测） | [生成式 AI](<../AI/大模型/生成式 AI.md>) — 生成式建模
 
 ## 2026-05-14 - 贝叶斯统计 & 与 AI 的关系
 
@@ -104,4 +103,3 @@ flowchart TD
     GEN --> APP3["Stable Diffusion<br/>DALL·E"]
 ```
 
-> 关联: [LLM（大语言模型）](../AI/大模型/LLM（大语言模型）.md) · [生成式 AI](<../AI/大模型/生成式 AI.md>) · [Transformer](../AI/基础/Transformer.md)

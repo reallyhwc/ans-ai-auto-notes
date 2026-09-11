@@ -132,7 +132,7 @@ htmlSource = htmlSource.replace(oldEscaped, newEscaped);
 
 > **当 FILE_INDEX 结构升级时，一个 grep 全扫**：
 > ```bash
-> grep -n 'FILE_INDEX' overview.html
+> grep -rn 'FILE_INDEX' scripts/     # 注意：渲染逻辑已迁到 app.js，扫 overview.html 会 0 命中
 > ```
 > 把所有遍历它的函数找出来，逐一确认是否需要同步升级。本次第 1 个 bug 修完后就停了，结果用户点击 → 报 #2 → 修完搜索 → 又是 #3 → 改完打开页面 → 又是 #4。**4 处都是独立症状但同一类根因，第一次就该一并修干净。**
 

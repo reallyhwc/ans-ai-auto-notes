@@ -64,7 +64,7 @@ flowchart TD
 
 > AI 子树内容膨胀，是按 frontmatter tag 隐式分组，还是物理拆子目录？
 
-**背景**：`kb/技术/AI/` 单层 >15 文件，混了基础概念 / 大模型 / Claude Code / AI Coding / 应用 5 个子领域。
+**背景**：`kb/技术/AI/` 单层 >15 文件，混了基础概念 / 大模型 / Claude-Code / AI-Coding / 应用 5 个子领域（目录名见 `docs/decisions.md` ADR-001）。
 
 **选项**：
 - (a) 保持单层，用 frontmatter `tags` 字段分组
@@ -80,4 +80,4 @@ flowchart TD
 
 这个决策记下来后，后续所有 AI 相关笔记都按 5 子目录归类，再没漂移过。
 
-> 关联：[[../技术/AI/Claude-Code/Harness Engineering：AI Agent 时代的工程范式.md]]（Harness 三层模型里 ADR 属于"文档层"）、本仓库 `docs/decisions.md`（完整 ADR 列表）
+> 关联：[[../技术/AI/Claude-Code/Harness Engineering：AI Agent 时代的工程范式.md]]（Harness 三层模型里 ADR 属于"文档层"）、本仓库 [docs/decisions.md](../../docs/decisions.md)（完整 ADR 列表）
