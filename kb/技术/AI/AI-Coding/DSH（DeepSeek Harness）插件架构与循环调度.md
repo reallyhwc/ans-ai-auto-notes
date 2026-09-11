@@ -5,9 +5,9 @@ description: "DeepSeek Harness 的'一切皆插件'机制拆解：Cordis 响应�
 
 # DSH（DeepSeek Harness）插件架构与循环调度
 
-> 最后整理: 2026-08-29 | 来源: 对话 + DSH 源码分析 + GitHub Releases 整理
+> 最后整理: 2026-09-11 | 来源: 对话 + DSH 源码分析 + GitHub Releases 整理 + 沙箱插件包 README（dsh-sandbox / dsh-fs-sandbox / dsh-sandbox-local / dsh-permission-presets）
 
-> 关联: [Claude Code 整体架构 & 工作流程](../Claude-Code/Claude Code%20整体架构%20&%20工作流程.md) — Claude Code 闭源 Harness 对照 | [Harness Engineering](../Claude-Code/Harness%20Engineering：AI%20Agent%20时代的工程范式.md) — Model + Harness = Agent | [AI 编程工具全景对比](AI%20编程工具：CLI%20Agent%20与%20GUI%20IDE%20全景对比.md) — 终端 Agent 选型
+> 关联: [Claude Code 整体架构 & 工作流程](<../Claude-Code/Claude Code 整体架构 & 工作流程.md>) — Claude Code 闭源 Harness 对照 | [Harness Engineering](<../Claude-Code/Harness Engineering：AI Agent 时代的工程范式.md>) — Model + Harness = Agent | [AI 编程工具全景对比](<AI 编程工具：CLI Agent 与 GUI IDE 全景对比.md>) — 终端 Agent 选型 | [沙箱（Sandbox）：从进程隔离到 Agent 运行时](<../../计算机基础/沙箱（Sandbox）：从进程隔离到 Agent 运行时.md>) — 沙箱概念全景与三语境对照（本文 §7 是其 DSH 落地细节）
 
 ## 0. 一句话定位
 
@@ -377,10 +377,96 @@ Spring 的 `ApplicationEventPublisher.publishEvent` + `@EventListener` **一模�
 
 > ⚠️ rc.8 起 SQLite 数据结构不兼容，跨大版本升级前备份会话数据
 
-## 7. 相关与延伸
+## 7. 沙箱与权限：两条强制通道（约束层怎么落地）
 
-- [Claude Code 整体架构 & 工作流程](../Claude-Code/Claude Code%20整体架构%20&%20工作流程.md) — 闭源 Harness 的 REPL 循环、Hooks、上下文管理，与 DSH 对照
-- [Harness Engineering：AI Agent 时代的工程范式](../Claude-Code/Harness%20Engineering：AI%20Agent%20时代的工程范式.md) — Model + Harness = Agent 的范式基础
-- [AI 编程工具：CLI Agent 与 GUI IDE 全景对比](AI%20编程工具：CLI%20Agent%20与%20GUI%20IDE%20全景对比.md) — Claude Code / Codex / DeepSeek-TUI 三方选型
+沙箱概念本身（三语境、OS 隔离谱系、判据 5 问）见 [沙箱（Sandbox）：从进程隔离到 Agent 运行时](<../../计算机基础/沙箱（Sandbox）：从进程隔离到 Agent 运行时.md>)；本节只记 DSH 的实现细节。
+
+### 7.1 能力 seam 拆分：策略归属方 + 强制执行后端 + 消费方
+
+DSH 把"沙箱"拆成三块插件，任何一块都能换：
+
+| 角色 | 插件 | 职责 |
+|---|---|---|
+| **策略归属**（唯一真相） | `dsh-sandbox-policy` | 解析"每次调用的模式 + 工作区根"，向模型贡献 `sandbox:policy` 上下文 |
+| **执行后端** | `dsh-sandbox-local`（进程）、`dsh-fs-sandbox`（文件系统） | 各自消费同一份策略，不自己解析 mode/root |
+| **消费方** | `dsh-bash-sandbox`、`dsh-tool-fs` | 把拒绝渲染给模型、发起升权请求 |
+
+**为什么要"唯一归属"**：fs 工具和 bash 命令如果各自解析 `mode + workspaceRoot`，就会出现"文件工具说能写、bash 里却被内核拒绝"的分裂世界。所以 `writableRoots` 只有一个实现，Seatbelt profile 与 fs 围栏共用它。
+
+### 7.2 模式词汇与逐调用策略
+
+```ts
+// dsh-sandbox 定义的共享词汇（简化）
+type SandboxMode = 'read-only' | 'workspace-write' | 'danger-full-access';
+// 有效模式 = 显式授权 ?? fold(会话 sandbox/mode 事件) ?? 部署默认值（read-only，故障安全）
+```
+
+- **部署默认是 `read-only`**——没配置就更严，而不是更松。
+- **逐会话持久化**：切换模式只是在会话日志里追加一条 `sandbox/mode` 事件，回放跨重启保留，两个会话绝不互相看见对方的模式。
+- **工作区根无需事件**：创建时写死的 `SessionHeader.cwd` 就是该会话每次调用的可写根（先做文件系统规范化，再词法归一化，所以 `symlink/..` 这类路径不会把授权算错）。
+
+### 7.3 两条通道的强度差异（最容易混淆的一点）
+
+| | `ctx.fs`（文件工具） | `ctx.shell`（bash/终端） |
+|---|---|---|
+| 机制 | 进程内"路径规范化 + 包含关系检查" | `ctx.sandbox.confine(argv, policy)` 返回包装后的 argv，进程及其子进程全在限制内 |
+| 后端 | 无（可信代码里的策略判断） | Linux：`bwrap` → 否则 Landlock launcher；macOS：Seatbelt；Windows：ACL 受限令牌 |
+| 自我定位 | README 明写「**策略围栏，而非内核边界**」 | 「**只支持与宿主共享文件系统和内核的限制**」 |
+| 拒绝形式 | 结构化 `FS_SANDBOX_DENIED`（准确知道自己拒了什么）→ 工具层渲染 `[sandbox: file access denied under <mode> mode]` | 从 stderr 的**拒绝方言**（denialSignatures）推断；后端缺失时抛 `SANDBOX_UNAVAILABLE` |
+| 残留风险 | TOCTOU（检查与 syscall 之间换祖先符号链接），靠"写入前立即重新规范化"缩小 | 后端能力差异：Windows ACL 与旧内核 Landlock 只能报 `enforcement: 'partial'` |
+
+> 容器 / microVM / 远程执行器**不是**这个 seam 的后端——它们会以"环境一致的一组实现"整体替换 `ctx.shell` + `ctx.fs`（这就是 Codex 云沙箱那种做法），而不是在当前 seam 里再加一个 provider。
+
+### 7.4 与审批（approval）的配合：升权只能问一次
+
+`dsh-user-approval` 是通道无关的一次性审批 seam：`ctx.approval.request(req)` 返回 `allowed-once` / `rejected` / `cancelled` / `unavailable`，**应答者缺失或失败时以拒绝关闭**（fail-closed）。
+
+```mermaid
+sequenceDiagram
+    participant M as 模型
+    participant T as dsh-tool-fs / dsh-tool-bash
+    participant S as 沙箱执行
+    participant A as 审批 seam
+    M->>T: 写 /etc/hosts
+    T->>S: workspace-write 策略下检查
+    S-->>T: FS_SANDBOX_DENIED
+    T-->>M: [sandbox: file access denied under workspace-write mode] + 同轮次升权提示
+    alt 审批策略 = ask
+        M->>A: 请求一次性更宽权限（sandbox_permissions）
+        A-->>M: allowed-once / rejected
+        Note over M,S: 获批不是"关掉沙箱"，而是用更宽策略发起一次<新调用>
+    else 审批策略 = never
+        M-->>M: 确定性拒绝，且不允许申请升权
+    end
+```
+
+要点：**升权 ≠ 关沙箱**。获批的升权重试是"使用更宽策略发起的新调用"，作用域一次性、仅限所请求的操作，并且 `approval/asked` + `approval/decided` 都会落审计日志（模型只看到最终工具结果）。
+
+### 7.5 产品层：PermissionPresets 把两个旋钮打包成一个选择
+
+`dsh-permission-presets` 把 `sandbox/mode` 与 `approval/policy` 组合成用户可见的一个下拉：
+
+| Preset | sandbox/mode | approval/policy |
+|---|---|---|
+| `workspace-write`（默认） | `workspace-write` | `ask` |
+| `danger-full-access` | `danger-full-access` | `never` |
+| `custom` | 用户手动调出的组合（**只能推导出来，不能被选中/持久化**） | — |
+
+会话创建时把预设、模式、审批策略一起"钉"进会话，所以之后改设置不会影响已有会话。
+
+### 7.6 已知限制（照抄比脑补安全）
+
+1. **策略词汇只管文件操作**——网络、进程、系统调用、设备、凭据都不在 `SandboxMode` 里。
+2. **每会话只有一个可写根**（`SessionHeader.cwd`），额外可写根不在执行策略中。
+3. **fs 围栏是策略检查，不是内核边界**；对抗性宿主进程不在威胁模型内。
+4. **Seatbelt 依赖已被 Apple 标注 deprecated 的 `sandbox-exec`**，功能探测失败时执行会被拒绝（而不是降级放行）。
+5. **runner 选择在插件生命周期内缓存**——装了 `bwrap` 要重载插件才生效。
+
+## 8. 相关与延伸
+
+- [沙箱（Sandbox）：从进程隔离到 Agent 运行时](<../../计算机基础/沙箱（Sandbox）：从进程隔离到 Agent 运行时.md>) — 沙箱的三语境对照、OS 隔离谱系与「算不算真沙箱」判据（本文 §7 的上级概念）
+- [Claude Code 整体架构 & 工作流程](<../Claude-Code/Claude Code 整体架构 & 工作流程.md>) — 闭源 Harness 的 REPL 循环、Hooks、上下文管理，与 DSH 对照
+- [Harness Engineering：AI Agent 时代的工程范式](<../Claude-Code/Harness Engineering：AI Agent 时代的工程范式.md>) — Model + Harness = Agent 的范式基础
+- [AI 编程工具：CLI Agent 与 GUI IDE 全景对比](<AI 编程工具：CLI Agent 与 GUI IDE 全景对比.md>) — Claude Code / Codex / DeepSeek-TUI 三方选型
 - DSH 源码：`vendor/cordis/`（8 个文件的核心框架）+ `packages/core/agent-loop/`（唯一含循环逻辑的包）
 - 深入方向：agent-loop 内部 driver（ReactLoopAgent）逐 turn/step 推进细节、cordis.yml 的 include/insert/patch 覆盖机制
