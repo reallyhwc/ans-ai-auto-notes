@@ -11,7 +11,7 @@
 - [知识管理工具对比](kb/实战/知识管理工具对比.md) — Obsidian/Notion/本项目方案 对比分析
 - [设计前未做数据调研导致返工](kb/实战/设计前未做数据调研导致返工.md) — 方法论：识别/规则类需求必须先用线上真实数据调研再定技术方案（OMMUSIC-3593553 踩坑复盘）
 
-## 技术 (70 篇)
+## 技术 (71 篇)
 
 ### AI (50 篇)
 
@@ -80,11 +80,12 @@
 - [主流 Agent 产品技术栈解剖：自研循环 vs 框架之争](kb/技术/AI/应用/主流 Agent 产品技术栈解剖：自研循环 vs 框架之争.md) — Claude Code/OpenClaw/Hermes Agent 技术栈拆解，为什么顶级 Agent 产品都不用 LangChain/Spring AI，Agent 循环对比（TAOR/Hub-and-Spoke/run_conversation）
 - [跨语言 Agent + MCP 架构：Python Agent ↔ Java MCP 混合开发](kb/技术/AI/应用/跨语言 Agent + MCP 架构：Python Agent ↔ Java MCP 混合开发.md) — LangChain 双语言支持(Python/JS)、Python写Agent+Java写MCP的正反两种方案、MCP协议抹平语言差异的配置示例、推荐架构
 
-### Java (14 篇)
+### Java (15 篇)
 
 - [Dubbo 与 RPC 框架横评](kb/技术/Java/Dubbo 与 RPC 框架横评.md) — Dubbo 核心架构、调用链路、3.x 新特性，以及 gRPC/OpenFeign/Thrift/Kitex 等主流 RPC 框架对比选型
 - [InnoDB 如何实现 ACID](kb/技术/Java/InnoDB 如何实现 ACID.md) — undo log 保证原子性、redo log 保证持久性、MVCC+锁保证隔离性、一致性是综合结果，含 ReadView 版本链、WAL、Gap Lock 完整原理
 - [JVM 内存模型与垃圾回收](kb/技术/Java/JVM 内存模型与垃圾回收.md) — JVM 运行时数据区结构、可达性分析与 GC Roots、标记-清除/复制/整理算法、分代收集机制、Serial/Parallel/CMS/G1/ZGC/Shenandoah 收集器原理、GC 调优参数与决策树
+- [JVM-Sandbox（阿里开源的运行期 AOP 容器）](kb/技术/Java/JVM-Sandbox（阿里开源的运行期 AOP 容器）.md) — 阿里开源的 JVM 非侵入式运行期 AOP 容器：事件驱动（BEFORE/RETURN/THROWS）+ Instrumentation 动态编织 + Spy 类通信 + 双层 ClassLoader 隔离；含 jvm-sandbox-repeater 流量录制回放生态、维护现状（主仓 2023-01 停更）与「沙箱同名不同义」的辨析
 - [MySQL B+树索引实现原理](kb/技术/Java/MySQL B+树索引实现原理.md) — InnoDB B+树索引的底层实现：页结构、聚簇索引 vs 二级索引、页分裂、树高估算、为什么不用二叉/哈希/跳表
 - [MySQL 索引失效场景全解](kb/技术/Java/MySQL 索引失效场景全解.md) — MySQL 索引失效的经典场景：函数/运算、隐式转换、LIKE %开头、最左前缀、OR、选择性低、!= / NOT IN 等，含 EXPLAIN 验证方法
 - [Redis 常用数据类型与使用场景](kb/技术/Java/Redis 常用数据类型与使用场景.md) — Redis 五大基本类型（String/List/Set/Hash/ZSet）的底层实现、使用场景、常用命令，ZSet 跳表原理及双结构设计，含 Bitmap/HyperLogLog/GEO/Stream 简表

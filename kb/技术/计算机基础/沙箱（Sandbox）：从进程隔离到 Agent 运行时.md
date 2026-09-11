@@ -264,7 +264,18 @@ flowchart TD
 
 遇到 `[sandbox: file access denied under <mode> mode]` 的标准处理顺序：**① 改路径到工作区内** → ② 产物放 `os.tmpdir()` → ③ 确实必须外部路径时，显式申请一次升权（并说明理由）。不要试图用别的工具绕过去。
 
-## 9. 相关与延伸
+## 9. 同名不同义：别把「JVM-Sandbox」当成安全沙箱
+
+阿里开源的 [JVM-Sandbox](<../Java/JVM-Sandbox（阿里开源的运行期 AOP 容器）.md>) 也叫 sandbox，但它指的是**装载工具模块的容器**（非侵入式运行期 AOP），隔离的是「模块 ↔ 应用 ↔ 模块」，**与安全隔离无关**。听到 sandbox 这个词时，先判断它落在下面哪一类：
+
+| | 安全沙箱（本文语境二/三） | JVM-Sandbox |
+|---|---|---|
+| 隔离对象 | 不可信代码的系统调用 / 文件 | 工具模块本身 |
+| 目的 | 防逃逸、限权限 | 不改代码就能动态插桩 |
+| 生效方式 | 内核 / 运行时强制 | Instrumentation + 自定义 ClassLoader |
+| 失败姿态 | fail-closed（拒绝执行） | 模块卸载即还原 |
+
+## 10. 相关与延伸
 
 - [DSH（DeepSeek Harness）插件架构与循环调度](<../AI/AI-Coding/DSH（DeepSeek Harness）插件架构与循环调度.md>) §7 — 沙箱与审批在 DSH 里的源码级实现（seam 拆分、permissionPresets、会话事件持久化）
 - [Harness 与流程范式：SDD 落在哪一层](<../AI/应用/Harness 与流程范式：SDD 落在哪一层.md>) — sandbox/approval 是 Harness「约束层」的两个旋钮
