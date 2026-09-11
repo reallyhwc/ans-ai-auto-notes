@@ -232,9 +232,9 @@ flowchart TD
 - 范围查询 / 排名 → 跳表 O(log N + M)，M 为返回元素数
 - 查排名 → 跳表每个节点维护 span（跨度），累加得到 O(log N)
 
-### 跳表实现细节补充（2026-07-01）
+> 以下 5 节是 **2026-07-01 补充**的跳表实现细节（源码级），按"同主题聚合"并入 §6，不再单列日期戳章节。
 
-#### zskiplistNode 结构（Redis 源码）
+### zskiplistNode 结构（Redis 源码）
 
 ```c
 // server.h
@@ -255,7 +255,7 @@ typedef struct zskiplist {
 } zskiplist;
 ```
 
-#### span 的作用：O(log N) 获取排名
+### span 的作用：O(log N) 获取排名
 
 `span` 是 Redis 跳表 vs 通用跳表最大的区别。它记录从当前节点到下一个节点"跳过了多少个 Level 0 的节点"。
 
@@ -271,7 +271,7 @@ Level 0:  [1]→[3]→[5]→[7]→[8]→[9]→[12]→NULL
 排名 = 沿途 span 累加。不需要遍历计数，O(log N)。
 ```
 
-#### 层数随机生成算法
+### 层数随机生成算法
 
 ```c
 // t_zset.c
@@ -289,13 +289,13 @@ int zslRandomLevel(void) {
 
 **为什么 P=0.25？** 期望层数 = 1/(1-0.25) ≈ 1.33。大多数节点只有 1-2 层，内存效率高。P=0.5 时期望 2 层，每层多存一倍指针，但查询只快一点点。antirez 选了更省内存的 0.25。
 
-#### 跳表 vs B+ 树（MySQL InnoDB 索引）
+### 跳表 vs B+ 树（MySQL InnoDB 索引）
 
 **一句话结论：B+ 树为磁盘设计，跳表为内存设计。** 两者都是 O(log N)，但优化目标相反——MySQL 要的是"一次 I/O 读 16KB，一页过滤掉几百个 key"，所以必须矮胖；Redis 数据全在内存、没有 I/O 概念，跳表实现更简单（t_zset.c 几百行 C）、出了 bug 好排查，所以不需要 B+ 树。
 
 完整的双场景对比图、逐维对比表和"为什么两边不互换"的理由，见 [MySQL B+树索引实现原理](<./MySQL B+树索引实现原理.md#6-为什么-mysql-不用跳表-redis-不用-b-树>) §6。
 
-#### 编码切换
+### 编码切换
 
 - **listpack → skiplist+hashtable**：元素数 > `zset-max-listpack-entries`（默认 128）或 member 长度 > `zset-max-listpack-value`（默认 64 字节）
   - Redis ≤ 6.2 时这两个配置名为 `zset-max-ziplist-entries` / `zset-max-ziplist-value`，底层结构是 ziplist
