@@ -217,13 +217,13 @@ body 中必须显式处理错误路径：先检查前置条件（是否在 git �
 目录名成为前缀，用冒号 `:` 分隔：
 
 ```text
-.claude/commands/
-├── commit.md          → /commit
-├── review.md          → /review
+.claude/skills/
+├── commit/SKILL.md      → /commit
+├── review/SKILL.md      → /review
 └── git/
-    ├── status.md      → /git:status
-    ├── log.md         → /git:log
-    └── sync.md        → /git:sync
+    ├── status/SKILL.md  → /git:status
+    ├── log/SKILL.md     → /git:log
+    └── sync/SKILL.md    → /git:sync
 ```
 
 好处：相关命令归类，避免命名冲突，输入 `/git:` 会提示所有 git 相关命令。

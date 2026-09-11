@@ -598,7 +598,7 @@ graph TD
 ---
 name: code-reviewer
 description: 审查代码变更的安全性和正确性。只读，不修改文件。
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob   # 注意：给了 Bash 就等于给了写盘能力，与"只读"自述冲突
 model: sonnet
 ---
 ```
@@ -651,7 +651,7 @@ async function supervisor(userQuery: string): Promise<string> {
   };
 
   const result = await client.messages.create({
-    model: "claude-sonnet-4-6-20250514",
+    model: "claude-sonnet-4-6",   // 用无日期别名，避免带错版本日期后缀
     max_tokens: 2000,
     system: agentPrompts[category] || agentPrompts.code,
     messages: [{ role: "user", content: userQuery }],

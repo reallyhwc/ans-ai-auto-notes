@@ -131,7 +131,7 @@ claude mcp add myserver --port 8080 -- python server.py
       "alwaysLoad": false
     },
     "spring-mcp": {
-      "type": "sse",
+      "type": "http",
       "url": "http://localhost:8080/sse"
     }
   }
@@ -142,7 +142,7 @@ claude mcp add myserver --port 8080 -- python server.py
 
 | 字段 | type 适用 | 说明 |
 |------|----------|------|
-| `type` | 所有 | `stdio` / `http` (或 `streamable-http`) / `sse` / `ws` |
+| `type` | 所有 | `stdio` / `http` (或 `streamable-http`，**推荐**) / `sse`（已 deprecated，仅兼容旧服务）/ `ws` |
 | `command` | stdio | 可执行路径 |
 | `args` | stdio | 命令行参数数组 |
 | `env` | stdio | 环境变量 |
@@ -261,7 +261,7 @@ claude mcp add --transport sse my-spring-mcp --scope project http://localhost:80
 {
   "mcpServers": {
     "my-spring-mcp": {
-      "type": "sse",
+      "type": "http",
       "url": "http://localhost:8080/sse",
       "timeout": 30000
     }
