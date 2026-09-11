@@ -5,12 +5,13 @@ description: "Claude Code plugin 系统：与 standalone 配置的边界、目�
 
 # Plugins 插件体系
 
-> 最后整理: 2026-06-02 | 来源: 黄佳《Claude Code 工程化实战》课程 + [Plugins 文档](https://code.claude.com/docs/en/plugins) + [Plugins Reference](https://code.claude.com/docs/en/plugins-reference)
+> 最后整理: 2026-09-11 | 来源: 黄佳《Claude Code 工程化实战》课程 + [Plugins 文档](https://code.claude.com/docs/en/plugins) + [Plugins Reference](https://code.claude.com/docs/en/plugins-reference)
 
 > 关联: [子智能体（subagents）机制与实战](./子智能体（subagents）机制与实战.md) — plugin 内 agents/ 目录的特殊限制
 > 关联: [Skills 渐进式披露架构](<./Skills 渐进式披露架构.md>) — plugin skill 的命名空间
 > 关联: [Hooks 事件全景与拦截机制](<./Hooks 事件全景与拦截机制.md>) — plugin hooks 配置
 > 关联: [MCP 集成实战（含 Spring AI）](<./MCP 集成实战（含 Spring AI）.md>) — plugin MCP server
+> 关联: [DSH（DeepSeek Harness）插件架构与循环调度](<../AI-Coding/DSH（DeepSeek Harness）插件架构与循环调度.md>) — 另一个 Harness 的"一切皆插件"：Cordis 依赖注入 vs plugin 包目录
 
 ---
 

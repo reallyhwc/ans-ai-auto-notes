@@ -5,7 +5,7 @@ description: "多角色协作、Handoff机制、Agent编排、与Claude Code对�
 
 # OpenAI Agents SDK 与多角色协作
 
-> 最后整理: 2026-05-06 | 来源: 对话讨论
+> 最后整理: 2026-09-11 | 来源: 对话讨论
 
 ## 什么是 OpenAI Agents SDK
 
@@ -176,4 +176,11 @@ Demo 演示了架构师 → 工程师 → 审查员的多角色协作流程，�
 - [OpenAI Agents SDK 官方仓库](https://github.com/openai/openai-agents-python)
 - [OpenAI Agents 官方文档](https://platform.openai.com/docs/guides/agents-sdk)
 - [OpenAI Agents 文档（官方）](https://openai.github.io/openai-agents-python/)
-- 相关笔记: [[../大模型/llm-agent-mcp.md]]（Agent 与 MCP 协议）
+
+## 关联
+
+> 关联: [Agent 开发实战](<./Agent 开发实战：选型、框架与思维转换.md>) — 四范式选型与"框架帮你管理 Agent 循环"的本质
+> 关联: [Agent 四大设计范式（深度展开）](<./Agent 四大设计范式（深度展开）.md>) — Multi-Agent 范式的两种编排模式（本文是其工业实现）
+> 关联: [CLI Coding Agent 系统架构](<./CLI Coding Agent 系统架构：从 REPL 到自主编程.md>) — 同为 Agent 循环，CLI 产品的工程取舍
+> 关联: [主流 Agent 产品技术栈解剖](<./主流 Agent 产品技术栈解剖：自研循环 vs 框架之争.md>) — 自研循环 vs 用框架（handoff 属于框架派）
+> 关联: [LLM 应用设计](<./LLM 应用设计.md>) — Agent 之上的应用层设计

@@ -1,13 +1,13 @@
 ---
 title: "DSH（DeepSeek Harness）插件架构与循环调度"
-description: "DeepSeek Harness 的'一切皆插件'机制拆解：Cordis 响应式依赖注入、agent-loop 事件驱动循环、性能开销分析、互发事件死循环边界"
+description: "DeepSeek Harness 的'一切皆插件'机制拆解：Cordis 响应式依赖注入、agent-loop 事件驱动循环、性能开销分析、互发事件死循环边界、版本演进与功能时间线、沙箱与权限两条强制通道"
 ---
 
 # DSH（DeepSeek Harness）插件架构与循环调度
 
 > 最后整理: 2026-09-11 | 来源: 对话 + DSH 源码分析 + GitHub Releases 整理 + 沙箱插件包 README（dsh-sandbox / dsh-sandbox-policy / dsh-sandbox-local / dsh-fs-sandbox / dsh-permission-presets / dsh-user-approval）
 
-> 关联: [Claude Code 整体架构 & 工作流程](<../Claude-Code/Claude Code 整体架构 & 工作流程.md>) — Claude Code 闭源 Harness 对照 | [Harness Engineering](<../Claude-Code/Harness Engineering：AI Agent 时代的工程范式.md>) — Model + Harness = Agent | [AI 编程工具全景对比](<AI 编程工具：CLI Agent 与 GUI IDE 全景对比.md>) — 终端 Agent 选型 | [沙箱（Sandbox）：从进程隔离到 Agent 运行时](<../../计算机基础/沙箱（Sandbox）：从进程隔离到 Agent 运行时.md>) — 沙箱概念全景与三语境对照（本文 §7 是其 DSH 落地细节）
+> 关联: [Claude Code 整体架构 & 工作流程](<../Claude-Code/Claude Code 整体架构 & 工作流程.md>) — Claude Code 闭源 Harness 对照 | [Harness Engineering](<../Claude-Code/Harness Engineering：AI Agent 时代的工程范式.md>) — Model + Harness = Agent | [AI 编程工具全景对比](<AI 编程工具：CLI Agent 与 GUI IDE 全景对比.md>) — 终端 Agent 选型 | [沙箱（Sandbox）：从进程隔离到 Agent 运行时](<../../计算机基础/沙箱（Sandbox）：从进程隔离到 Agent 运行时.md>) — 沙箱概念全景与三语境对照（本文 §7 是其 DSH 落地细节） | [Plugins 插件体系](<../Claude-Code/Plugins 插件体系.md>) — Claude Code 的 plugin 打包机制对照（manifest + 目录约定 vs Cordis 依赖注入）
 
 ## 0. 一句话定位
 

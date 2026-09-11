@@ -5,7 +5,7 @@ description: "从古法编程到多Agent协作6个Level、程序员未来展望"
 
 # AI 编程的递进路径：从古法编程到多 Agent 协作
 
-> 最后整理: 2026-05-06 | 来源: 对话讨论
+> 最后整理: 2026-09-11 | 来源: 对话讨论
 
 > 关联: [AI 时代开发者角色进化](<./AI 时代的开发者角色进化：2026 年市场全景与职业重塑.md>) — 2026 年市场全景，经验如何迁移到 Agent 时代
 > 关联: [Vibe → SDD → 驾驭工程](<./从 Vibe Coding 到 Spec-Driven 到驾驭工程.md>) — 三阶段演进与 Harness 工程实践
@@ -172,62 +172,9 @@ OpenAI Agents SDK、MetaGPT 属于这一层。
 
 ### OpenAI Agents SDK 的 Handoff 机制
 
-```mermaid
-sequenceDiagram
-    participant U as 用户
-    participant R as Runner
-    participant A as 架构师
-    participant E as 工程师
-    participant V as 审查员
+这一层的代表实现是 OpenAI Agents SDK：它的 **Handoff（移交）**把**整个对话历史**交给下一个 Agent（底层就是一个 Function Calling → tool_call → Runner 切换 Agent），角色由任意字符串 `instructions` 定义，循环靠 `max_turns` 兜底；典型形态是 `engineer ⇄ reviewer` 打回重改。
 
-    U->>R: "做一个秒杀系统"
-    R->>A: 传入需求 + system prompt
-    A->>R: 输出架构方案 + handoff(engineer)
-    R->>E: 传入完整历史（需求+方案）
-    E->>R: 输出代码 + handoff(reviewer)
-    R->>V: 传入完整历史（需求+方案+代码）
-    V->>V: 发现问题 → handoff(engineer)
-    E->>R: 修改代码 + handoff(reviewer)
-    R->>V: 传入更新后的完整历史
-    V->>R: 审查通过，输出最终结果
-    R->>U: 返回结果
-```
-
-**关键设计**：每个 Agent 拿到的是**完整对话历史**，不是只拿到上一步的输出。所以审查员能看到最初需求、架构方案、工程师代码，综合起来 review。
-
-### 循环 Review 模式（打回重改）
-
-```python
-engineer = Agent(
-    name="工程师",
-    instructions="根据架构方案编写代码",
-    handoffs=[handoff(reviewer, tool_name="request_review")]
-)
-
-reviewer = Agent(
-    name="审查员",
-    instructions="""严格审查代码。
-- 发现问题: handoff 回 engineer 要求修改
-- 通过: 输出最终结果，不再 handoff
-- 同一问题连续两轮未修复: 标记 FAIL""",
-    handoffs=[handoff(engineer, tool_name="send_back_to_engineer")]
-)
-```
-
-形成环形：`engineer → reviewer → engineer → reviewer → ... → 通过/超时`
-
-必须设 `max_turns` 防止无限循环。
-
-### 底层原理
-
-Handoff 底层依赖 LLM 的 **Function Calling**：
-
-1. 每个 `handoff` 实际上是一个 tool（函数）
-2. LLM 生成 handoff 时，返回一个 tool_call
-3. Runner 切换到目标 Agent，重新组装 prompt：`system(new.instructions) + messages(完整历史) + tools(new.tools)`
-4. 调用新 Agent 对应的 LLM，继续循环
-
-**本质上是 prompt 工程 + function calling 的组合拳**，不是多模型并行推理。
+> 完整拆解（时序图 + engineer/reviewer 代码 + Runner/Function Calling 底层原理）见 [OpenAI Agents SDK 与多角色协作](<../应用/OpenAI Agents SDK 与多角色协作.md>)，本文不重复。
 
 ### 与 Claude Code 的对比
 

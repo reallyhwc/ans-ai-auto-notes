@@ -3,7 +3,7 @@ title: "MCP 协议：AI 界的 USB-C"
 description: "MCP协议实现内幕：JSON-RPC通信、stdio OS层细节、服务发现、Spring AI集成、@Tool注解机制"
 ---
 
-> 最后整理: 2026-05-18 | 来源: 从 llm-agent-mcp.md 拆分
+> 最后整理: 2026-09-11 | 来源: 从 llm-agent-mcp.md 拆分
 
 **一句话定位**：MCP（Model Context Protocol）是 AI 工具调用的标准化协议——写一次 Server，所有支持 MCP 的 LLM 都能用。本文深入协议实现内幕、通信机制与自定义开发方案。
 
@@ -143,7 +143,20 @@ flowchart LR
 
 ### 2.1 通信层：JSON-RPC 2.0
 
-MCP 底层是 **JSON-RPC 2.0**，通过 stdio（标准输入输出）或 **Streamable HTTP** 传输（单端点、双向流式；早期的 HTTP+SSE 传输已在 2025-03 规范中弃用）：
+MCP 底层是 **JSON-RPC 2.0**，通过 stdio（标准输入输出）或 **Streamable HTTP** 传输（单端点、双向流式；早期的 HTTP+SSE 传输已在 2025-03 规范中弃用）。
+
+**规范版本演进**（截至 2026-09，当前版本 = `2026-07-28`，见 [官方 changelog](https://modelcontextprotocol.io/specification/2026-07-28/changelog)）：
+
+| 版本 | 关键变化 |
+|------|---------|
+| 2024-11-05 | 首个规范版本，只支持 stdio + HTTP+SSE |
+| 2025-03-26 | 引入 Streamable HTTP，**弃用 HTTP+SSE** |
+| 2025-06-18 | 补充 OAuth 授权、elicitation 等 |
+| **2026-07-28** | **协议问世以来最大更新**：转向**无状态**——取消会话（session）概念，Server 从"有状态的长期进程"变成"按请求响应的一等函数"，并强化扩展机制与授权。迁移要点见 [官方无状态迁移指南](https://aaif.io/blog/migrate-sessions-to-stateless-requests-with-mcp-2026-07-28) |
+
+> 下文 §2.2、§3 的 stdio 时序与 Java 实现仍以经典有状态模型为例（绝大多数现存 SDK 仍兼容），读的时候把"每个请求自带全部上下文"当作 2026-07-28 之后的新前提即可。
+
+一次典型的 `tools/list` + `tools/call` 往返长这样：
 
 ```
 MCP Client                         MCP Server
@@ -221,7 +234,7 @@ Claude Code (Node.js)                          Java 进程
 ① spawn 子进程
    proc.stdin  = writable pipe
    proc.stdout = readable pipe                 ② Spring Boot 启动
-                                                  @EnableMcpServer 初始化
+                                                                                                    MCP Server 自动装配
                                                    扫描 @Tool → 构建注册表
                                                    block 在 readLine() 上
 
@@ -414,7 +427,11 @@ public class MyMcpServer {
 
 ### 3.4 Java 方案一：Spring AI MCP Server（推荐）
 
-Spring AI 官方提供了 `spring-ai-starter-mcp-server`，直接把标注好的 Bean 暴露为 MCP 工具。和 Controller 共享 Service 层，不改原有代码。
+Spring AI 官方提供了一组 MCP Server starter（`spring-ai-starter-mcp-server` / `-webmvc` / `-webflux` / `-webmvc-*`），把带 `@Tool` 注解的 Bean 暴露为 MCP 工具。和 Controller 共享 Service 层，不改原有代码。
+
+选哪个 starter：**stdio（本地、Claude Code 直接 spawn）用 `spring-ai-starter-mcp-server`；要起 HTTP 端点则 webmvc / webflux 版本**。
+
+> **注意**：Spring AI 1.0 GA 之后**不需要任何 `@EnableMcpServer` 之类的开关注解**——`@Tool` 方法所在的 Bean 被 Spring 容器接管后即被发现并注册为 MCP 工具；如需手工挑工具，用 `ToolCallbackProvider`（`MethodToolCallbackProvider.builder().toolObjects(...)`）显式声明。早期网上流传的 `@EnableMcpServer` 写法已不适用。
 
 **架构**：
 
@@ -432,7 +449,7 @@ Claude Code ──stdio──→ MCP Server ────┘
 <dependency>
     <groupId>org.springframework.ai</groupId>
     <artifactId>spring-ai-starter-mcp-server-webmvc</artifactId>
-    <version>1.0.0</version>  <!-- 2025-09 GA，请按需用最新 patch 版 -->
+    <version>1.0.0</version>  <!-- Spring AI 1.0 GA（2025-05）；迭代很快，请以 Maven Central 最新版为准 -->
 </dependency>
 ```
 
@@ -474,11 +491,10 @@ public class OrderMcpTools {
 }
 ```
 
-启动类：
+启动类——**不需要额外注解**，`@Tool` Bean 会被自动发现：
 
 ```java
 @SpringBootApplication
-@EnableMcpServer   // ← 加这一个注解
 public class Application {
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
@@ -557,7 +573,7 @@ public class McpServer {
 
 | | Spring AI MCP | 手写 |
 |------|-------------|------|
-| 代码量 | `@Tool` 注解 + `@EnableMcpServer` | ~150 行样板 |
+| 代码量 | `@Tool` 注解 + 自动注册（无开关注解） | ~150 行样板 |
 | Schema 生成 | 从方法签名 + `@ToolParam` 自动推断 | 手写 JSON Schema |
 | 参数类型映射 | 自动（String→string, int→integer 等） | 手动从 JsonNode 提取 |
 | 和现有 Controller 的关系 | 同名 Service，两个入口 | 同名 Service，两个入口 |
@@ -566,17 +582,12 @@ public class McpServer {
 
 ### 3.7 和 Dubbo/Nacos 的对比（精简版）
 
-> 深度架构对比（发现与调用分离、为什么 MCP 不做注册中心、Dubbo 模型 vs MCP 模型）请见 [§3.2 与 Dubbo 对比](#32-与-dubbo-对比)。
+> 完整对比见 [§3.2 与 Dubbo 对比](#3-2-与-dubbo-对比)——那里有 5 个维度的逐项对照，以及"发现与调用是否分离"这条核心架构差异的图解。这里只留最容易记混的两点：
 
 | | Dubbo + Nacos | MCP |
 |------|-------------|-----|
-| 注册中心 | Nacos 动态注册 | 无——JSON 文件静态声明 |
-| 服务发现 | 启动时订阅注册中心 | 启动时读 `.mcp.json`，spawn 子进程 |
-| 通信协议 | Dubbo 协议（TCP 长连接） | JSON-RPC 2.0 over stdio |
-| 接口定义 | Java Interface | JSON Schema（由 `@Tool` 注解推断） |
-| 提供者 | Provider 注册到 Nacos | 子进程，由 Client 管理生命周期 |
-| 调用方式 | RPC 代理，透明调用 | Agent 框架收到 LLM tool_call → 发 JSON-RPC |
-| **核心差异** | **发现与调用分离**（Consumer → 注册中心 → Provider 直连） | **发现与调用一体**（Client → 同一个 Server 处理 tools/list + tools/call） |
+| 注册中心 | Nacos 动态注册 | 无——`.mcp.json` 静态声明，Client spawn 子进程 |
+| 核心差异 | 发现与调用**分离**（Consumer → 注册中心 → Provider 直连） | 发现与调用**一体**（Client → 同一个 Server 处理 `tools/list` + `tools/call`） |
 
 ---
 

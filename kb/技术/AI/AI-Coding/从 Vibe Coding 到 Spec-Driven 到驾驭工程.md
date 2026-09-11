@@ -5,7 +5,7 @@ description: "AI 编程三阶段演进：Vibe Coding（放马跑，爽但危险�
 
 # 从 Vibe Coding 到 Spec-Driven 到驾驭工程
 
-> 最后整理: 2026-05-24 | 来源: 对话讨论
+> 最后整理: 2026-09-11 | 来源: 对话讨论
 
 > 关联: [AI Coding 团队治理](<./AI Coding 团队治理：从个人提效到团队工程化.md>) — Pre-PR 机制、人机对齐方法论、31 万行重构实践
 > 关联: [AI Coding 分层](<./AI 编程的递进路径：从古法编程到多 Agent 协作.md>) — AI Coding 五个能力层级
@@ -180,7 +180,7 @@ SDD:          人定 Spec → AI 实现 → 测试验证 Spec
 ```mermaid
 flowchart TD
     subgraph CL["约束层 (Constraint Layer)"]
-        SS["SessionStart<br/>preflight.sh → arch-lint.sh<br/>13 项架构检查"]
+        SS["SessionStart<br/>preflight.sh → arch-lint.sh<br/>15 项架构检查"]
         STOP["Stop<br/>exit-check.sh → lint.sh<br/>+ check-overview.js"]
         PUSH["Pre-Push<br/>test.sh (git hook)<br/>全量测试必须绿"]
     end
@@ -260,7 +260,7 @@ SDD:
   你完全没介入，但所有检查都自动完成了
 
   下次启动:
-    → SessionStart hook 自动跑 arch-lint.sh（13 项检查）
+    → SessionStart hook 自动跑 arch-lint.sh（15 项检查）
     → 即使上次 AI 漏了什么，这次立刻发现
 ```
 
@@ -287,7 +287,7 @@ AI 的工作边界:
 
 SessionStart Gate:
   → preflight.sh: 上次 session 摘要、git 状态、manifest 过期检查
-  → arch-lint.sh: 13 项机械检查（AI 不参与判断，纯脚本判定）
+  → arch-lint.sh: 15 项机械检查（AI 不参与判断，纯脚本判定）
 
 Stop Gate:
   → exit-check.sh: lint + overview 健康 + session 日志 + 未 push 检查
@@ -296,7 +296,7 @@ Pre-Push Gate:
   → test.sh: 所有测试必须通过 + mermaid 守恒检查
 
 结果:
-  41 个 md 文件、0 个架构错误、2 个已知行数警告
+  80 个 md 文件、0 个架构错误、5 个已知行数警告（>1000 行仅提示，不拆）
   跨文件链接、编号连续性——全部由 AI 在 harness 内完成
   人只参与了"确认内容方向"，没有参与"检查代码质量"
 ```

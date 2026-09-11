@@ -5,12 +5,13 @@ description: "Skills 的三层渐进式披露机制、token 经济学、frontmat
 
 # Skills 渐进式披露架构
 
-> 最后整理: 2026-06-29 | 来源: 黄佳《Claude Code 工程化实战》课程 + [Claude Code Skills 官方文档](https://code.claude.com/docs/en/skills)
+> 最后整理: 2026-09-11 | 来源: 黄佳《Claude Code 工程化实战》课程 + [Claude Code Skills 官方文档](https://code.claude.com/docs/en/skills)
 
 > 关联: [子智能体（subagents）机制与实战](./子智能体（subagents）机制与实战.md) — skill 和 subagent 的边界
 > 关联: [Hooks 事件全景与拦截机制](<./Hooks 事件全景与拦截机制.md>) — skill frontmatter 内的 hooks 字段
 > 关联: [Superpowers TDD Skill 工作流拆解](<./Superpowers TDD Skill 工作流拆解.md>) — 一个具体 skill 的实战拆解
 > 关联: [从 Sub-Agent 到 Multi-Agent 的工程指南](<./从 Sub-Agent 到 Multi-Agent 的工程指南.md>) — Skills 作为最轻量多智能体模式的定位
+> 关联: [任务型 Skills（斜杠命令）实战](<./任务型 Skills（斜杠命令）实战.md>) — §19「两类 Skill」的任务型一侧展开成独立专题
 
 ---
 
@@ -660,7 +661,7 @@ graph TD
 
 ### §17.5 权限控制
 
-详见 [§15 与 hook、permission 的协同](#15-与-hookpermission-的协同)。
+详见 [§15 与 hook、permission 的协同](#15-与-hook-permission-的协同)。
 
 ---
 

@@ -5,9 +5,9 @@ description: "任务型 Skill 的核心机制、参数传递、!command 动态�
 
 # 任务型 Skills（斜杠命令）实战
 
-> 最后整理: 2026-06-30 | 来源: 黄佳《Claude Code 工程化实战》课程 §5（概念提炼）
+> 最后整理: 2026-09-11 | 来源: 黄佳《Claude Code 工程化实战》课程 §5（概念提炼）
 
-> 关联: [Skills 渐进式披露架构](<./Skills 渐进式披露架构.md>) — 任务型是同一套机制的另一面
+> 关联: [Skills 渐进式披露架构](<./Skills 渐进式披露架构.md#19-两类-skill-参考型-vs-任务型>) — §19「两类 Skill」的任务型一侧，本文是它的展开
 > 关联: [Hooks 事件全景与拦截机制](<./Hooks 事件全景与拦截机制.md>) — Skill 内 Hooks 的宿主
 > 关联: [子智能体（subagents）机制与实战](<./子智能体（subagents）机制与实战.md>) — 与 context: fork 的组合
 

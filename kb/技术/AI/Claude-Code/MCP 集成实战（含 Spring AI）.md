@@ -1,11 +1,11 @@
 ---
 title: "MCP 集成实战（含 Spring AI）"
-description: "MCP 协议在 Claude Code 中的接入：四种 transport 对比、三级 scope 优先级、配置命令、Spring AI MCP server 实战接入、OAuth、Tool Search 优化、调试与坑"
+description: "MCP 协议在 Claude Code 中的接入：四种 transport 对比、五级 scope 优先级、配置命令、Spring AI MCP server 实战接入、OAuth、Tool Search 优化、调试与坑"
 ---
 
 # MCP 集成实战（含 Spring AI）
 
-> 最后整理: 2026-06-02 | 来源: 黄佳《Claude Code 工程化实战》课程 + [Claude Code MCP 官方文档](https://code.claude.com/docs/en/mcp)
+> 最后整理: 2026-09-11 | 来源: 黄佳《Claude Code 工程化实战》课程 + [Claude Code MCP 官方文档](https://code.claude.com/docs/en/mcp)
 
 > 关联: [子智能体（subagents）机制与实战](./子智能体（subagents）机制与实战.md) — subagent frontmatter 的 mcpServers 字段
 > 关联: [Plugins 插件体系](<./Plugins 插件体系.md>) — plugin 内置 MCP server 的特殊机制
@@ -59,7 +59,7 @@ graph TD
 
 ---
 
-## §3 配置命令（4 种 scope）
+## §3 配置命令（五种来源）
 
 `claude mcp add` 命令统一入口：
 
@@ -88,7 +88,9 @@ claude mcp add --transport stdio --env KEY=value myserver -- python server.py --
 claude mcp add myserver --port 8080 -- python server.py
 ```
 
-### Scope 优先级
+### 五种来源的优先级
+
+> 口径说明：官方把**安装 scope** 定为三种（local / project / user，见 [MCP 官方文档](https://code.claude.com/docs/en/mcp#mcp-installation-scopes)）；plugin 自带的 MCP（[§10](#10-plugin-提供-mcp-server)）和 claude.ai connectors 是另外两条**配置来源**。这里合并成一张五级表，便于排"同名 server 谁生效"的顺序。
 
 | 优先级 | scope | 存储 | 何时用 |
 |--------|-------|------|--------|
@@ -99,6 +101,8 @@ claude mcp add myserver --port 8080 -- python server.py
 | **5** | claude.ai connectors | 远端配置 | 多端共享 |
 
 冲突按**整条记录**取最高优先级的，**不合并字段**。
+
+补充口径：官方层级只列 local → project → user 三级；plugin 和 connector 是**按 endpoint 匹配**去重的（指向同一个 URL 或命令就算同一个 server），不是按名字。
 
 ---
 
@@ -173,7 +177,9 @@ required 变量没设也没 default → 解析失败、配置无效。
 
 ## §5 接入自研 Spring AI MCP Server（完整步骤）
 
-**前提**：Spring Boot 3.x + Spring AI 1.0+。Spring AI 内置 `spring-ai-mcp-server-spring-boot-starter` 可一键起 MCP server。
+**前提**：Spring Boot 3.x + Spring AI 1.0+。加一个 MCP server starter 依赖即可起 MCP server——Spring Boot 自动装配端点，工具通过 `@Tool` 方法 + `ToolCallbackProvider` bean 暴露（**没有** `@EnableMcpServer` 之类的开关注解）。
+
+> ⚠️ 坐标在 1.0 GA 改过名：里程碑时期是 `spring-ai-mcp-server-*-spring-boot-starter`，**现在是 `spring-ai-starter-mcp-server` / `-webmvc` / `-webflux`**（前缀统一成 `spring-ai-starter-`）。网上大量教程还停在旧坐标。
 
 ### 5.1 Spring 端（最小可用）
 
@@ -182,7 +188,7 @@ required 变量没设也没 default → 解析失败、配置无效。
 ```xml
 <dependency>
   <groupId>org.springframework.ai</groupId>
-  <artifactId>spring-ai-mcp-server-webflux-spring-boot-starter</artifactId>
+  <artifactId>spring-ai-starter-mcp-server-webflux</artifactId>
   <version>1.0.0</version>
 </dependency>
 ```
@@ -279,7 +285,7 @@ Claude 应该自动调你的 `getRecentOrders` tool。
 
 | 坑 | 现象 | 解决 |
 |---|------|------|
-| `/sse` endpoint 404 | Spring 没用 webflux starter | 用 `spring-ai-mcp-server-webflux-spring-boot-starter` 起 SSE |
+| `/sse` endpoint 404 | Spring 没用 webflux starter | 换成 `spring-ai-starter-mcp-server-webflux`（旧坐标 `spring-ai-mcp-server-webflux-spring-boot-starter` 在 1.0 GA 已改名） |
 | Inspector 能连但 Claude 连不上 | 防火墙挡住 Claude Code 进程 | macOS 系统设置 → 隐私 → 完全磁盘访问加上 Claude |
 | Tool 注解写了 Claude 不识别 | `@Tool` 描述写得太抽象 | 描述写"何时用、参数含义"，越具体越好 |
 | 返回大 JSON 截断 | MCP 默认 25K token 限制 | 设 `MAX_MCP_OUTPUT_TOKENS=50000` 或 server 端分页 |

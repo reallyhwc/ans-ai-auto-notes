@@ -1,11 +1,11 @@
 ---
 title: "多模态 LLM"
-description: "LLM+视觉编码器，图片/音频输入理解"
+description: "多模态 LLM 如何看图：视觉编码器 ViT + 投影层把图片对齐到文本 embedding 空间，与纯文本 LLM 的输入输出对比及典型模型（GPT/Claude/Gemini/Qwen-VL）"
 ---
 
 # 多模态 LLM（Multimodal LLM）
 
-> 最后整理: 2026-05-06 | 来源: 多轮对话
+> 最后整理: 2026-09-11 | 来源: 多轮对话
 
 ## 一句话定位
 

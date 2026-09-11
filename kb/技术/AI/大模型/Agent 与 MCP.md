@@ -371,9 +371,18 @@ Agent 和工具实现之间插入**标准化 MCP 层**。Agent 不直接知道�
 {"mcpServers": {"order-service": {"command": "java", "args": ["-jar", "order-mcp-server.jar"]}}}
 
 // ===== MCP Server（独立项目或同一项目另一个入口）=====
+// 依赖：spring-ai-starter-mcp-server（stdio）/ -webmvc / -webflux（1.0 GA 坐标；
+// 旧教程里的 spring-ai-mcp-server-spring-boot-starter 已改名）
 @SpringBootApplication
-@EnableMcpServer  // ← 自动处理 stdin/stdout JSON-RPC
-public class McpServerApp { ... }
+public class McpServerApp {
+    // Spring Boot 自动装配 MCP 端点与 stdin/stdout JSON-RPC 传输——
+    // 没有 @EnableMcpServer 这类开关注解；工具靠下面的 @Tool 方法 +
+    // ToolCallbackProvider bean 暴露
+    @Bean
+    ToolCallbackProvider tools(OrderMcpTools tools) {
+        return MethodToolCallbackProvider.builder().toolObjects(tools).build();
+    }
+}
 
 @Component
 class OrderMcpTools {
@@ -499,7 +508,7 @@ MCP（Model Context Protocol）是 AI 工具调用的标准化协议——写一
 
 > **详细内容已拆分至：[MCP 协议：AI 界的 USB-C](<./MCP 协议：AI 界的 USB-C.md>)**
 >
-> 包含：MCP 痛点与架构、JSON-RPC 2.0 通信层、stdio OS 层细节（fork+pipe 完整交互序列）、服务发现机制（配置文件 vs 注册中心）、Spring AI 集成方案（`@Tool` + `@EnableMcpServer`）、纯手写方案、`@Tool` 注解内部机制（启动扫描→Schema 生成→完整请求链路）、与 Dubbo/Nacos 对比
+> 包含：MCP 痛点与架构、JSON-RPC 2.0 通信层、stdio OS 层细节（fork+pipe 完整交互序列）、服务发现机制（配置文件 vs 注册中心）、Spring AI 集成方案（`@Tool` + starter 自动装配，无 `@EnableMcpServer` 注解）、纯手写方案、`@Tool` 注解内部机制（启动扫描→Schema 生成→完整请求链路）、与 Dubbo/Nacos 对比
 
 ---
 
@@ -547,7 +556,7 @@ sequenceDiagram
 
     Note over CC: 启动：读 .mcp.json
     CC->>Java: spawn 子进程
-    Note over Java: Spring Boot init<br/>@EnableMcpServer → 注册 MCP 端点<br/>扫描 @Tool → 构建 Map<String, ToolCallback>
+    Note over Java: Spring Boot init<br/>starter 自动装配 MCP 端点<br/>扫描 @Tool → 构建 Map<String, ToolCallback>
 
     CC->>Java: stdin: {"method":"tools/list","id":1}
     Java->>Java: 遍历注册表 → 生成工具列表 JSON

@@ -5,7 +5,7 @@ description: "2026 年 1-6 月 Claude Code 新增的架构级能力（Agent View
 
 # Claude Code 2026 上半年新特性与项目实践
 
-> 最后整理: 2026-06-08 | 来源: [官方 Changelog](https://code.claude.com/docs/en/changelog) + 官方文档交叉验证
+> 最后整理: 2026-09-11 | 来源: [官方 Changelog](https://code.claude.com/docs/en/changelog) + 官方文档交叉验证
 
 > 关联: [Claude Code 整体架构 & 工作流程](<./Claude Code 整体架构 & 工作流程.md>) — 主架构鸟瞰
 > 关联: [子智能体（subagents）机制与实战](./子智能体（subagents）机制与实战.md) — subagent 底层机制
@@ -167,7 +167,7 @@ graph LR
 
 **课程覆盖**：❌ 未覆盖
 
-**Auto Mode**：Claude 在执行工具调用时，由安全分类器自动判断是否需要用户确认。低风险操作（如读文件）自动放行，高风险操作（如删文件）仍弹确认。相比固定的权限模式（Accept-Edit / Accept-All），Auto Mode 更智能、中断更少。
+**Auto Mode**：Claude 在执行工具调用时，由安全分类器自动判断是否需要用户确认。低风险操作（如读文件）自动放行，高风险操作（如删文件）仍弹确认。相比固定粒度的权限模式（Manual / `acceptEdits` / `plan` 这些只按"动作类型"一刀切），Auto Mode 更智能、中断更少。
 
 **`/goal` 命令**（v2.1.139+）：设定完成条件，Claude 跨多轮持续工作直到达标。会显示实时进度面板。
 
@@ -356,7 +356,7 @@ gantt
 黄佳课程打下的基础（subagent/skill/hook/MCP/headless/plugin）仍然是 Claude Code 的核心骨架。2026 上半年的新特性主要在**两个方向**上扩展：
 
 1. **从"单会话内编排"到"多会话编排"**：subagent → Background Agent → Agent Teams → Dynamic Workflows，编排粒度越来越大
-2. **从"人机交互"到"自主工作"**：Accept-Edit → Auto Mode → /goal → /loop → CronCreate，人工介入越来越少
+2. **从"人机交互"到"自主工作"**：Manual（每步确认）→ `acceptEdits`（放行编辑）→ Auto Mode（分类器判断）→ /goal → /loop → CronCreate，人工介入越来越少
 
 对于当前项目（单人维护的知识库），最有价值的组合是：
 

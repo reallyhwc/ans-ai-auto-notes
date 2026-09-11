@@ -1,11 +1,11 @@
 ---
 title: "子智能体（subagents）机制与实战"
-description: "subagent 的定位、与 skill/Agent SDK 的区分、四级 scope 优先级、frontmatter 全字段、三种调用方式、独立 context 机制、协作链路、fork/worktree/persistent memory 进阶、permissionMode 风险与降险配套、skills 预加载 vs 嵌套 spawn 取舍、常见 subagent 配方（数据库查询分析器/code-reviewer/test-runner）"
+description: "subagent 的定位、与 skill/Agent SDK 的区分、五级 scope 优先级、frontmatter 全字段、三种调用方式、独立 context 机制、协作链路、fork/worktree/persistent memory 进阶、permissionMode 风险与降险配套、skills 预加载 vs 嵌套 spawn 取舍、常见 subagent 配方（数据库查询分析器/code-reviewer/test-runner）"
 ---
 
 # 子智能体（subagents）机制与实战
 
-> 最后整理: 2026-06-02 | 来源: 黄佳《Claude Code 工程化实战》课程 + [Claude Code Subagents 官方文档](https://code.claude.com/docs/en/sub-agents)
+> 最后整理: 2026-09-11 | 来源: 黄佳《Claude Code 工程化实战》课程 + [Claude Code Subagents 官方文档](https://code.claude.com/docs/en/sub-agents)
 
 > 关联: [Skills 渐进式披露架构](<./Skills 渐进式披露架构.md>) — subagent 与 skill 的边界对比
 > 关联: [Hooks 事件全景与拦截机制](<./Hooks 事件全景与拦截机制.md>) — SubagentStart/Stop 事件
@@ -107,17 +107,22 @@ Claude Code 自带几个 subagent，你不用定义就能用：
 
 | 名字 | 模型 | 工具 | 主 agent 何时自动派发 |
 |------|------|------|---------------------|
-| **Explore** | Haiku（快、便宜） | 只读（Read/Grep/Glob/WebFetch） | 需要搜代码、读多文件而不修改时。**跳过 CLAUDE.md 和 git status**（保持 context 小） |
-| **Plan** | 继承主 | 只读 | 进入 plan mode 时收集 context。**跳过 CLAUDE.md** |
-| **general-purpose** | 继承主 | 全部工具 | 复杂多步任务，既要探索又要改 |
+| **Explore** | 继承主对话（Claude API 上封顶 Opus） | 只读工具（Write/Edit 被拒） | 需要搜代码、读多文件而不修改时。**跳过 CLAUDE.md 和 git status**（保持 context 小）。调用时可指定 quick / medium / very thorough 三档彻底度 |
+| **Plan** | 继承主 | 只读工具（Write/Edit 被拒） | 进入 plan mode 时收集 context。**跳过 CLAUDE.md 和 git status** |
+| **general-purpose** | 继承主 | subagent 可用的全部工具 | 复杂多步任务，既要探索又要改 |
+| **claude** | 继承主 | subagent 可用的全部工具 | 任务不匹配任何专门 agent 时的兜底；也是后台会话的默认 agent |
 | **statusline-setup** | Sonnet | Read/Edit | `/statusline` 命令 |
 | **claude-code-guide** | Haiku | Bash/Read/WebFetch/WebSearch | 用户问 Claude Code 功能、hook、MCP 配置等 |
 
 **重要事实**：只有 Explore 和 Plan 跳过 CLAUDE.md 和 git status。其他所有 subagent（包括你自定义的）**都会**继承完整的 CLAUDE.md 层级 + 项目级 git 状态。
 
+⚠️ **模型口径已变（v2.1.198）**：Explore 不再固定跑 Haiku，而是继承主对话模型（Claude API 上封顶 Opus）；非 Anthropic provider（Bedrock / Google Cloud Agent Platform / Microsoft Foundry 等）直接继承。想让它便宜，可以在项目里自定义一个同名 `Explore` subagent 并写 `model: haiku` 覆盖内置的。
+
+> 官方对 Explore / Plan 的工具描述只有"read-only tools; Write and Edit are denied"这一句——本库不臆测具体工具名，只保留可核实的部分。来源：[Subagents 官方文档](https://code.claude.com/docs/en/sub-agents)
+
 ---
 
-## §4 自定义 subagent 的四级 scope
+## §4 自定义 subagent 的五级 scope
 
 subagent 定义文件可以放在五个地方，**冲突时按优先级取一个**（不合并字段）：
 
@@ -651,7 +656,7 @@ skills 预加载只能塞"静态知识"。真的需要独立判断 + 反馈循�
 | `bypassPermissions` | ✗ 全自动 | ✗ 全自动 | 沙箱/容器内，外部别用 |
 | `plan` | — | — | 只做规划不执行（Read-only） |
 
-> **关键差异**：`acceptEdits` **不**自动通过 Bash——这是它和 `bypassPermissions` 的安全分界线。`rm -rf` 这种破坏性命令仍会弹窗。
+> **关键差异**：`acceptEdits` 放行的是**文件编辑 + 常见文件系统命令**（`mkdir`/`touch`/`mv`/`cp`），但**不**自动通过其他 Bash 命令——这是它和 `bypassPermissions` 的安全分界线。`rm -rf` 这种破坏性命令仍会弹窗。官方模式全清单是 Manual(`default`) / `acceptEdits` / `plan` / `auto` / `dontAsk` / `bypassPermissions`。
 
 ### §16.2 自动修复 subagent 选 `acceptEdits` 的风险
 

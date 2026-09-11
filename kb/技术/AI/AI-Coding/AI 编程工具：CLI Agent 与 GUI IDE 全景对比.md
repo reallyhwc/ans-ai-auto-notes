@@ -5,7 +5,7 @@ description: "AI 编程工具全景对比：终端 Agent (Claude Code / Codex CL
 
 # AI 编程工具：CLI Agent 与 GUI IDE 全景对比
 
-> 最后整理: 2026-05-18 | 来源: 多轮对话
+> 最后整理: 2026-09-11 | 来源: 多轮对话
 
 > 关联: [Go 与 TypeScript 快速对比](<../../编程语言/Go 与 TypeScript 对比.md>) — CLI Agent 两大主力语言选型
 
@@ -174,7 +174,7 @@ codex cloud            → 云端沙箱执行 + 可视化 Dashboard
 
 ### 4.2 Claude Code 的独门绝活
 
-**1. 推理深度**：SWE-bench 80.9%，复杂多文件重构最强。Opus 4.7 的推理能力仍是标杆。
+**1. 推理深度**：SWE-bench 80.9%，复杂多文件重构最强。旗舰模型已到 Opus 4.8（2026-05-28 发布，v2.1.154），推理能力仍是标杆。
 
 **2. Agent Teams 多智能体协同**：多个 Agent 分派不同任务协同工作。
 
@@ -230,7 +230,7 @@ RLM:   任务1 ↘
 | CI/CD 非交互 | ✅ | ✅ `codex exec` | ✅ `deepseek` 单次 |
 | IDE 集成 | ✅ VS Code/JetBrains | ✅ app-server JSON-RPC | ❌ |
 | HTTP 服务 | ❌ | ❌ | ✅ `serve --http` |
-| MCP Server | ❌ | ✅ | ✅ |
+| MCP Server | ✅ `claude mcp serve` | ✅ | ✅ |
 | Cloud 执行 | ❌ | ✅ `codex cloud` | ❌ |
 | Remote Control | ❌ | ✅ v0.130.0 | ❌ |
 | Voice Input | ❌ | ✅ v0.105.0 | ❌ |

@@ -5,12 +5,12 @@ description: "LangChain 双语言支持(Python/JS)、Python写Agent+Java写MCP�
 
 # 跨语言 Agent + MCP 架构
 
-> 最后整理: 2026-05-26 | 来源: 对话讨论
+> 最后整理: 2026-09-11 | 来源: 对话讨论（2026-09 审计修订：Python 客户端 await、Java SDK 新 API、关联块去重）
 
-> 关联: [agent-development-practice](<./Agent 开发实战：选型、框架与思维转换.md>) — Spring AI Agent 开发
-> 关联: [langchain-agent-guide](<./LangChain Agent 开发指南：是什么、怎么用、与 Spring AI 对比.md>) — LangChain Agent 开发指南
-> 关联: [spring-ai-vs-langchain](<./Spring AI vs LangChain 深度对比：从 Java 后端视角彻底搞懂.md>) — 两个框架深度对比
-> 关联: [llm-agent-mcp](<../大模型/Agent 与 MCP.md>) — MCP 协议原理
+> 关联: [Agent 开发实战：选型、框架与思维转换](<./Agent 开发实战：选型、框架与思维转换.md>) — Spring AI Agent 开发
+> 关联: [LangChain Agent 开发指南](<./LangChain Agent 开发指南：是什么、怎么用、与 Spring AI 对比.md>) — LangChain Agent 开发指南
+> 关联: [Spring AI vs LangChain 深度对比](<./Spring AI vs LangChain 深度对比：从 Java 后端视角彻底搞懂.md>) — 两个框架深度对比
+> 关联: [Agent 与 MCP](<../大模型/Agent 与 MCP.md>) — MCP 协议原理
 
 ---
 
@@ -77,17 +77,25 @@ MCP 通信走 **stdio**（标准输入输出）或 **HTTP**（Streamable HTTP）
 
 ```python
 # Python Agent 自动发现 Java MCP 工具
+import asyncio
 from langchain_mcp_adapters.client import MultiServerMCPClient
+from langgraph.prebuilt import create_react_agent
 
-async with MultiServerMCPClient({
-    "order-service": {
-        "command": "java",
-        "args": ["-jar", "target/order-mcp-server.jar"]
-    }
-}) as client:
-    tools = client.get_tools()  # ← Java @Tool 自动变成 Python tool
+async def main():
+    # MultiServerMCPClient 是**异步** API：get_tools() 必须 await，
+    # 否则拿到的是 coroutine（照抄会直接报 "coroutine has no attribute ..."）
+    client = MultiServerMCPClient({
+        "order-service": {
+            "command": "java",
+            "args": ["-jar", "target/order-mcp-server.jar"]
+        }
+    })
+    tools = await client.get_tools()   # ← Java @Tool 自动变成 Python tool
     agent = create_react_agent(llm, tools, prompt)
-    result = agent.invoke({"input": "查订单123"})
+    result = await agent.ainvoke({"messages": [("user", "查订单123")]})
+    return result
+
+asyncio.run(main())
 ```
 
 ---
@@ -113,14 +121,18 @@ async with MultiServerMCPClient({
 ```java
 // Spring AI 通过 MCP Client 连接 Python MCP Server
 @Bean
-public McpClient pythonTools() {
-    return McpClient.using(
-        new StdioTransport(
-            "python", "-m", "my_mcp_server"
+public McpSyncClient pythonTools() {
+    // 旧 API 是 McpClient.using(transport).sync()；新 SDK 改成
+    // McpClient.sync(transport).build()（异步版 McpClient.async(...)）
+    return McpClient.sync(
+        new StdioClientTransport(
+            new StdioClientTransport.ServerParameters("python")
+                .args(List.of("-m", "my_mcp_server"))
         )
-    ).sync();
+    ).build();
 }
-// Python MCP Server 的 @tool 自动变成 Java FunctionCallback
+// Python MCP Server 侧 @tool 暴露的工具，到 Java 侧等价于一批可调用的工具回调
+// （Spring AI 里通过 ToolCallbackProvider / FunctionCallback 接入 ChatClient）
 ```
 
 ---
@@ -147,9 +159,3 @@ public McpClient pythonTools() {
 └────────────────────────────────────────────────┘
 ```
 
----
-
-> 关联: [agent-development-practice](<./Agent 开发实战：选型、框架与思维转换.md>) — Spring AI Agent 开发
-> 关联: [langchain-agent-guide](<./LangChain Agent 开发指南：是什么、怎么用、与 Spring AI 对比.md>) — LangChain Agent 开发指南
-> 关联: [spring-ai-vs-langchain](<./Spring AI vs LangChain 深度对比：从 Java 后端视角彻底搞懂.md>) — 两个框架的深度对比
-> 关联: [llm-agent-mcp](<../大模型/Agent 与 MCP.md>) — MCP 协议原理

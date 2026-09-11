@@ -5,7 +5,7 @@ description: "Ollama安装使用+进阶玩法(API/Embedding/Modelfile/Web UI)、
 
 # 本地部署 LLM：小模型 + Ollama 实践
 
-> 最后整理: 2026-05-07 | 来源: 对话
+> 最后整理: 2026-09-11 | 来源: 对话
 
 ## 一句话定位
 
@@ -29,13 +29,15 @@ description: "Ollama安装使用+进阶玩法(API/Embedding/Modelfile/Web UI)、
 
 | 模型 | 参数量 | 量化后大小 | 中文能力 | 推荐场景 |
 |------|--------|-----------|----------|----------|
-| **Qwen2.5:0.5b** | 0.5B | ~350 MB | 优秀 | 最简单，树莓派都能跑 |
-| **Qwen2.5:1.5b** | 1.5B | ~1 GB | 优秀 | 中文小模型首选 |
-| **llama3.2:1b** | 1B | ~700 MB | 一般 | 英文好，中文弱 |
-| **llama3.2:3b** | 3B | ~2 GB | 一般 | 性能/体积平衡 |
-| **phi3:mini** | 3.8B | ~2.3 GB | 中上 | 微软出品，逻辑推理强 |
+| **qwen3:0.6b** | 0.6B | ~400 MB | 优秀 | 最小可用，树莓派都能跑 |
+| **qwen3:1.7b** | 1.7B | ~1.1 GB | 优秀 | 中文小模型首选 |
+| **qwen3:4b** | 4B | ~2.5 GB | 优秀 | 1.7B 不够聪明时的下一档 |
+| **gemma3:1b** | 1B | ~800 MB | 中上 | Google 出品，英文/多语言均衡 |
+| **phi4-mini** | 3.8B | ~2.5 GB | 中上 | 微软出品，逻辑推理强 |
 
-**中文场景推荐 Qwen2.5:1.5b**，0.5B 太弱（只能做简单 QA），1.5B 是中文小模型甜点。
+**中文场景推荐 qwen3:1.7b**，0.6B 太弱（只能做简单 QA），1.7B 是中文小模型甜点。
+
+> **模型迭代很快**，上表的版本号（qwen3 / gemma3 / phi4-mini）以 2026-09 为准，实际部署前请以 [Ollama 模型库](https://ollama.com/library) 的当前 tag 为准；清单里的"哪一档参数"比"哪一代版本"更稳定。
 
 ---
 
@@ -139,16 +141,16 @@ Java 程序:  Java 代码（.jar） + JVM → 运行
 
 ```bash
 # 方式1: 交互式对话
-ollama run qwen2.5:1.5b
+ollama run qwen3:1.7b
 >>> 你好
 >>> 什么是机器学习？
 
 # 方式2: 一次性提问（问完就退）
-ollama run qwen2.5:1.5b "帮我解释什么是 transformer"
+ollama run qwen3:1.7b "帮我解释什么是 transformer"
 
 # 方式3: API 服务（给其他程序调用）
 curl http://localhost:11434/api/generate \
-  -d '{"model":"qwen2.5:1.5b","prompt":"你好"}'
+  -d '{"model":"qwen3:1.7b","prompt":"你好"}'
 ```
 
 ### 资源占用
@@ -165,9 +167,9 @@ curl http://localhost:11434/api/generate \
 
 ```bash
 # 自定义保持时间
-OLLAMA_KEEP_ALIVE=5m ollama run qwen2.5:1.5b    # 5 分钟
-OLLAMA_KEEP_ALIVE=0 ollama run qwen2.5:1.5b      # 永久驻留
-OLLAMA_KEEP_ALIVE=-1 ollama run qwen2.5:1.5b     # 用完即走
+OLLAMA_KEEP_ALIVE=5m ollama run qwen3:1.7b    # 5 分钟
+OLLAMA_KEEP_ALIVE=0 ollama run qwen3:1.7b      # 永久驻留
+OLLAMA_KEEP_ALIVE=-1 ollama run qwen3:1.7b     # 用完即走
 ```
 
 ### 退出方式
@@ -178,7 +180,7 @@ OLLAMA_KEEP_ALIVE=-1 ollama run qwen2.5:1.5b     # 用完即走
 # 或者 Ctrl+D
 
 # 停止 ollama server:
-ollama stop qwen2.5:1.5b    # 卸载指定模型
+ollama stop qwen3:1.7b    # 卸载指定模型
 # 或者:
 brew services stop ollama   # 完全停止后台服务
 
@@ -198,16 +200,16 @@ brew install ollama
 # 或者: curl -fsSL https://ollama.com/install.sh | sh
 
 # 2. 启动并运行一个小模型
-ollama run qwen2.5:1.5b
+ollama run qwen3:1.7b
 # 首次运行会自动下载模型文件（~1 GB），之后即可对话
 
 # 3. 对话示例
 >>> 你好，请帮我解释一下什么是机器学习
 
 # 4. 其他可选模型
-ollama run qwen2.5:0.5b      # 更小更快
-ollama run llama3.2:1b       # Meta 出品，英文好
-ollama run phi3:mini          # 微软出品，逻辑推理强
+ollama run qwen3:0.6b         # 更小更快
+ollama run gemma3:1b         # Google 出品，多语言均衡
+ollama run phi4-mini         # 微软出品，逻辑推理强
 ```
 
 ### llama.cpp 方式（不用 Ollama，更灵活）
@@ -217,18 +219,18 @@ ollama run phi3:mini          # 微软出品，逻辑推理强
 brew install llama.cpp
 
 # 2. 下载模型（HuggingFace GGUF 格式）
-huggingface-cli download Qwen/Qwen2.5-1.5B-Instruct-GGUF \
+huggingface-cli download Qwen/Qwen3-1.7B-GGUF \
   --include "*q4_k_m.gguf" \
   --local-dir ./models
 
 # 3. 启动交互式对话
-llama-cli --model ./models/qwen2.5-1.5b-instruct-q4_k_m.gguf \
+llama-cli --model ./models/qwen3-1.7b-q4_k_m.gguf \
   --ctx-size 4096 \
   --interactive \
   --prompt "你好"
 
 # 4. 或者启动 API 服务器（给其他程序调用）
-llama-server --model ./models/qwen2.5-1.5b-instruct-q4_k_m.gguf \
+llama-server --model ./models/qwen3-1.7b-q4_k_m.gguf \
   --host 127.0.0.1 \
   --port 8080 \
   --ctx-size 4096
@@ -255,7 +257,7 @@ from openai import OpenAI
 client = OpenAI(base_url="http://localhost:11434/v1", api_key="ollama")
 
 resp = client.chat.completions.create(
-    model="qwen2.5:1.5b",
+    model="qwen3:1.7b",
     messages=[{"role": "user", "content": "解释一下 Python 的装饰器"}]
 )
 print(resp.choices[0].message.content)
@@ -266,7 +268,7 @@ print(resp.choices[0].message.content)
 ```bash
 curl http://localhost:11434/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -d '{"model":"qwen2.5:1.5b","messages":[{"role":"user","content":"你好"}]}'
+  -d '{"model":"qwen3:1.7b","messages":[{"role":"user","content":"你好"}]}'
 ```
 
 **价值**：Python 脚本、AI 应用、IDE 插件都能用本地模型，不花钱、不联网、不限流。
@@ -299,7 +301,7 @@ curl http://localhost:11434/api/embed \
 
 ```dockerfile
 # Modelfile
-FROM qwen2.5:1.5b
+FROM qwen3:1.7b
 
 SYSTEM """
 你是一个资深 Java 后端开发助手。
@@ -322,9 +324,9 @@ ollama run my-assistant
 
 ```bash
 ollama list                    # 查看本地已下载的模型
-ollama rm qwen2.5:0.5b         # 删除不用的模型（省磁盘）
-ollama cp qwen2.5:1.5b my-qa   # 复制模型（方便改 Modelfile）
-ollama show qwen2.5:1.5b       # 查看模型详情（参数量、架构等）
+ollama rm qwen3:0.6b         # 删除不用的模型（省磁盘）
+ollama cp qwen3:1.7b my-qa   # 复制模型（方便改 Modelfile）
+ollama show qwen3:1.7b       # 查看模型详情（参数量、架构等）
 ```
 
 ### 7.6 Web UI（图形界面）
@@ -347,7 +349,7 @@ macOS 默认路径:  ~/.ollama/models/
 └── blobs/         ← 模型权重文件（GGUF）
 
 自定义路径:
-  OLLAMA_MODELS=/Volumes/外置硬盘/ollama-models ollama run qwen2.5:1.5b
+  OLLAMA_MODELS=/Volumes/外置硬盘/ollama-models ollama run qwen3:1.7b
   # 或永久设置: echo 'export OLLAMA_MODELS="..."' >> ~/.zshrc
 ```
 

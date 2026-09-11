@@ -5,7 +5,7 @@ description: "Claude Code Agent Teams 实验性特性：从 Sub-Agents 的树状
 
 # Agent Teams 多会话协作架构
 
-> 最后整理: 2026-06-16 | 来源: 黄佳《Claude Code 工程化实战》第 8 讲（概念提炼）+ 官方文档
+> 最后整理: 2026-09-11 | 来源: 黄佳《Claude Code 工程化实战》第 8 讲（概念提炼）+ 官方文档
 
 > 关联: [子智能体（subagents）机制与实战](./子智能体（subagents）机制与实战.md) — Sub-Agents 的底层机制
 > 关联: [并行探索与流水线编排](./并行探索与流水线编排.md) — Sub-Agents 的两种编排拓扑
@@ -237,7 +237,7 @@ Agent Teams 是 Claude Code **开发工具层**的 Multi-Agent 实现，不是�
 
 ### §11 本项目应用评估
 
-本项目目前的多 agent 协作全在 Sub-Agents 层面（Explore / code-reviewer / kb-auditor / idea-extractor / plan-executor），尚未使用 Agent Teams。
+本项目目前的多 agent 协作全在 Sub-Agents 层面（内置 Explore/Plan + 自定义 kb-auditor / idea-extractor / plan-executor，共 3 个自定义 agent），尚未使用 Agent Teams。
 
 **是否值得引入？** 当前评估是**不急需**：
 

@@ -5,7 +5,7 @@ description: "Multi-Agent 四种设计模式（Sub-Agents/Skills/Handoffs/Router
 
 # 从 Sub-Agent 到 Multi-Agent 的工程指南
 
-> 最后整理: 2026-06-10 | 来源: 黄佳《Claude Code 工程化实战》课程"量体裁衣：从Sub-Agents到Multi-Agent的工程指南"章节 + 生产实践 + Claude Code 官方文档
+> 最后整理: 2026-09-11 | 来源: 黄佳《Claude Code 工程化实战》课程"量体裁衣：从Sub-Agents到Multi-Agent的工程指南"章节 + 生产实践 + Claude Code 官方文档
 
 > 关联: [子智能体（subagents）机制与实战](./子智能体（subagents）机制与实战.md) — Sub-Agent 机制的底层细节
 > 关联: [Skills 渐进式披露架构](<./Skills 渐进式披露架构.md>) — Skills 模式的实现原理
@@ -730,7 +730,8 @@ graph TB
 ## §10 Agent Teams：多实例协作模式（实验性）
 
 > 2026-06-10 补充 | 来源: [Claude Code 官方文档 - Agent Teams](https://code.claude.com/docs/en/agent-teams)
-> 需要 Claude Code v2.1.32+，环境变量 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`
+> 需要 Claude Code v2.1.32+（该版本以 research preview 形式引入），环境变量 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`
+> 版本口径注意：v2.1.32 只是**最早可用版本**，本库常规版本线是 v2.1.126 → v2.1.166 → v2.1.178；v2.1.178 起 `TeamCreate`/`TeamDelete` 工具被移除，开 teammate 不再需要建队步骤（见官方 CHANGELOG 2.1.32 与 agent-teams 文档提示）
 >
 > 深度专题详见: [Agent Teams 多会话协作架构](<./Agent Teams 多会话协作架构.md>) — 四大协作设计模式、级联故障发现、选型决策、成本分析
 

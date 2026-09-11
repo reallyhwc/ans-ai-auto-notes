@@ -5,7 +5,7 @@ description: "四范式选型、Spring AI/LangChain/CrewAI 框架速查、学习
 
 # Agent 开发实战：选型、框架与思维转换
 
-> 最后整理: 2026-05-23 | 来源: 对话讨论（新增从零搭建 Agent + MCP Java 实战指南）
+> 最后整理: 2026-09-11 | 来源: 对话讨论（新增从零搭建 Agent + MCP Java 实战指南）
 
 > 关联: [agent-patterns](<./Agent 四大设计范式（深度展开）.md>) — 四范式深度展开（架构图 / Prompt 模板 / 典型案例）
 > 关联: [从 Sub-Agent 到 Multi-Agent 的工程指南](<../Claude-Code/从 Sub-Agent 到 Multi-Agent 的工程指南.md>) — Claude Code 视角的四种多智能体模式 + 生产部署
@@ -575,21 +575,20 @@ Spring AI:    chatClient.prompt().system(...).user(...).tools(tools).call().cont
 
 ### Demo B：MCP Server（供 Claude Code 调用，~40 行）
 
-依赖（`pom.xml`）：
+依赖（`pom.xml`）——**stdio 版本**（Claude Code 直接 spawn 本地进程，最省事）：
 
 ```xml
 <dependency>
     <groupId>org.springframework.ai</groupId>
-    <artifactId>spring-ai-starter-mcp-server-webmvc</artifactId>
-    <version>1.0.0</version>
+    <artifactId>spring-ai-starter-mcp-server</artifactId>
+    <version>1.0.0</version>  <!-- Spring AI 1.0 GA；迭代很快，以 Maven Central 最新版为准 -->
 </dependency>
 ```
 
-核心代码（和上面 Agent 应用放在同一个项目里）：
+核心代码（和上面 Agent 应用放在同一个项目里）：启动类**不需要任何开关注解**，只要 `@Tool` 方法所在的 Bean 在 Spring 容器里就会被自动注册为 MCP 工具：
 
 ```java
 @SpringBootApplication
-@EnableMcpServer  // ← 就这一个注解
 public class McpServerDemoApplication {
     public static void main(String[] args) {
         SpringApplication.run(McpServerDemoApplication.class, args);
@@ -597,25 +596,24 @@ public class McpServerDemoApplication {
 }
 
 @Component
-class OrderMcpTools {
+class OrderMcpTools {                          // ← 和 Agent 的 ToolConfig 共享同一套业务逻辑
 
-    @Autowired
-    private OrderService orderService;  // ← 和 Agent 的 ToolConfig 共享同一套业务逻辑
+    @Autowired private OrderService orderService;
 
     @Tool(description = "根据用户ID查询订单列表，返回订单号、金额、状态")
-    public List<Order> queryOrders(
-        @ToolParam(description = "用户ID") String userId) {
+    public List<Order> queryOrders(@ToolParam(description = "用户ID") String userId) {
         return orderService.queryByUser(userId);
     }
 
     @Tool(description = "根据订单号发起退款，返回退款单号")
-    public String refundOrder(
-        @ToolParam(description = "订单号") String orderId,
-        @ToolParam(description = "退款金额(元)") double amount) {
+    public String refundOrder(@ToolParam(description = "订单号") String orderId,
+                              @ToolParam(description = "退款金额(元)") double amount) {
         return orderService.refund(orderId, amount);
     }
 }
 ```
+
+> 完整版本（含 `@Tool` 内部机制：启动扫描 → Schema 生成 → 完整请求链路、手写零依赖方案、与 Dubbo/Nacos 对比）见 [MCP 协议：AI 界的 USB-C §3.4](<../大模型/MCP 协议：AI 界的 USB-C.md#3-4-java-方案一-spring-ai-mcp-server-推荐>)。
 
 Claude Code 连接配置（项目根目录 `.mcp.json`）：
 
@@ -647,7 +645,7 @@ Claude Code 连接配置（项目根目录 `.mcp.json`）：
 │                                        │
 │  Demo B（MCP Server）                  │
 │  stdin ← Claude Code                   │
-│       → @EnableMcpServer               │
+│       → 自动装配 + 扫描 @Tool          │
 │       → @Tool 反射调用                 │
 │       → stdout 返回                    │
 │                                        │

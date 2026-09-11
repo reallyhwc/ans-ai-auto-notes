@@ -5,7 +5,7 @@ description: "可观测性、成本、安全、评估、延迟、状态、数据
 
 # Agent 应用运维与韧性：架构之外的生存指南
 
-> 最后整理: 2026-05-24 | 来源: 对话讨论
+> 最后整理: 2026-09-11 | 来源: 对话讨论
 
 > 关联: [agent-development-practice](<./Agent 开发实战：选型、框架与思维转换.md>) — Agent 开发范式、框架选型、vs Java 对比（开发视角）
 > 关联: [agent-patterns](<./Agent 四大设计范式（深度展开）.md>) — 四大范式深度展开（架构图 / Prompt 模板 / 典型案例）
@@ -589,7 +589,7 @@ flowchart TD
 
 | 项目 | Star | 语言 | 推荐理由 | 重点关注 |
 |------|------|------|---------|---------|
-| **[OpenAI Agents SDK](https://github.com/openai/openai-agents-sdk)** | ~25k | Python | 代码量最小、设计最干净，**半天能读完核心代码**。Guardrails / Handoff / Tracing 是三个独立概念，解耦得很漂亮 | `Runner.run()` 的主循环、`Handoff` 的上下文交接、`RunContext` 的状态管理 |
+| **[OpenAI Agents SDK](https://github.com/openai/openai-agents-python)** | ~25k | Python | 代码量最小、设计最干净，**半天能读完核心代码**。Guardrails / Handoff / Tracing 是三个独立概念，解耦得很漂亮 | `Runner.run()` 的主循环、`Handoff` 的上下文交接、`RunContext` 的状态管理 |
 | **[LangGraph](https://github.com/langchain-ai/langgraph)** | ~18k | Python | 用有向图（StateGraph）建模 Agent 流程，**把 Agent 逻辑从线性代码变成了显式状态机**，每个节点是纯函数 | `StateGraph.add_node/add_edge/add_conditional_edges`、Checkpoint 持久化机制、Human-in-the-loop 中断点 |
 | **[Spring AI](https://github.com/spring-projects/spring-ai)** | ~6k | **Java** | 你熟悉的 Spring 生态。ChatClient + FunctionCallback 的 ReAct 循环实现很短，读完就知道 Agent 循环的骨架 | `ChatClient.create()` 的 advisor 链、`FunctionCallback` 如何转成 OpenAI tools JSON Schema、ReAct 循环的 `ToolCallingChatObserver` |
 

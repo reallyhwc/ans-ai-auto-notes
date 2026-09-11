@@ -3,7 +3,7 @@ title: "CLI Coding Agent 系统架构：从 REPL 到自主编程"
 description: "拆解 Claude Code / Aider / Codex CLI 等 CLI 编程 Agent 的分层架构、启动流程、Agent Loop、工具系统、权限模型、上下文管理，附可运行 demo"
 ---
 
-> 最后整理: 2026-06-05 | 来源: 对 Claude Code / Aider / OpenAI Codex CLI 源码的逆向分析 + 实践总结
+> 最后整理: 2026-09-11 | 来源: 对 Claude Code / Aider / OpenAI Codex CLI 源码的逆向分析 + 实践总结
 
 > 关联: [Claude Code 整体架构 & 工作流程](<../Claude-Code/Claude Code 整体架构 & 工作流程.md>) — Claude Code 单一产品的深度拆解
 > 关联: [AI 编程工具全景对比](<../AI-Coding/AI 编程工具：CLI Agent 与 GUI IDE 全景对比.md>) — CLI vs GUI 两种交互形态
@@ -463,6 +463,6 @@ def execute_tool(name: str, params: dict) -> str:
 | 工具扩展 | MCP 协议 | 无 | 无 | 有限插件 |
 | Hook 系统 | 完整生命周期 | git hooks only | 无 | 无 |
 | 权限模型 | 3 级 + allowlist | auto/ask | 3 mode 切换 | IDE 内嵌 Accept/Reject |
-| 开源 | 是 (2025.05) | 是 | 是 | 否 |
+| 开源 | 否（闭源，2025.02 发布） | 是 | 是 | 否 |
 
 > 相关: [Agent 四大设计范式（深度展开）](<./Agent 四大设计范式（深度展开）.md>) | [Harness Engineering](<../Claude-Code/Harness Engineering：AI Agent 时代的工程范式.md>)

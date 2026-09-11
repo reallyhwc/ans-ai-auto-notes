@@ -5,7 +5,7 @@ description: "Harness Engineering(驾驭工程)：Agent=Model+Harness、六项�
 
 # Harness Engineering：AI Agent 时代的工程范式
 
-> 最后整理: 2026-06-08 | 来源: 对话讨论 + Zenith 技术报告
+> 最后整理: 2026-09-11 | 来源: 对话讨论 + Zenith 技术报告
 
 ## 什么是 Harness Engineering
 
@@ -450,16 +450,18 @@ graph LR
      单向报告回主对话，agent 之间不通信（除非启用实验性 Agent Teams）
 ```
 
-### 6 种内置 Sub-agent 类型
+### 内置 Sub-agent 类型
 
 | Agent | 读/写 | 工具池 | 默认模型 | 用途 |
 |-------|-------|--------|---------|------|
-| **general-purpose** | 读写 | 全部 | 继承父级 | 通用任务 |
-| **Explore** | 只读 | Glob, Grep, Read, Bash | Haiku | 快速代码探索 |
-| **Plan** | 只读 | 搜索+读取 | 继承父级 | 架构规划 |
-| **code-reviewer** | 只读 | Read, Grep, Glob | Sonnet | 独立代码审查 |
+| **general-purpose** | 读写 | subagent 可用的全部工具 | 继承父级 | 通用任务 |
+| **Explore** | 只读 | 只读工具（Write/Edit 被拒） | 继承父级（Claude API 封顶 Opus，v2.1.198 起不再固定 Haiku） | 快速代码探索，可指定 quick / medium / very thorough |
+| **Plan** | 只读 | 只读工具（Write/Edit 被拒） | 继承父级 | 架构规划 |
+| **code-reviewer** | 只读 | Read, Grep, Glob | Sonnet | 独立代码审查（自定义示例，非内置） |
 | **claude-code-guide** | 只读 | Bash, Read, WebFetch, WebSearch | Haiku | 文档查询 |
 | **statusline-setup** | 读写 | Read + Edit | Sonnet | 状态栏配置 |
+
+> Explore / Plan 的工具池官方只描述为"read-only tools; Write and Edit are denied"，不列具体工具名——工具清单以 [Subagents 官方文档](https://code.claude.com/docs/en/sub-agents) 为准，与 [子智能体（subagents）机制与实战 §3](<./子智能体（subagents）机制与实战.md>) 同口径。
 
 ### 定义自定义子智能体
 

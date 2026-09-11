@@ -1,11 +1,11 @@
 ---
 title: "Transformer"
-description: "自注意力机制，现代大模型底座"
+description: "Transformer 自注意力机制拆解：QKV 公式、多头注意力、位置编码、Block 结构、三类架构，以及 O(n²) 的计算代价与 Flash Attention/Mamba 等现代优化，附 CNN/RNN 横向对比"
 ---
 
 # Transformer 架构
 
-> 最后整理: 2026-05-04 | 来源: 多轮对话
+> 最后整理: 2026-09-11 | 来源: 多轮对话
 
 > 关联: [我看见的世界 — 李飞飞](<../../../读书笔记/我看见的世界 — 李飞飞.md>) — 阅读上下文与历史脉络
 
@@ -279,13 +279,17 @@ Transformer: O(n²) 计算量，但所有步同时算 → 1 步并行
 | **滑动窗口** | 每个词只看周围 k 个词 | O(n×k) 替代 O(n²) | Mistral |
 | **分组注意力 (GQA)** | 多个 Query 头共享同一组 Key/Value | KV 缓存减少 4-8 倍 | LLaMA 2/3, Claude |
 | **稀疏注意力** | 只算部分位置，跳过不重要的 | 计算量显著降低 | GPT-3 部分层 |
-| **状态空间模型** | 完全放弃注意力，回归类似 RNN 的 O(n) 思路 | 线性复杂度，但关联质量待验证 | Mamba, RWKV |
+| **状态空间模型** | 完全放弃注意力，回归类似 RNN 的 O(n) 思路 | 线性复杂度；纯 SSM 在"精确召回"上仍弱于注意力，所以生产模型普遍走**混合架构** | Mamba-3, RWKV, Jamba |
+
+> **延伸阅读（2026 现状）**：Mamba/RWKV 这类 SSM 已从"论文玩具"走到生产——代表进展是 Mamba-3，以及 Jamba/Zamba/Nemotron 这类 **SSM + 注意力混合层**模型：用 SSM 层吃长上下文的线性复杂度，保留少量注意力层负责精确召回。也就是说 Transformer 的 O(n²) 并没有被整体替换，而是被"部分替换 + 分层混搭"。详见 [Hybrid SSM-Transformer 综述](https://ossaihub.com/glossary/hybrid-ssm-transformer/)、[State Space Models 2026](https://acingai.com/articles/state-space-models-2026)。
 
 **一个具体数字：** 70B 参数模型处理 128K 上下文，原始自注意力需要 ~64GB 显存只存注意力矩阵。Flash Attention 能压到 ~8GB。
 
 ---
 
 ## 10. 与 CNN / RNN 的核心区别
+
+> 三个"基础网络"是同一条演化链上的：CNN 解决空间（[CNN（卷积神经网络）](<./CNN（卷积神经网络）.md>)），RNN 解决序列但受串行 + 梯度消失所限（[RNN（循环神经网络）](<./RNN（循环神经网络）.md>)），Transformer 用自注意力同时解决"长距离关联"和"并行"。下表是三者横向对照。
 
 | 维度 | CNN | RNN | Transformer |
 |------|-----|-----|-------------|

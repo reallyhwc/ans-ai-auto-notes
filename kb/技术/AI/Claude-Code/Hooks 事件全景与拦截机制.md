@@ -5,7 +5,7 @@ description: "Claude Code 全部 30+ hook 事件按类别清单、阻断三档�
 
 # Hooks 事件全景与拦截机制
 
-> 最后整理: 2026-06-02 | 来源: 黄佳《Claude Code 工程化实战》课程 + [Claude Code Hooks 官方文档](https://code.claude.com/docs/en/hooks)
+> 最后整理: 2026-09-11 | 来源: 黄佳《Claude Code 工程化实战》课程 + [Claude Code Hooks 官方文档](https://code.claude.com/docs/en/hooks)
 
 > 关联: [Harness Engineering：AI Agent 时代的工程范式](<./Harness Engineering：AI Agent 时代的工程范式.md>) — 约束工程的三层模型，hook 是"约束层"主要载体
 > 关联: [子智能体（subagents）机制与实战](./子智能体（subagents）机制与实战.md) — SubagentStart/Stop 事件、subagent frontmatter 内的 hooks
@@ -258,7 +258,7 @@ graph TB
 
 ## §5 完整 Demo：Stop hook 自动 push
 
-本项目 `.claude/settings.local.json` 的 Stop hook 就是个好例子——会话结束时跑各种检查 + 累积 5 个未 push 的 commit 时自动 push。
+本项目入库的 `.claude/settings.json` 的 Stop hook 就是个好例子——会话结束时跑 11 项退出检查 + 累积 **≥3 个**未 push 的 commit 时自动 push（含 pull --rebase 重试）。
 
 下面写一个**新场景**：禁止在 main 分支用 `git commit --no-verify`。
 
@@ -503,12 +503,13 @@ echo "$INPUT" >> /tmp/hook-input.log
 
 ## §13 本项目的实际 hook 配置
 
-本项目的 hook 配置见 `.claude/settings.local.json`，三大块：
+本项目的 hook 配置在入库的 `.claude/settings.json`（团队共享；`.claude/settings.local.json` 只存设备私有权限白名单），三大块：
 
 | 事件 | 脚本 | 作用 |
 |------|------|------|
-| `SessionStart` | `scripts/preflight.sh` → `scripts/arch-lint.sh` | 10 项机械检查（frontmatter、死链、文件大小写、行数等） |
-| `Stop` | `exit-check.sh` → `lint.sh` + `check-overview.js` + `session-log.sh` + `permission-audit.sh` + 未 push 检查 | markdown 格式、INDEX 一致性、≥5 commits 未 push 自动 push |
+| `SessionStart` | `scripts/preflight.sh` → `scripts/arch-lint.sh` | 15 项机械检查（frontmatter、元信息头、交叉链接、重复标题、磁盘一致性、大小写、行数限制、memory 格式、零依赖、脚本引用、文档→代码引用一致性、标题 ID 契约、章节编号、anchor 存活、内容具象度） |
+| `Stop` | `exit-check.sh` → `lint.sh` + `check-overview.js` + `session-log.sh` + `permission-audit.sh` + `list-open-plans.js` + `check-agent-log-compliance.js` + `content-quality-fast.sh` + 未 push 检查 | 11 项退出检查：markdown 格式、git 状态、INDEX 一致性、overview 健康、session 日志、权限审计、未 push commit（**≥3 commits 自动 push**，含 pull --rebase 重试）、沉淀声明审计、plans 状态、agent-log patch 合规、内容质量 fast-path |
+| `PostToolUse`（Write/Edit） | `scripts/verify-claim.sh` | 每次写 kb/ 或 memory/ 后验证文件实存，写 `.claude/claim-ledger.log`（exit-check [8/11] 消费） |
 
 这就是 [Harness Engineering](<./Harness Engineering：AI Agent 时代的工程范式.md>) 三层模型中的"约束层"——把"用户希望 AI 怎么做"硬编码成 shell 检查，而不是写在 prompt 里希望 Claude 自觉。
 
