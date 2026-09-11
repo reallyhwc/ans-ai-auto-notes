@@ -72,29 +72,15 @@ echo ""
 echo "[3/15] 交叉链接有效性..."
 
 LINK_WARN=0
-DEAD_LINKS=$(mktemp)
 
-while IFS= read -r -d '' file; do
-  FILE_DIR=$(dirname "$file")
-  # Extract both ](./path.md) and [[./path.md]] links, one per line
-  {
-    grep -o '](\./[^)]*\.md)' "$file" 2>/dev/null | sed 's/](\.\///;s/)//'
-    grep -o '\[\[\./[^]]*\.md\]\]' "$file" 2>/dev/null | sed 's/\[\[\.\///;s/\]\]//'
-  } > "$DEAD_LINKS"
-
-  while IFS= read -r link; do
-    [ -z "$link" ] && continue
-    TARGET="$FILE_DIR/$link"
-    if [ ! -f "$TARGET" ]; then
-      TARGET_CLEAN=$(echo "$TARGET" | sed 's/#.*//')
-      if [ ! -f "$TARGET_CLEAN" ]; then
-        echo "  ⚠️  $file → 死链: ./$link"
-        LINK_WARN=$((LINK_WARN + 1))
-        break
-      fi
-    fi
-  done < "$DEAD_LINKS"
-done < "$KB_FILES"
+# 3a) 链接存在性：交给 check-links.js 统一判定三种写法
+#     （](<含空格路径.md>)、](./x.md)、[[./x.md]]）
+#     此前这里是纯 bash，只提取 `](./` 形式且只扫 kb/，
+#     于是尖括号与 wiki 链接既不校验也不进反链图（2026-09 审计）。
+LINK_CHECK_OUT=$(node scripts/check-links.js kb timeline 2>&1)
+echo "$LINK_CHECK_OUT" | grep -v "^  结果:" || true
+LINK_WARN=$(echo "$LINK_CHECK_OUT" | sed -n 's/^  结果: \([0-9]*\) 个死链$/\1/p' | awk 'END {print $1+0}')
+LINK_WARN=${LINK_WARN:-0}
 
 # 3b) 含空格/& 的 .md 链接必须用 <尖括号> 包裹（CommonMark 严格解析）
 # 否则 marked.js 不识别为链接，页面看似有链接但实际无法跳转。

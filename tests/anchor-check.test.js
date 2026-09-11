@@ -48,3 +48,41 @@ test('findBrokenAnchors: 链接无锚点 -> 不报', () => {
     assert.deepEqual(broken, []);
   });
 });
+
+// ── 2026-09 审计回归：同文件锚点 ](#x) 此前整类被跳过 ──
+
+test('findBrokenAnchors: 同文件锚点存在 -> 不报', () => {
+  withTempDir(dir => {
+    fs.writeFileSync(path.join(dir, 'a.md'),
+      '## 5. 事务消息\n\n见 [§5.2](#5-2-事务消息-half-message)\n\n### 5.2 事务消息 Half Message\n');
+    assert.deepEqual(findBrokenAnchors(dir), []);
+  });
+});
+
+test('findBrokenAnchors: 同文件死锚点 -> 报告', () => {
+  withTempDir(dir => {
+    fs.writeFileSync(path.join(dir, 'a.md'),
+      '## 2. 队列选择\n\n见 [§2.3](#23-队列选择策略)\n\n### 2.3 队列选择策略\n');
+    const broken = findBrokenAnchors(dir);
+    assert.equal(broken.length, 1);
+    assert.equal(broken[0].anchor, '23-队列选择策略');
+    assert.equal(broken[0].source.endsWith('a.md'), true);
+  });
+});
+
+test('findBrokenAnchors: 尖括号形式的跨文件锚点也校验', () => {
+  withTempDir(dir => {
+    fs.writeFileSync(path.join(dir, 'a.md'), '看 [B](<./b.md#no-such-section>)');
+    fs.writeFileSync(path.join(dir, 'b.md'), '## Real\n');
+    const broken = findBrokenAnchors(dir);
+    assert.equal(broken.length, 1);
+    assert.equal(broken[0].anchor, 'no-such-section');
+  });
+});
+
+test('findBrokenAnchors: 代码块内的伪锚点不误报', () => {
+  withTempDir(dir => {
+    fs.writeFileSync(path.join(dir, 'a.md'), '```\n示例 [X](#fake-anchor)\n```\n');
+    assert.deepEqual(findBrokenAnchors(dir), []);
+  });
+});

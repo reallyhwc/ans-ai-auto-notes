@@ -194,7 +194,9 @@ marked.use({
 });
 
 function renderMarkdown(md) {
-  return marked.parse(md);
+  // 先把 [[./x.md]] 双中括号链接转成标准 markdown 链接（lib.js 纯函数，Node 可测），
+  // 否则 marked 只当普通文本渲染 → kb/ 里 14 处「> 关联:」行在页面上点不动
+  return marked.parse(convertWikiLinks(md));
 }
 
 // ============================================================

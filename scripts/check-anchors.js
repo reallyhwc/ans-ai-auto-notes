@@ -46,27 +46,41 @@ function findBrokenAnchors(root) {
   const files = walkMd(root);
   const headingCache = new Map();
 
+  function slugsOf(abs) {
+    if (!headingCache.has(abs)) {
+      headingCache.set(abs, extractHeadings(fs.readFileSync(abs, 'utf-8')));
+    }
+    return headingCache.get(abs);
+  }
+
   files.forEach(srcAbs => {
     const srcRel = path.relative(root, srcAbs);
     const content = fs.readFileSync(srcAbs, 'utf-8');
-    // 匹配 ](path.md#anchor)
-    const re = /\]\((\.{0,2}\/[^)]*\.md)#([^)]+)\)/g;
+    // 跳过 fenced code block：示例文本里的伪链接不是真链接，否则会误报
+    let inCode = false;
+    const scan = content.split('\n').map(line => {
+      if (/^```/.test(line)) { inCode = !inCode; return ''; }
+      return inCode ? '' : line;
+    }).join('\n');
+
+    // (a) 跨文件锚点：](./b.md#x) 与 ](<./b.md#x>) 两种写法
+    const crossRe = /\]\(<?([^)>\n#]+\.md)#([^)>\n]+?)>?\)/g;
+    // (b) 同文件锚点：](#x) —— 2026-09 审计发现此类此前被整类漏检
+    //     （RocketMQ 6 处 / LLM 2 处 / MCP 1 处 / Skills 1 处因此静默失效）
+    const sameRe = /\]\(#([^)\s]+)\)/g;
+
     let m;
-    while ((m = re.exec(content))) {
-      const linkPath = m[1];
-      const anchor = m[2];
-      const resolved = resolveRelativeMd(srcRel, linkPath);
+    while ((m = crossRe.exec(scan))) {
+      const resolved = resolveRelativeMd(srcRel, m[1]);
       const targetAbs = path.join(root, resolved.path);
-      if (!fs.existsSync(targetAbs)) continue; // 死链由别的 lint 报
-      let slugs;
-      if (headingCache.has(targetAbs)) {
-        slugs = headingCache.get(targetAbs);
-      } else {
-        slugs = extractHeadings(fs.readFileSync(targetAbs, 'utf-8'));
-        headingCache.set(targetAbs, slugs);
+      if (!fs.existsSync(targetAbs)) continue; // 死链由 check-links / arch-lint 报
+      if (!slugsOf(targetAbs).has(m[2])) {
+        broken.push({ source: srcAbs, target: resolved.path, anchor: m[2] });
       }
-      if (!slugs.has(anchor)) {
-        broken.push({ source: srcAbs, target: resolved.path, anchor: anchor });
+    }
+    while ((m = sameRe.exec(scan))) {
+      if (!slugsOf(srcAbs).has(m[1])) {
+        broken.push({ source: srcAbs, target: srcRel, anchor: m[1] });
       }
     }
   });

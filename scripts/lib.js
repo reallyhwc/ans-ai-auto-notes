@@ -164,6 +164,35 @@ function extractWordCloudData(manifest, timeline) {
   return pairs.slice(0, 80);  // 最多 80 个词
 }
 
+// 把 [[路径.md]] 双中括号链接转成标准 markdown 链接
+// 背景：kb/ 的「> 关联:」行大量使用 [[./x.md]]，但 marked 只认 ](...)，
+// 于是页面里这些行渲染成纯文本、点不动（2026-09 审计）。转换放在这里，
+// app.js 在 renderMarkdown 前调用，保证浏览器与 Node 单测走同一套逻辑。
+// 规则：
+//   - 只处理以 .md 结尾的双中括号（避免误伤 [[word, weight]] 这类数组字面量）
+//   - 跳过 fenced code block 与行内代码
+//   - 路径含空格/& 时用 <尖括号> 包裹目标，符合 CommonMark
+//   - 支持 [[path|别名]]，别名缺省时取文件名（不带 .md）
+function convertWikiLinks(markdown) {
+  var lines = String(markdown).split('\n');
+  var inFence = false;
+  var re = /\[\[([^\]|]+?\.md)(?:\|([^\]]*))?\]\]/g;
+  return lines.map(function(line) {
+    if (/^\s*```/.test(line)) { inFence = !inFence; return line; }
+    if (inFence) return line;
+    // split 带捕获组：奇数下标是行内代码片段，原样保留
+    return line.split(/(`[^`]*`)/).map(function(seg, i) {
+      if (i % 2 === 1) return seg;
+      return seg.replace(re, function(match, target, label) {
+        var href = String(target).trim();
+        var text = (label && label.trim()) || href.split('/').pop().replace(/\.md$/, '');
+        var dest = /[\s&()]/.test(href) ? '<' + href + '>' : href;
+        return '[' + text + '](' + dest + ')';
+      });
+    }).join('');
+  }).join('\n');
+}
+
 // Node 导出（浏览器 <script> 模式下 module 未定义，跳过）
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
@@ -174,6 +203,7 @@ if (typeof module !== 'undefined' && module.exports) {
     buildToc,
     resolveRelativeMd,
     renderKbLink,
+    convertWikiLinks,
     extractWordCloudData,
   };
 }

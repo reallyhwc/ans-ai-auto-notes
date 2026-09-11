@@ -59,19 +59,27 @@ function buildSearchIndex(files) {
 
 function extractLinks(text) {
   const links = new Set();
-  // 任何 .md 路径（./x.md, ../x.md, foo.md 同目录裸路径, kb/x.md 仓根路径）
-  // 协议链接 / 纯锚点单独过滤（避免误匹配外链）
-  const mdLinkRe = /\]\(([^)]+\.md)(?:#[^)]*)?\)/g;
+  const push = url => {
+    let u = String(url == null ? '' : url).trim();
+    if (!u) return;
+    if (/^(https?:|mailto:|ftp:|\/\/)/i.test(u)) return;   // 外链
+    if (u.startsWith('#')) return;                          // 纯锚点
+    const hash = u.indexOf('#');
+    if (hash >= 0) u = u.slice(0, hash);                    // 反链图按文件聚合，去掉锚点
+    if (!/\.md$/i.test(u)) return;
+    links.add(u);
+  };
   let m;
-  while ((m = mdLinkRe.exec(text))) {
-    const url = m[1];
-    if (/^(https?:|mailto:|ftp:|\/\/)/i.test(url)) continue;
-    if (url.startsWith('#')) continue;
-    links.add(url);
-  }
-  // [[./x.md]] 风格（仅相对路径，无裸路径变体）
-  const bracketLinkRe = /\[\[(\.{1,2}\/[^\]]+\.md)\]\]/g;
-  while ((m = bracketLinkRe.exec(text))) links.add(m[1]);
+  // 1) ](<path.md#anchor>) —— 项目主流写法（含空格/& 的路径必须用尖括号包裹）。
+  //    旧正则要求 .md 后紧跟 )，被 > 挡住 → 反链图只收录了 19% 的链接（2026-09 实测 74/382）
+  const angleLinkRe = /\]\(<([^>\n]+?\.md)(?:#[^>\n]*)?>\)/g;
+  while ((m = angleLinkRe.exec(text))) push(m[1]);
+  // 2) ](path.md#anchor) —— 标准形式（./x.md、../x.md、同目录裸路径、仓根路径）
+  const mdLinkRe = /\]\(([^)<\s][^)]*?\.md)(?:#[^)]*)?\)/g;
+  while ((m = mdLinkRe.exec(text))) push(m[1]);
+  // 3) [[path.md]] / [[path.md|别名]] —— 双中括号 wiki 形式（允许省略 ./）
+  const bracketLinkRe = /\[\[([^\]|]+?\.md)(?:\|[^\]]*)?\]\]/g;
+  while ((m = bracketLinkRe.exec(text))) push(m[1]);
   return Array.from(links);
 }
 

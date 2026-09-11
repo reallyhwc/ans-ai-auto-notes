@@ -42,6 +42,31 @@ test('extractLinks: 不误识别非 md 文件 / 锚点纯链接', () => {
   assert.equal(links.length, 0, '不应识别非 md: ' + JSON.stringify(links));
 });
 
+test('extractLinks: 识别 <尖括号> 包裹的链接（含空格路径）', () => {
+  // 项目主流写法是 ](<path>)（全仓 300+ 处）；此前正则要求 .md 后紧跟 )，
+  // 被 > 挡住 → 反链图只收录 19% 的链接（2026-09 实测 74/382）
+  const md = '看 [X](<./x 文件.md>) 和 [Y](<../sub/y.md#anchor>)';
+  const links = extractLinks(md).sort();
+  assert.deepEqual(links, ['../sub/y.md', './x 文件.md'].sort());
+});
+
+test('extractLinks: 尖括号链接不残留 < 前缀', () => {
+  const links = extractLinks('看 [X](<./x.md>)');
+  assert.equal(links.length, 1);
+  assert.equal(links[0], './x.md');
+  assert.ok(!links[0].includes('<'), '不应残留 < : ' + links[0]);
+});
+
+test('extractLinks: 识别省略 ./ 的 [[wiki]] 链接', () => {
+  const links = extractLinks('关联 [[other.md]]');
+  assert.deepEqual(links, ['other.md']);
+});
+
+test('extractLinks: wiki 链接支持 [[path|别名]] 且不含别名', () => {
+  const links = extractLinks('关联 [[./other.md|别名]]');
+  assert.deepEqual(links, ['./other.md']);
+});
+
 test('buildBacklinks: 反向图 target -> [sources]', () => {
   const files = [
     { path: 'kb/a.md', text: '看 [B](./b.md)' },

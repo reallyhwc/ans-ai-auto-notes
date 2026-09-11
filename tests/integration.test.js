@@ -68,3 +68,14 @@ test('kb/ + timeline/ 下含空格/特殊字符的 .md 链接必须用 <尖括�
   }
   assert.deepEqual(bad, [], `存在含空格/&的未包裹链接（marked 解析失败）:\n  ${bad.slice(0, 10).join('\n  ')}${bad.length > 10 ? `\n  ... 共 ${bad.length} 处` : ''}\n\n修复：把 \`](path with space.md)\` 改为 \`](<path with space.md>)\``);
 });
+
+test('kb/ + timeline/ 下所有 md 链接（含 <尖括号> 与 [[wiki]] 写法）→ 磁盘真实文件', () => {
+  // 根因回归：上面那个 test 的正则要求 `](` 后紧跟 `./`，
+  // 于是 `](<含空格路径.md>)`（项目主流写法）与 `[[./x.md]]` 从来不被校验，
+  // 死链静默累积（2026-09 审计：kb/ 内 2 处 wiki 死链 + timeline/ 21 处旧路径）。
+  // 现统一走 scripts/check-links.js，与 arch-lint [3/15] 使用同一实现。
+  const { findBrokenLinks } = require('../scripts/check-links.js');
+  const broken = findBrokenLinks(['kb', 'timeline'].map(d => path.join(ROOT, d)))
+    .map(b => `${path.relative(ROOT, b.source)} → ${b.target}`);
+  assert.deepEqual(broken, [], '存在死链（含尖括号/wiki 写法）:\n  ' + broken.slice(0, 15).join('\n  '));
+});
