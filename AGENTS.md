@@ -8,7 +8,7 @@
 
 - 28 岁，男性，已婚未育
 - 大厂 Java 后端程序员
-- 学习中：黄佳《Codex 工程化实战》（极客时间课程，进行中）
+- 学习中：黄佳《Claude Code 工程化实战》（极客时间课程，进行中）
 - 阅读中：马兆远《世界的逻辑》（2026-05-14 起，引言阶段）
 - 已读完：李飞飞《我看见的世界》
 
@@ -18,19 +18,22 @@
 ans-ai-auto-notes/
 ├── kb/                          ← 知识库主目录（按主题分类）
 │   ├── 技术/                    ← 技术领域
-│   │   ├── AI/                  ← AI/机器学习（基础/大模型/Codex/AI-Coding/应用 五子目录）
+│   │   ├── AI/                  ← AI/机器学习（基础/大模型/Claude-Code/AI-Coding/应用 五子目录）
 │   │   ├── Java/                ← Java 技术栈
-│   │   └── 计算机基础/          ← 图灵机、贝叶斯等基础理论
+│   │   ├── 编程语言/            ← 跨语言横向对比（非单一语言深挖）
+│   │   └── 计算机基础/          ← 图灵机、贝叶斯、沙箱等基础理论
 │   ├── 实战/                    ← 排查记录、好文摘要、技巧
 │   ├── 读书笔记/                ← 读书相关，一本书一个文件
 │   └── 课程笔记/                ← 课程相关，一门课一个 hub 文件（+ 该课程的方法论沉淀），通用机制知识不放这里
-├── timeline/                    ← 按周归档的对话摘要
+├── timeline/                    ← 按周归档的对话摘要（手维护周记）
 ├── tests/                       ← 单元 + 集成测试（node --test，零依赖）
 ├── test.sh                      ← 测试入口
-├── scripts/                     ← 构建/检查脚本
-│   ├── build-index.js           ← 扫描 kb/ 生成 manifest.json + INDEX.md
-│   ├── check-overview.js        ← 12 项健康检查（含行数限制）
-│   ├── arch-lint.sh             ← 8 项 KB 架构检查
+├── scripts/                     ← 构建/检查脚本（共 28 个，见各 § 引用）
+│   ├── build-index.js           ← 扫描 kb/ 生成 manifest.json + INDEX.md（含反向链接图）
+│   ├── check-overview.js        ← 12 项 overview 健康检查（含行数限制）
+│   ├── arch-lint.sh             ← 15 项 KB 架构检查
+│   ├── check-links.js           ← 链接存在性（含 <尖括号> 与 [[wiki]] 写法）
+│   ├── check-anchors.js         ← 锚点存活（含同文件 #锚点）
 │   ├── preflight.sh             ← SessionStart 预检
 │   ├── session-log.sh           ← 自动生成 session 日志
 │   ├── permission-audit.sh      ← 权限审计
@@ -38,9 +41,11 @@ ans-ai-auto-notes/
 │   ├── app.js                   ← overview.html 前端逻辑
 │   ├── install-hooks.sh         ← 一次性安装 git pre-push hook
 │   └── git-hooks/pre-push       ← push 前跑 test.sh，失败阻断
+├── exit-check.sh                ← Stop hook 入口：串联 11 项退出检查
+├── lint.sh                      ← markdown 格式检查（9 条 MD 规则）
 ├── INDEX.md                     ← 总目录索引（由 build-index.js 自动生成，勿手改）
 ├── manifest.json                ← 分类数据（构建产物，.gitignore 中，勿手改）
-├── timeline.json                ← 时间线数据（手维护）
+├── timeline.json                ← 时间线数据（构建产物，由 build-timeline.js 从 git log 生成，勿手改）
 ├── overview.html                ← 可视化导览页（运行时 fetch manifest.json + timeline.json）
 ├── server.js                    ← 本地预览服务器（端口 8765 + SSE live reload）
 ├── serve.sh                     ← 启动脚本（build-index.js → server.js）
@@ -63,13 +68,72 @@ ans-ai-auto-notes/
 
 > 文件拆分、章节编号、"严禁口头沉淀"等内容质量规则统一收敛到 [kb-content-style skill](.agents/skills/kb-content-style/SKILL.md)，写入 kb/ 时由 AI 助手自动加载。
 
+### 自动沉淀纪律（高优先级）
+
+**核心原则：对话中产生的技术内容，直接写入 kb/，绝不询问用户"要不要沉淀"。**
+
+#### 违规模式黑名单（强制）
+
+以下表达禁止出现在回复中（含变体和同义句）：**"要不要沉淀"、"需要沉淀"、"是否沉淀"、"要记录到"、"要写入知识库"**。
+
+#### 唯一例外
+
+**仅当**涉及文件**拆分/合并/重组**、**目录结构变更**、或内容**跨多主题不确定归属**时，才可询问用户。其他情况（包括不确定"这算不算知识点"）**默认直接写入**。
+
+#### 判断算法
+
+```
+对话产生了技术内容？
+  否 → 不沉淀，正常回复
+  是 → 贴入长文 / URL / 大段文本？
+        是 → 先 spawn idea-extractor 识别候选，再按建议写入
+        否 → 涉及文件拆分/合并/目录变更？
+              是 → 提案后执行（询问用户）
+              否 → 直接写入 kb/（不询问）
+```
+
+**存疑默认写入，不是询问。** 宁可多写一篇不需要的笔记，也不要问一句"要不要沉淀"。
+
+> ⚠️ 同时记住反向纪律：**写入量要与提问分量匹配**。用户问一个知识点就只沉淀一篇笔记 + 必要链接；不要顺手改 ADR、memory、规则文档——那些是"结构性变更"，属于上面「大改动主动提案」的范畴，先给结论再问要不要落库。
+
+### Subagent 调度纪律
+
+Subagent 定义在 `.claude/agents/`（Claude Code 侧；DSH 侧没有 `.agents/agents` 目录，用内置 `subagent` 工具承担同样的三类职责）：
+
+| Subagent | 触发条件 | 关键约束 |
+|---|---|---|
+| **kb-auditor** | 写完深度笔记（≥300 行新内容）或单文件 ≥800 行后主动 spawn | review-only；审计前自行 load `kb-content-style` skill 获取审计标准 |
+| **idea-extractor** | 用户贴入长文/URL/大段文本 | 识别候选后由主 agent 按建议写入，extractor 自己不写 kb/ |
+| **plan-executor** | 用户说 "run plan X" / "执行 plan X" | 端到端跑 plan，task-by-task 嵌套 implementer |
+
+**通用纪律**：
+- 不要把 subagent 返回的完整报告复制到主对话，引用 `logs/` 路径即可
+- kb-auditor 同一文件 24h 内不重复 spawn
+- 需要并行修改多个目录时，按目录切分职责（互不重叠），避免并发写同一文件
+
+详见 [`.claude/agents/README.md`](.claude/agents/README.md) 的完整调度手册。
+
+### Skill 开发纪律（SDD）
+
+Skill 开发遵循 **SDD（Skill Development Discipline）**——本质是把 TDD 应用到文档领域。完整方法论由 superpowers 插件的 `writing-skills` skill 提供，核心要点：
+
+- **RED-GREEN-REFACTOR 循环**：先用 subagent 跑压力场景观察基线行为（RED），再写最小 Skill 解决特定合理化借口（GREEN），最后堵新漏洞（REFACTOR）
+- **Iron Law**：`NO SKILL WITHOUT A FAILING TEST FIRST`
+- **Description 写作**：只写触发条件（Use when...），不总结 workflow
+- **Token 效率**：频繁加载的 skill 控制在 200 words 以内，其他 <500 words
+- **Rationalization Table**：每个纪律型 Skill 必须包含"借口 vs 现实"对照表
+
+**Skill 类型定位**：参考型（自动触发，如 kb-content-style）/ 任务型（用户手动 `/name`，如 build-index）/ 纪律型（每次对话都加载，如 kb-tdd-discipline、auto-commit-discipline）
+
+> `.claude/skills/` 与 `.agents/skills/` 是**双镜像**：改任何一边都必须同步另一边（差异仅限宿主文档名 AGENTS.md ↔ CLAUDE.md），由 `tests/skill-mirror.test.js` 守护。
+
 ### 跨文件关联规则
 
 1. 当一个知识点涉及多个维度时（如读了《我看见的世界》提到 RNN），需要分别记录：
    - 读书笔记文件：侧重阅读上下文和感悟
    - 技术文件：侧重纯技术干货
 2. 两处内容各有侧重，**不是复制**。
-3. 两处互相留链接：`相关: ../技术/ai/rnn.md` ↔ `相关: ../../读书笔记/我看见的世界.md`
+3. 两处互相留链接：`相关: ../AI/基础/RNN（循环神经网络）.md` ↔ `相关: ../../读书笔记/我看见的世界 — 李飞飞.md`。链接含空格/`&` 时**必须**写成 `](<路径>)` 尖括号形式，否则 marked 不识别（`arch-lint [3/15]` 与 `tests/integration.test.js` 会拦）。
 
 ### 决策先例（ADR）
 
@@ -77,8 +141,8 @@ ans-ai-auto-notes/
 
 ### Timeline 规则
 
-1. 按周生成：`timeline/YYYY-WXX.md`
-2. 每周文件内记录当周所有对话的摘要，附链接指向 kb 中对应主题文件的具体段落。
+1. **周记（手维护）**：`timeline/YYYY-WXX.md`，文件内记录当周所有对话的摘要，附链接指向 kb 中对应主题文件。**新增/修改 kb 笔记的当周都要补一条**（含 bug 修复、配置变更，不只记"大件事"）。
+2. **`timeline.json`（构建产物，勿手改）**：由 `node scripts/build-timeline.js` 从 git log 聚合生成，已在 `.gitignore` 中（ADR-002）。
 3. INDEX.md 实时更新，作为总目录。
 
 ### 笔记风格 & 拆分 & 章节规则
@@ -98,7 +162,7 @@ ans-ai-auto-notes/
 2. **数据流**：`kb/` 下的 md 文件（含 frontmatter）→ `node scripts/build-index.js` → `manifest.json` + `INDEX.md` → `overview.html` 运行时 fetch 加载。
 3. **新增/删除 md 文件时**：只需写好 md 文件（含 frontmatter title + description），然后跑 `node scripts/build-index.js` 即可。INDEX.md 也会自动更新。**不要手改 overview.html。**
 4. **md 文件内容变更时**：不涉及任何其他文件更新——刷新浏览器即生效。
-5. **timeline 更新**：手动维护 `timeline.json`，格式见现有条目。
+5. **timeline 更新**：周记 `timeline/YYYY-WXX.md` 手维护；`timeline.json` 由 `node scripts/build-timeline.js` 自动生成（勿手改）。
 6. 保留规则：overview.html 中禁止裸链接（`<a href="xxx.md">`），统一使用 `<span onclick="viewContent()">`。
 
 ### 测试纪律（软 TDD）
@@ -139,6 +203,9 @@ ans-ai-auto-notes/
 > 注：UserPromptSubmit hook 已移除（commit-reminder.sh 已淘汰）——由 AI 主动 auto-commit 替代机械提醒。AI 每完成一批文件变更后立即 `git add -A && git commit`，不等用户提醒。
 
 > 所有 settings.json 中的 shell hook（preflight/exit-check/verify-claim/pretool-guard）通过 `scripts/hook-logger.sh` 包装执行，执行结果（耗时、exit code）记录到 `logs/hook-runs.jsonl`（.gitignore 中）。agent-log-hook.js（node）不经 hook-logger（自带日志输出到 `logs/agent-runs/`）。新设备 `git clone` 后 hook 配置随 settings.json 自带，无需手动注入。
+
+> ⚠️ **DSH 侧不会自动执行 `.claude/settings.json` 的 hook**（那是 Claude Code 的机制）。DSH 会话里必须**人工执行等价检查**：`bash lint.sh`、`bash scripts/arch-lint.sh`、`bash test.sh`、`bash scripts/session-log.sh`。同时注意：Claude Code 侧的 Stop hook 在**每轮回复结束后**都会触发（不只退出时），且其输出用户终端看不到——所以 push 结果、检查失败必须在回复里主动报告。
+
 
 当用户说"准备退出"、"不聊了"、"下次再继续"或类似结束语时，Stop hook 会自动执行上述检查并输出建议的 commit 命令。除此之外，AI 还需主动完成：
 

@@ -116,6 +116,7 @@ ans-ai-auto-notes/
 │   └── 读书笔记/           # Reading notes
 ├── timeline/               # Weekly archived conversation summaries
 ├── memory/                 # AI memory layer (user profile, project knowledge, feedback)
+├── docs/                 # ADR 决策记录 + superpowers plans/specs
 ├── scripts/                # Automation scripts
 │   ├── vendor/             # Frontend dependencies (mermaid / marked / wordcloud2)
 │   ├── app.js              # Overview page frontend logic
@@ -123,6 +124,7 @@ ans-ai-auto-notes/
 │   ├── build-index.js      # Index builder
 │   └── ...                 # lint / session-log / audit, etc.
 ├── overview.html           # Visual overview page
+├── SETUP.md               # 新设备接入指南
 ├── server.js               # Local HTTP server (SSE live reload)
 ├── CLAUDE.md               # AI behavior rules (core config file)
 └── timeline.json           # Timeline data
@@ -170,7 +172,7 @@ bash scripts/arch-lint.sh     # 15 KB architecture checks
 
 ## Skill System (AI Capability Packs)
 
-The project adopts **progressive skill disclosure** — domain knowledge is packaged as semantically-triggerable capability units loaded on demand. See [Skills 渐进式披露架构](kb/技术/AI/Claude-Code/Skills%20渐进式披露架构.md).
+The project adopts **progressive skill disclosure** — domain knowledge is packaged as semantically-triggerable capability units loaded on demand. See [Skills 渐进式披露架构](<kb/技术/AI/Claude-Code/Skills 渐进式披露架构.md>).
 
 ### The 5 Skills
 

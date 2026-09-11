@@ -1,6 +1,6 @@
 ---
 title: "修复 md 链接编码/尖括号解析缺陷导致的 backlink 图污染与测试门禁破防"
-status: open
+status: completed
 created: 2026-08-25
 scope: Correctness（链接解析正确性）
 author: main agent（综合 Correctness / Security / Tests 三成员审查）
@@ -8,7 +8,7 @@ author: main agent（综合 Correctness / Security / Tests 三成员审查）
 
 # 修复 md 链接编码/尖括号解析缺陷
 
-> 状态: open（待 fix 小队执行，本方案仅设计，未修改任何源码）
+> 状态: completed（2026-09-11 实施完成）。B1/B2 内容侧：DSH 笔记 line 10 已改为 `<尖括号>` 统一写法；代码侧：`build-index.js extractLinks` 现支持 `](<...>)` 与 `[[x.md]]`（新增 `scripts/check-links.js` 统一校验三种写法），`check-anchors.js` 补齐同文件 `](#anchor)` 与尖括号跨文件锚点；`integration.test.js` 增加"含尖括号/wiki 写法的链接必须存在"断言。%20 编码链接已全仓清零（`.claude` 双镜像规则文档同步改为尖括号）。原计划的 B4 锚点空操作问题随之修复。
 > 关联: 前一版本审阅发现见 docs/decisions.md 相关 ADR（如已补）
 
 ## 0. 一句话结论

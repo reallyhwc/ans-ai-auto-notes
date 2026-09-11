@@ -24,7 +24,7 @@ description: Use when modifying scripts/ or tests/, or fixing bugs in markdown r
 ## 测试入口与组织
 
 - 入口：`bash test.sh`；单文件 `node --test tests/xxx.test.js`
-- `tests/` 下按被测对象命名 `<source>.test.js`（当前 36 个）。核心分层：数据构建（lib/build-index/build-timeline）、链接契约（link-renderer/anchor-check/backlinks）、hook 体系（agent-log/hook-logger/verify-claim/session-log）、质量结构（arch-lint/lint/content-quality/check-overview/integration）、规则一致性（auto-commit-skill/auto-save-discipline/rule-consistency/skill-mirror）。
+- `tests/` 下按被测对象命名 `<source>.test.js`（数量随开发增长，**不要在这里写死数字**）。核心分层：数据构建（lib/build-index/build-timeline）、链接契约（link-renderer/anchor-check/backlinks/check-links）、hook 体系（agent-log/hook-logger/verify-claim/session-log）、质量结构（arch-lint/lint/content-quality/check-overview/integration）、规则一致性（auto-commit-skill/auto-save-discipline/rule-consistency/skill-mirror）。
 
 ## Push 前自动跑测试（双层 gate）
 

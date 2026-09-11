@@ -469,6 +469,26 @@
 
 ---
 
+## ADR-006: 链接体系三态统一 —— 渲染 / 反链图 / 校验必须共用同一套识别规则
+
+- **日期**: 2026-09-11
+- **状态**: 接受
+- **背景**: 2026-09 四份只读审计暴露同一根因的三处症状：项目主流链接写法是 `](<路径>)`（全仓 300+ 处）与 `[[./x.md]]`，但三处消费方各自只认其中一部分——
+  - **渲染**：`app.js` 的 marked renderer 只处理 `](...)`，`[[./x.md]]` 渲染成纯文本 → 14 处「> 关联:」行在页面点不动
+  - **反链图**：`build-index.js` 的 `mdLinkRe = /\]\(([^)]+\.md)…/` 被 `>` 挡住 → 反链只收录 74/382（19%），另产出 `<./…` 畸形 key
+  - **校验**：`arch-lint [3/15]` 只提取 `](./x.md)`、`integration.test.js` 正则要求 `](` 后紧跟 `./`、`check-anchors.js` 要求 `#` 前有 `.md` → 尖括号链接无存在性校验、同文件 `](#x)` 锚点整类漏检（RocketMQ 6 处、LLM 2 处、MCP 1 处、Skills 1 处静默失效）
+- **选项**:
+  - (a) 各自打补丁：三处分别加分支，继续各写各的正则
+  - (b) **收敛到单一实现**：`lib.js` 提供 `convertWikiLinks`，`scripts/check-links.js` 成为唯一链接存在性校验器，`arch-lint [3/15]` 与 `integration.test.js` 都调它
+- **决定**: (b)。具体：① `lib.js.convertWikiLinks` 把 `[[path.md]]`/`[[path.md|别名]]` 转标准链接（跳过代码块与行内代码，含 ASCII 空格/`&`/`()` 时自动 `<尖括号>` 包裹），`app.js` 在 `renderMarkdown` 前调用；② `build-index.js extractLinks` 支持三种写法并剥掉锚点与尖括号残留；③ 新增 `scripts/check-links.js`（零依赖、可单测）作为唯一校验实现，`arch-lint [3/15]` 与 `tests/integration.test.js` 共用；④ `check-anchors.js` 补同文件锚点与尖括号跨文件锚点分支，并跳过代码块。
+- **理由**:
+  - 三处症状同源，分散打补丁必然再次漂移（历史上已发生过一次：`%20` 编码与 `<尖括号>` 两套风格互踩）
+  - 校验逻辑进 `lib.js`/独立脚本后可被单测覆盖，符合项目"错误趋向区域必须 TDD"的纪律（本次先写 16 条 failing test 再实现）
+  - 实测收益：反链图从 27 键 / 74 引用提升到 **81 键 / 324 引用**，畸形 key 归零；`timeline/` 21 处拆目录前旧路径、4 处死锚点、1 处库外死链被同一批门禁抓出
+- **关联**: [修复 md 链接编码/尖括号解析缺陷](<./superpowers/plans/2026-08-25-fix-md-link-encoding-backlink-pollution.md>)（本 ADR 即该 plan 的实施方案与完成记录）
+
+---
+
 ## 新 ADR 模板
 
 ```markdown

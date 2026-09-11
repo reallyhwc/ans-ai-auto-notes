@@ -1,5 +1,7 @@
 # arch-lint 性能优化 + auto-commit skill 去重 Implementation Plan
 
+> 状态: completed（2026-09-11 复核：arch-lint 已改 bash-native 大小写比较、`tests/arch-lint-perf.test.js` 与 `tests/auto-commit-skill.test.js` 已在跑、push 阈值已为 3，方案全部落地）
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 将 arch-lint.sh 交叉链接检查从 13.7s 优化到 ~3s，并消除 auto-commit skill 与 CLAUDE.md 的重复内容（同时修复阈值不一致 bug）

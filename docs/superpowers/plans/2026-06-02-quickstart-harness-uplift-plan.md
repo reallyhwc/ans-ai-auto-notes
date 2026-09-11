@@ -1,5 +1,7 @@
 # quickStart 分支 Harness KB 模板化升级 Implementation Plan
 
+> 状态: completed（2026-09-11 复核：quickStart 分支已带全套 harness，见 memory/project-quickstart-branch.md；本 plan 关闭）
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 把 main 上 KB 系统升级 13 项的工程产物 + 文档框架复刻到 quickStart 分支，让它成为完整的 Harness KB 模板。

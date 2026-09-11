@@ -28,7 +28,7 @@ ans-ai-auto-notes/
 ├── timeline/                    ← 按周归档的对话摘要
 ├── tests/                       ← 单元 + 集成测试（node --test，零依赖）
 ├── test.sh                      ← 测试入口
-├── scripts/                     ← 构建/检查脚本（共 20+ 个，见各 § 引用）
+├── scripts/                     ← 构建/检查脚本（共 28 个，见各 § 引用）
 │   ├── build-index.js           ← 扫描 kb/ 生成 manifest.json + INDEX.md
 │   ├── check-overview.js        ← Stop hook [4/11]：12 项 overview 健康检查（含行数限制）
 │   ├── arch-lint.sh             ← SessionStart：15 项 KB 架构检查
@@ -48,7 +48,7 @@ ans-ai-auto-notes/
 ├── bootstrap.sh                 ← 新设备一次性注入 PostToolUse hook 配置
 ├── INDEX.md                     ← 总目录索引（由 build-index.js 自动生成，勿手改）
 ├── manifest.json                ← 分类数据（构建产物，.gitignore 中，勿手改）
-├── timeline.json                ← 时间线数据（手维护）
+├── timeline.json                ← 时间线数据（构建产物，由 build-timeline.js 从 git log 生成，勿手改）
 ├── overview.html                ← 可视化导览页（运行时 fetch manifest.json + timeline.json）
 ├── server.js                    ← 本地预览服务器（端口 8765 + SSE live reload）
 ├── serve.sh                     ← 启动脚本（build-index.js → server.js）
@@ -122,7 +122,7 @@ ans-ai-auto-notes/
    - 读书笔记文件：侧重阅读上下文和感悟
    - 技术文件：侧重纯技术干货
 2. 两处内容各有侧重，**不是复制**。
-3. 两处互相留链接：`相关: ../技术/ai/rnn.md` ↔ `相关: ../../读书笔记/我看见的世界.md`
+3. 两处互相留链接：`相关: ../AI/基础/RNN（循环神经网络）.md` ↔ `相关: ../../读书笔记/我看见的世界 — 李飞飞.md`。链接含空格/`&` 时**必须**写成 `](<路径>)` 尖括号形式，否则 marked 不识别（`arch-lint [3/15]` 与 `tests/integration.test.js` 会拦）。
 
 ### 决策先例（ADR）
 
@@ -130,8 +130,8 @@ ans-ai-auto-notes/
 
 ### Timeline 规则
 
-1. 按周生成：`timeline/YYYY-WXX.md`
-2. 每周文件内记录当周所有对话的摘要，附链接指向 kb 中对应主题文件的具体段落。
+1. **周记（手维护）**：`timeline/YYYY-WXX.md`，文件内记录当周所有对话的摘要，附链接指向 kb 中对应主题文件。**新增/修改 kb 笔记的当周都要补一条**（含 bug 修复、配置变更，不只记"大件事"）。
+2. **`timeline.json`（构建产物，勿手改）**：由 `node scripts/build-timeline.js` 从 git log 聚合生成，已在 `.gitignore` 中（ADR-002）。
 3. INDEX.md 实时更新，作为总目录。
 
 ### 笔记风格 & 拆分 & 章节规则
@@ -151,7 +151,7 @@ ans-ai-auto-notes/
 2. **数据流**：`kb/` 下的 md 文件（含 frontmatter）→ `node scripts/build-index.js` → `manifest.json` + `INDEX.md` → `overview.html` 运行时 fetch 加载。
 3. **新增/删除 md 文件时**：只需写好 md 文件（含 frontmatter title + description），然后跑 `node scripts/build-index.js` 即可。INDEX.md 也会自动更新。**不要手改 overview.html。**
 4. **md 文件内容变更时**：不涉及任何其他文件更新——刷新浏览器即生效。
-5. **timeline 更新**：手动维护 `timeline.json`，格式见现有条目。
+5. **timeline 更新**：周记 `timeline/YYYY-WXX.md` 手维护；`timeline.json` 由 `node scripts/build-timeline.js` 自动生成（勿手改）。
 6. 保留规则：overview.html 中禁止裸链接（`<a href="xxx.md">`），统一使用 `<span onclick="viewContent()">`。
 
 ### 测试纪律（软 TDD）
@@ -181,7 +181,7 @@ Skill 开发遵循 **SDD（Skill Development Discipline）**——本质是把 T
 | **任务型**（Task） | 用户手动 `/name` 触发，有副作用 | build-index |
 | **纪律型**（Discipline） | 每次对话都加载，约束行为 | kb-tdd-discipline、auto-commit-discipline |
 
-详见黄佳课程[§19 两类 Skill](kb/技术/AI/Claude-Code/Skills%20渐进式披露架构.md)和 superpowers `writing-skills` skill。
+详见黄佳课程[§19 两类 Skill](<kb/技术/AI/Claude-Code/Skills 渐进式披露架构.md>)和 superpowers `writing-skills` skill。
 
 ### Git 规则
 

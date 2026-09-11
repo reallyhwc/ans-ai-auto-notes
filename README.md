@@ -109,13 +109,16 @@ claude
 ```
 ans-ai-auto-notes/
 ├── kb/                     # 知识库主目录
-│   ├── 技术/AI/            # AI 相关笔记（大模型、应用、Coding、Claude-Code）
+│   ├── 技术/AI/            # AI 相关笔记（基础/大模型/Claude-Code/AI-Coding/应用）
 │   ├── 技术/Java/          # Java 后端（MQ、事务、热点账户、Spring AI）
-│   ├── 技术/计算机基础/     # 计算机基础（统计、计算理论）
+│   ├── 技术/编程语言/       # 跨语言横向对比（Go vs TypeScript 等）
+│   ├── 技术/计算机基础/     # 计算机基础（图灵机、CAP、沙箱、贝叶斯）
 │   ├── 实战/               # 踩坑记录 & 实战技巧
-│   └── 读书笔记/           # 读书笔记
+│   ├── 读书笔记/           # 读书笔记
+│   └── 课程笔记/           # 课程 hub + 方法论沉淀
 ├── timeline/               # 按周归档的对话摘要
 ├── memory/                 # AI 记忆层（用户画像、项目知识、反馈记录）
+├── docs/                 # ADR 决策记录 + superpowers plans/specs
 ├── scripts/                # 自动化脚本
 │   ├── vendor/             # 前端依赖（mermaid / marked / wordcloud2）
 │   ├── app.js              # 导览页前端逻辑
@@ -123,9 +126,10 @@ ans-ai-auto-notes/
 │   ├── build-index.js      # 索引构建
 │   └── ...                 # lint / session-log / audit 等
 ├── overview.html           # 可视化导览页
+├── SETUP.md               # 新设备接入指南
 ├── server.js               # 本地 HTTP 服务器（SSE live reload）
 ├── CLAUDE.md               # AI 行为规则（核心配置文件）
-└── timeline.json           # 时间线数据
+└── timeline.json           # 时间线数据（构建产物，由 build-timeline.js 生成）
 ```
 
 ## 快速开始
@@ -170,7 +174,7 @@ bash scripts/arch-lint.sh     # 15 项 KB 架构检查
 
 ## Skill 体系（AI 能力包）
 
-项目采用 **Skill 渐进式披露架构**——把领域知识封装为可被语义触发的能力单元，按需加载到 Claude 的认知空间。详见 [Skills 渐进式披露架构](kb/技术/AI/Claude-Code/Skills%20渐进式披露架构.md)。
+项目采用 **Skill 渐进式披露架构**——把领域知识封装为可被语义触发的能力单元，按需加载到 Claude 的认知空间。详见 [Skills 渐进式披露架构](<kb/技术/AI/Claude-Code/Skills 渐进式披露架构.md>)。
 
 ### 当前 5 个 Skill
 
