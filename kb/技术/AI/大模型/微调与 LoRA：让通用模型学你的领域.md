@@ -288,4 +288,4 @@ flowchart TD
 ---
 
 > 关联: [LLM 核心原理](./LLM（大语言模型）.md) · [Agent 与 MCP](<./Agent 与 MCP.md>) · [Prompt 与 RAG](<./Prompt 与 RAG.md>) · [moss-music](../应用/MOSS-Music：开源音乐理解模型.md) — §6 的落地对象（情绪识别 + 微调实操）
-> 关联: [本地部署 LLM](<./本地部署 LLM.md>) — 训练/推理的显存与量化基础
+> 关联: [本地部署 LLM](<./本地部署 LLM.md>) — §8「Mac 能不能微调 / 48G 够不够」：统一内存带宽对比、MPS 三个坑、云 GPU 租用 vs Mac 训练的时间账
