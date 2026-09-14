@@ -1,6 +1,6 @@
 ---
 title: "本地部署 LLM"
-description: "Ollama安装使用+进阶玩法(API/Embedding/Modelfile/Web UI)、小模型推荐；§4 量化命名详解（Q4/Q5/Q6、_K_/S/M/L 含义与选档决策）；含 §8 Mac 微调可行性与成本（M4/M5 Pro·Max 统一内存带宽对比、MPS 三个坑与芯片代际无关、云 GPU 租用 vs Mac 训练的时间账）、§9 Mac 上能玩的 14 个项目 + M4/M5 实测 tok/s 基准、§10 48GB 模型选型（Q4 内存公式与推荐清单）+ 闲置资源成本真相（内存昂贵、算力免费）与 keep_alive 调优"
+description: "Ollama安装使用+进阶玩法(API/Embedding/Modelfile/Web UI)、小模型推荐；§4 量化命名详解（Q4/Q5/Q6、_K_/S/M/L 含义与选档决策）；含 §8 Mac 微调可行性与成本（M4/M5 Pro·Max 统一内存带宽对比、MPS 三个坑与芯片代际无关、云 GPU 租用 vs Mac 训练的时间账）、§9 Mac 上能玩的 14 个项目 + M4/M5 实测 tok/s 基准、§10 48GB 模型选型（Q4 内存公式与推荐清单）+ 闲置资源成本真相（内存昂贵、算力免费）与 keep_alive 调优、§11 M5 Pro 48G 跑通 Qwen3.6 27B/MoE 的真实实测（24.9 vs 58.1 tok/s）"
 ---
 
 # 本地部署 LLM：小模型 + Ollama 实践
@@ -774,6 +774,117 @@ sudo powermetrics --samplers cpu_power -i 1000 -n 5
 - **内存**：这才是你真正要精打细算的资源 → 用 `keep_alive` 主动管理
 - **算力**：不用不花钱 → 可以放心把它挂在一个常开的服务后面，闲置成本极低
 - **反过来说**：如果你要跑的是**持续批量任务**，那它就从"免费"变成"持续耗电 + 风扇噪音"，这时候该考虑挪到云 GPU 上按小时计费（见 §8.3 的成本对比）
+
+---
+
+## 11. 实战：M5 Pro 48G 跑通 Qwen3.6 27B（2026-09-14 实测）
+
+§9 和 §10 讲的都是原理和别人的数据，这一章是**在 M5 Pro 48GB 上亲手跑出来的真实数字**——包括一路踩的坑。
+
+### 11.1 环境与安装方式（不装 Homebrew、不装 GUI）
+
+目标：**只用 CLI，全部文件可控，不往系统目录里塞东西**。
+
+```bash
+# ① 下官方预编译包（v0.34.0，160MB，实测 22MB/s）
+mkdir -p <workdir>/.local-ollama && cd <workdir>/.local-ollama
+curl -LO https://github.com/ollama/ollama/releases/download/v0.34.0/ollama-darwin.tgz
+tar xzf ollama-darwin.tgz          # 解压出 ollama / llama-server / llama-quantize / *.dylib + mlx_metal_v3、v4
+```
+
+**关键发现：tarball 里已经有 `MLX_LICENSE` 和 `mlx_metal_v3/v4` 目录**——这验证了 §9.3 那条"Ollama 已内置 MLX 后端"，不是道听途说。
+
+```bash
+# ② 模型目录改用自定义路径（否则默认落在 ~/.ollama/models）
+export OLLAMA_MODELS=$PWD/models
+export OLLAMA_HOST=127.0.0.1:11434
+./ollama serve &
+```
+
+启动日志里能直接看到后端和上下文默认值，**这两行是判断"到底有没有用上 GPU"的关键证据**：
+
+```
+INFO source=types.go  msg="inference compute" library=Metal name="Apple M5 Pro" total="37.4 GiB" available="37.4 GiB"
+INFO source=routes.go msg="vram-based default context" total_vram="37.4 GiB" default_num_ctx=32768
+```
+
+> ⚠️ **坑 1：密钥目录硬编码，无法用环境变量改。** Ollama 启动时一定要在 `~/.ollama/` 建 `id_ed25519` 密钥对，**二进制里没有对应的环境变量**（可以从 `strings ./ollama | grep OLLAMA_` 确认没有 key 路径项）。所以即使你用 `OLLAMA_MODELS` 把权重挪走了，**家目录还是会被写**。本次是手动 `mkdir -p ~/.ollama` 才放行的。
+
+### 11.2 实测性能（这才是重点）
+
+两个模型都拉下来跑了同一道题（"用三句话解释注意力机制"，`num_predict=200`，关闭思考链）：
+
+| 指标 | `qwen3.6:27b-mlx`（dense） | `qwen3.6:35b-a3b`（MoE） | 对比 |
+|------|--------------------------|------------------------|------|
+| 权重体积 | 18 GB | 22 GB | |
+| 常驻内存 | **19.1 GB** | **22.5 GB** | |
+| **生成速度（decode）** | **24.9 tok/s** | **58.1 tok/s** | **MoE 快 2.3×** |
+| 首 token（prefill） | 45 tok/s | 42 tok/s | 打平 |
+| **冷启动加载** | ~4 s | **5.0 s** | 体积越大越慢 |
+| 回答质量 | 正确、通顺 | 正确、更简洁 | 目测同一档 |
+
+**两条结论，都跟预期不一样：**
+
+1. **MLX 版比推算的快一倍多。** §9.3 我按 M5 Max 数据除以 2 推算 M5 Pro ≈ 11 tok/s，实测 **24.9 tok/s**。说明 (a) M5 Pro 的实际带宽/算力好于线性缩放估计，(b) **MLX 引擎的效率确实兑现了**。→ **教训：带宽缩放只能估个量级，别拿它当结论。**
+2. **MoE 的速度优势在 Mac 上兑现得非常彻底**：58 tok/s vs 25 tok/s，**2.3 倍**。而两者常驻内存只差 3.4GB。→ **48G Mac 上，MoE 是毫无争议的首选形态。**
+
+### 11.3 只有"一个模型常驻"（默认行为，别踩）
+
+实测触发第二个模型时，**第一个被直接挤掉**：
+
+```
+加载 35b-a3b 后：  常驻 1 个，22.47 GB
+再请求 27b-mlx：   常驻 1 个，19.10 GB   ← 35b-a3b 已被卸载
+```
+
+**后果**：交替使用两个模型 = 每次都付一次 4~5 秒冷启动（每次 22GB 从 SSD 重读）。
+
+**这不是 bug，是保护**——默认同一时刻只服务一个模型，避免内存被挤爆。想要两个都常驻：
+
+```bash
+OLLAMA_MAX_LOADED_MODELS=2 ./ollama serve &   # 34GB 常驻，48G 上可行但要留神
+```
+
+### 11.4 系统侧资源实况（对应 §10 的理论）
+
+跑完一轮后的真实状态：
+
+```
+free=2.2GB  active=9.3GB  inactive=6.8GB  wired=19.2GB
+swap: total = 0.00M  used = 0.00M          ← 零 swap，模型完全驻留内存
+```
+
+**这一组数字把 §10 的说法坐实了**：
+
+- `wired=19.2GB` ≈ 模型权重完全 pin 在物理内存里，**没被换到磁盘** → 所以速度稳定、没有 swap 抖动
+- `free=2.2GB` 看着吓人，但 macOS 会把 inactive 内存随时回收，**实际用起来不卡**
+- **`swap used = 0`** 是关键指标——48GB 跑 27B/35B 都在舒适区，**还没摸到内存墙**
+
+### 11.5 可直接复用的脚本
+
+```bash
+# bench.sh：发一次请求，打印 prefill / decode 速度 + 常驻占用
+curl -s http://127.0.0.1:11434/api/chat -d '{
+  "model": "qwen3.6:35b-a3b",
+  "messages": [{"role":"user","content":"你的问题"}],
+  "stream": false, "think": false,
+  "options": {"num_predict": 200}
+}'   # 返回体里的 prompt_eval_duration / eval_duration / eval_count 就是全部指标
+```
+
+**三个字段的含义**（自己写基准时直接用）：
+
+| 字段 | 含义 |
+|------|------|
+| `load_duration` | 冷启动加载时间（权重从 SSD 读进内存） |
+| `prompt_eval_count` ÷ `prompt_eval_duration` | **prefill 速度**（读你的输入，随上下文长度线性增长） |
+| `eval_count` ÷ `eval_duration` | **decode 速度**（生成速度，也就是体感快慢，模型加载后基本恒定） |
+
+### 11.6 一句话总结
+
+**在 M5 Pro 48GB 上，`ollama pull qwen3.6:35b-a3b` 是"体验最好 / 性价比最高"的单条命令**：58 tok/s 的生成速度已经接近"读起来不觉得卡"的档位，22.5GB 常驻还留了一半内存，冷启动 5 秒可以接受。
+
+> 想要更快的追问响应，把 `OLLAMA_KEEP_ALIVE` 调长（避免 5 分钟后卸载再冷启动）；想要跑长上下文，注意 `default_num_ctx=32768` 是 Ollama 按显存自动定的，显式调大会显著吃 KV Cache。
 
 ---
 

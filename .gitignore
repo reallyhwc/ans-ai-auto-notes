@@ -46,3 +46,6 @@ logs/hook-runs.jsonl
 manifest.json
 # 构建产物（由 build-timeline.js 生成，不入库）
 timeline.json
+
+# 本地 LLM 试验环境（Ollama 二进制 + 模型权重，几十 GB，绝不入库）
+.local-ollama/
