@@ -58,7 +58,7 @@
 - [Prompt 与 RAG](kb/技术/AI/大模型/Prompt 与 RAG.md) — Prompt工程、RAG、向量数据库/Milvus、Embedding、LangChain
 - [多模态 LLM](kb/技术/AI/大模型/多模态 LLM.md) — 多模态 LLM 如何看图：视觉编码器 ViT + 投影层把图片对齐到文本 embedding 空间，与纯文本 LLM 的输入输出对比及典型模型（GPT/Claude/Gemini/Qwen-VL）
 - [微调与 LoRA：让通用模型学你的领域](kb/技术/AI/大模型/微调与 LoRA：让通用模型学你的领域.md) — LLM微调基础：全量微调vs LoRA、具体客服案例、成本对比；含 Prompt/RAG/微调的决策梯子、LoRA 数学与超参起步值、标准四步流水线（数据/labels mask/训练/评测）、以及用 MOSS-Music 做歌曲情绪识别的落地路径与三个坑
-- [本地部署 LLM](kb/技术/AI/大模型/本地部署 LLM.md) — Ollama安装使用+进阶玩法(API/Embedding/Modelfile/Web UI)、小模型推荐；含 §8 Mac 微调可行性与成本（M4/M5 Pro·Max 统一内存带宽对比、MPS 三个坑与芯片代际无关、云 GPU 租用 vs Mac 训练的时间账）、§9 Mac 上能玩的 14 个项目 + M4/M5 实测 tok/s 基准与硬边界
+- [本地部署 LLM](kb/技术/AI/大模型/本地部署 LLM.md) — Ollama安装使用+进阶玩法(API/Embedding/Modelfile/Web UI)、小模型推荐；含 §8 Mac 微调可行性与成本（M4/M5 Pro·Max 统一内存带宽对比、MPS 三个坑与芯片代际无关、云 GPU 租用 vs Mac 训练的时间账）、§9 Mac 上能玩的 14 个项目 + M4/M5 实测 tok/s 基准、§10 48GB 模型选型（Q4 内存公式与推荐清单）+ 闲置资源成本真相（内存昂贵、算力免费）与 keep_alive 调优
 - [生成式 AI](kb/技术/AI/大模型/生成式 AI.md) — 扩散模型如何生成图片/视频/音频：为什么像素不能像文本那样逐字预测、破坏再修复的训练与采样过程、与 LLM 自回归路线的对比及融合方向
 
 #### 应用 (17 篇)
