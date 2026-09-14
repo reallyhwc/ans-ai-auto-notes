@@ -1,6 +1,6 @@
 ---
 title: "MOSS-Music：开源音乐理解模型"
-description: "MOSS-Music = OpenMOSS 开源的 8B 音乐理解模型（音频编码器 + Qwen3-8B），DeepStack 跨层特征注入 + 时间标记让模型知道「第几秒发生了什么」，覆盖歌词 ASR / 和弦 / 曲式 / 长音频 QA"
+description: "MOSS-Music = OpenMOSS 开源的 8B 音乐理解模型（音频编码器 + Qwen3-8B），DeepStack 跨层特征注入 + 时间标记让模型知道「第几秒发生了什么」，覆盖歌词 ASR / 和弦 / 曲式 / 长音频 QA；含扒源码核实的工程参数（12.5 token/s、2s 时间标记、无训练脚本）与情绪识别落地路径"
 ---
 
 # MOSS-Music：开源音乐理解模型
@@ -13,6 +13,7 @@ MOSS-Music = **音频编码器 + 投影适配器 + Qwen3-8B** 的三段式架构
 
 > 关联: [多模态 LLM](<../大模型/多模态 LLM.md>) — 它是「音频模态 LLM」的一个具体实例，套的就是同一套「编码器 + 投影层 + LLM」范式
 > 关联: [LLM（大语言模型）](../大模型/LLM（大语言模型）.md) — 底层大脑
+> 关联: [微调与 LoRA](<../大模型/微调与 LoRA：让通用模型学你的领域.md>) — §6 讲「拿它做歌曲情绪识别 + LoRA 微调实操 + 三个坑」
 
 ---
 
@@ -206,6 +207,39 @@ README 给的三条路：**SGLang Serving**（部署服务）、**Transformers �
 | 长音频 QA 的架构参考 | 做播客 / 会议 / 长视频理解时，抄它的时间表征方案 |
 
 **边界**：它是**理解**模型，不是生成模型——不能拿去写歌/编曲/续写旋律。要生成得看 Suno / MusicGen 那一类。
+
+> 落地路径（情绪识别 + 微调）见 [微调与 LoRA](<../大模型/微调与 LoRA：让通用模型学你的领域.md>) §6。
+
+---
+
+## 2026-09-14 - 扒源码核实的工程细节（别只看 README）
+
+README 只讲能力，真接进项目要的是这些数字。下面每条都是 clone 仓库后从 `src/` 里读出来的：
+
+| 项目 | 实测值 | 影响 |
+|------|--------|------|
+| 采样率 / hop | `mel_sr=16000`，`mel_hop_length=160` | 标准 Whisper 口径，16 kHz 单声道 |
+| 音频 token 速率 | **12.5 tokens/秒**（`processor.audio_tokens_per_second`） | 一首 5 分钟的歌 ≈ **3750 个音频 token**，序列长度直接吃显存 |
+| 时间标记间隔 | **每 2 秒**插一次（= 每 25 个音频 token） | 粒度就是 2s，别指望它给你亚秒级时间戳 |
+| 编码器结构 | 32 层、`d_model=1280`、20 头、FFN 5120 | 体量接近 Whisper-large 的量级 |
+| DeepStack 注入层 | `deepstack_encoder_layer_indexes=[8, 16, 24]` | 前/中/后各取一层，注入 LLM 浅层 |
+| 长音频怎么处理 | 编码器按 `n_window=200`×2=400 帧切块，逐块编码后拼接 | **没有硬性时长上限**，长曲靠 chunk 拼 |
+| 模型类 | `MossMusicModel`（标准 `PreTrainedModel`）+ `MossMusicProcessor` | `trust_remote_code=True`，`peft` 可直接挂 LoRA |
+| LLM 挂载路径 | `model.language_model = Qwen3Model(...)` | LoRA 的 `target_modules` 走 `language_model.layers[i].self_attn.q_proj` |
+| 官方默认问句 | `app.py`: 「请从风格与速度、调性与和声、乐器编配、结构安排以及整体情绪几个方面描述这段音乐。」 | 情绪是官方**一等公民**能力，不用自己想办法引导 |
+| 仓库里有什么 | 仅**推理**：`infer.py` / `hf_inference.py` / `app.py` / `serving`（SGLang）；数据侧另有 `MOSS-Music-Data-Pipeline` | ⚠️ **没有训练脚本**，微调要自己写训练循环 |
+| 许可 | Apache License 2.0 | 可商用，含微调后的 adapter |
+
+**最小可跑代码**（`infer.py` 的真实骨架）：
+
+```python
+raw_audio = load_audio(AUDIO_PATH, sample_rate=processor.config.mel_sr)  # 16kHz
+inputs = processor(text=prompt, audios=[raw_audio], return_tensors="pt")
+inputs["audio_input_mask"] = inputs["input_ids"] == processor.audio_token_id  # ⭐ 必传
+generated = model.generate(**inputs, max_new_tokens=1024, do_sample=True, top_p=0.8)
+```
+
+> 注意 `audio_input_mask` 这个参数——DeepStack 注入靠它定位"哪些位置是音频"，**漏传就等于 DeepStack 失效**，效果会明显掉。这是自己接的时候最容易漏的一行。
 
 ---
 
