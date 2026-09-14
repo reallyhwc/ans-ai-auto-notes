@@ -11,9 +11,9 @@
 - [知识管理工具对比](kb/实战/知识管理工具对比.md) — Obsidian/Notion/本项目方案 对比分析
 - [设计前未做数据调研导致返工](kb/实战/设计前未做数据调研导致返工.md) — 方法论：识别/规则类需求必须先用线上真实数据调研再定技术方案（OMMUSIC-3593553 踩坑复盘）
 
-## 技术 (71 篇)
+## 技术 (72 篇)
 
-### AI (50 篇)
+### AI (51 篇)
 
 #### AI-Coding (6 篇)
 
@@ -61,7 +61,7 @@
 - [本地部署 LLM](kb/技术/AI/大模型/本地部署 LLM.md) — Ollama安装使用+进阶玩法(API/Embedding/Modelfile/Web UI)、小模型推荐
 - [生成式 AI](kb/技术/AI/大模型/生成式 AI.md) — 扩散模型如何生成图片/视频/音频：为什么像素不能像文本那样逐字预测、破坏再修复的训练与采样过程、与 LLM 自回归路线的对比及融合方向
 
-#### 应用 (16 篇)
+#### 应用 (17 篇)
 
 - [Agent Observability：调用链追踪与排障](kb/技术/AI/应用/Agent Observability：调用链追踪与排障.md) — Agent 系统的可观测性——为什么 agent 比传统服务更难排障；span/parent_id 数据模型；LangSmith / Helicone / OTel / 自建 jsonl 方案对比；本项目 agent-runs.jsonl 落地详解；升级路径
 - [Agent 四大设计范式（深度展开）](kb/技术/AI/应用/Agent 四大设计范式（深度展开）.md) — 意图路由 / ReAct / Plan-and-Execute / Multi-Agent 四种范式的架构图、Prompt 模板、典型案例与对比
@@ -74,6 +74,7 @@
 - [LangChain Agent 开发指南：是什么、怎么用、与 Spring AI 对比](kb/技术/AI/应用/LangChain Agent 开发指南：是什么、怎么用、与 Spring AI 对比.md) — LangChain 核心六件套（Model I/O/Chain/Tool/Memory/Agent/Callbacks）、ReAct Agent 完整代码、与 Spring AI 架构对比、LangGraph 进化版、Java 开发者路线建议
 - [LLM 应用设计](kb/技术/AI/应用/LLM 应用设计.md) — 大模型应用 vs 传统 MySQL/ES 检索：确定性、Tool Calling、幻觉、上下文管理
 - [LLM 智能客服实战](kb/技术/AI/应用/LLM 智能客服实战.md) — 从零到一搭建客服系统：知识整理→RAG→LLM接入→Tool Calling→防幻觉→部署运维
+- [MOSS-Music：开源音乐理解模型](kb/技术/AI/应用/MOSS-Music：开源音乐理解模型.md) — MOSS-Music = OpenMOSS 开源的 8B 音乐理解模型（音频编码器 + Qwen3-8B），DeepStack 跨层特征注入 + 时间标记让模型知道「第几秒发生了什么」，覆盖歌词 ASR / 和弦 / 曲式 / 长音频 QA
 - [OpenAI Agents SDK 与多角色协作](kb/技术/AI/应用/OpenAI Agents SDK 与多角色协作.md) — 多角色协作、Handoff机制、Agent编排、与Claude Code对比
 - [Spring AI vs LangChain 深度对比：从 Java 后端视角彻底搞懂](kb/技术/AI/应用/Spring AI vs LangChain 深度对比：从 Java 后端视角彻底搞懂.md) — JPA vs JdbcTemplate 类比、同一场景 Spring AI(20行) vs LangChain(40行) 并排代码、黑盒 vs 白盒架构图、设计哲学（约定优于配置 vs 显式优于隐式）、选型决策指南、对照学习映射表
 - [个人知识库接入 RAG 的规划](kb/技术/AI/应用/个人知识库接入 RAG 的规划.md) — 何时需要 RAG、渐进式实现路径、架构全景

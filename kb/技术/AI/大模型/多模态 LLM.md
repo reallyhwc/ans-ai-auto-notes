@@ -122,3 +122,4 @@ LLM         = 一个只读书的学生，文字理解能力极强
 > 关联: [llm](./LLM（大语言模型）.md) — 纯文本 LLM 核心原理
 > 关联: [cnn](../基础/CNN（卷积神经网络）.md) — 视觉编码中 patch 切分的灵感来源
 > 关联: [transformer](../基础/Transformer.md) — ViT 基于 Transformer 架构
+> 关联: [moss-music](../应用/MOSS-Music：开源音乐理解模型.md) — 同一套「编码器 + 投影 + LLM」范式在**音频**模态上的实例（跨层特征注入 + 时间标记）
