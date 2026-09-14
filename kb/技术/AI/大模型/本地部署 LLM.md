@@ -1,6 +1,6 @@
 ---
 title: "本地部署 LLM"
-description: "Ollama安装使用+进阶玩法(API/Embedding/Modelfile/Web UI)、小模型推荐；含 §8 Mac 微调可行性与成本（M4/M5 Pro·Max 统一内存带宽对比、MPS 三个坑与芯片代际无关、云 GPU 租用 vs Mac 训练的时间账）"
+description: "Ollama安装使用+进阶玩法(API/Embedding/Modelfile/Web UI)、小模型推荐；含 §8 Mac 微调可行性与成本（M4/M5 Pro·Max 统一内存带宽对比、MPS 三个坑与芯片代际无关、云 GPU 租用 vs Mac 训练的时间账）、§9 Mac 上能玩的 14 个项目 + M4/M5 实测 tok/s 基准与硬边界"
 ---
 
 # 本地部署 LLM：小模型 + Ollama 实践
@@ -486,5 +486,116 @@ flowchart TD
 
 ---
 
+## 9. Mac 上能玩什么？14 个真实可做的项目
+
+**先记住一句话区分：Mac 是极好的「推理 + 数据」玩具，是极差的「训练」机器。** §8 讲的是后者为什么不行，这一章讲前者有多好玩。
+
+### 9.1 一图看全景
+
+```mermaid
+flowchart TD
+    M[Mac 48GB] --> A[推理侧 ⭐ 主战场]
+    M --> B[数据侧 ⭐ 主战场]
+    M --> C[训练侧 ❌ 别指望]
+
+    A --> A1[本地推理服务<br/>OpenAI 兼容端点]
+    A --> A2[离线 RAG 知识库<br/>embedding+rerank+chat 全本地]
+    A --> A3[编码助手<br/>Continue/Cline]
+    A --> A4[多模态<br/>视觉/语音]
+    A --> A5[本地 MCP Server]
+
+    B --> B1[批量摘要/抽取]
+    B --> B2[Whisper 转录]
+    B --> B3[量化/Runtime 对比实验]
+
+    C --> C1[小模型 LoRA<br/>1.5B-4B ✅]
+    C --> C2[8B 以上<br/>租卡]
+
+    style A fill:#e8f5e9
+    style B fill:#e8f5e9
+    style C fill:#ffebee
+```
+
+### 9.2 每个项目的难度与产出
+
+| # | 玩法 | 难度 | 用到的能力 | 产出/学到什么 |
+|---|------|------|-----------|--------------|
+| 1 | **本地推理服务**：`ollama serve` / `mlx_lm.server` 起一个 OpenAI 兼容端点 | ⭐ | 统一内存 + 量化 | 整个局域网都能用，还能被你的 Agent 代码调用 |
+| 2 | **多模型并行**：48GB 是"能同时跑好几个"的档位 | ⭐⭐ | 显存账 | 一个 chat 模型 + 一个 embedding + 一个 rerank 同时在线——这是 24GB 卡做不到的 |
+| 3 | **离线 RAG 知识库**：embedding + 向量库 + 本地 LLM 全在机器上 | ⭐⭐⭐ | 全套 | 断网可用、数据不出机器；**可以拿你的 kb/ 做实验对象** |
+| 4 | **量化对比实验**：同一模型 Q4/Q5/Q8 + 不同 runtime 跑同一批任务 | ⭐⭐ | 评测方法 | 得到"这个任务上多大模型 + 什么量化够用"的**实测结论**，不是别人说的 |
+| 5 | **Runtime 横评**：MLX vs llama.cpp vs Ollama | ⭐⭐ | 基准测试 | §9.3 的表格你可以自己复现，顺便看 M5 神经加速器到底兑现了多少 |
+| 6 | **编码助手本地化**：Continue.dev / Cline 指向本地端点 | ⭐⭐ | 上下文管理 | 代码不出机器；体感速度你会有判断 |
+| 7 | **批量摘要/结构化抽取**：邮件、日志、PDF 批量过一遍本地模型出 JSON | ⭐⭐ | 结构化输出 | **零 API 成本**，跑一万条也不心疼 |
+| 8 | **Whisper 本地转录**：会议录音、播客、视频 | ⭐⭐ | 音频栈 | Apple Silicon 上 Whisper 跑得很好，实用度极高 |
+| 9 | **多模态试玩**：视觉模型看图/读图表 | ⭐⭐⭐ | VLM + MPS | 探索性强，但 Mac 上多模态算子覆盖不如纯文本成熟 |
+| 10 | **本地 MCP Server**：自研 MCP 工具，后端接本地模型 | ⭐⭐⭐ | MCP 协议 | 真练手项目，跟你的 DSH 插件知识直接打通 |
+| 11 | **小模型 LoRA 微调**：1.5B~4B | ⭐⭐⭐ | LoRA + MLX | **Mac 唯一能舒服训的规模**，10~30 分钟出 adapter |
+| 12 | **长上下文实验**：4k / 32k / 128k 的显存与速度曲线、KV cache 量化 | ⭐⭐⭐ | KV Cache | 搞懂"上下文为什么贵"，直接反哺线上 Agent 设计 |
+| 13 | **语音对话闭环**：Whisper 听 → 本地 LLM 想 → TTS 说 | ⭐⭐⭐⭐ | 全栈 | 完全离线的语音助手 |
+| 14 | **模型格式转换/量化**：HF → GGUF / MLX 量化 | ⭐⭐⭐ | 工具链 | 顺手把你从 HF 下的模型变成 Mac 能跑的版本 |
+
+### 9.3 性能基准：Mac 本地推理到底多快
+
+**实测数据**（2026-05，[llm-benchpacks M4/M5 扫描](https://raw.githubusercontent.com/ephes/llm-benchpacks/b2b724cd3d1ce07bf57df60822cdc52cb140f1c6/docs/qwen36-m4-m5-benchmark-summary.md)，中位 total tok/s）：
+
+| runtime | 模型 | M5 Max 64GB | M4 Max 128GB |
+|---------|------|------------|-------------|
+| **MLX** | **MoE**（35B-A3B 4bit） | **~105** | ~90 |
+| **MLX** | dense（27B 4bit） | **~30** | ~26 |
+| llama.cpp | MoE | ~92 | ~66 |
+| llama.cpp | dense | ~25 | ~22 |
+| Ollama | MoE | ~48 | ~40 |
+| Ollama | dense | ~14 | ~13 |
+
+**三个立刻可用的结论**：
+
+1. **MLX 比 Ollama 快一倍以上**（dense：30 vs 14）。在 Mac 上，**runtime 的选择比模型的选择更影响体感**。
+2. **MoE 是 Mac 的甜点**。35B-A3B 这种"总参数 35B、激活只 3B"的模型，速度是 dense 27B 的 **3.5 倍**，但质量接近 35B 档——**48GB 内存能让它跑 4bit**，这是 Mac 本地体验质变的关键。
+3. **Ollama 0.19 已把 Apple Silicon 后端换成 MLX**（[报道](http://www.jimo.studio/blog/ollama-019-engine-switch-how-apple-m5-chip-doubles-local-llm-performance/)：prefill 1154→1810 tok/s +57%，decode 58→112 tok/s +93%）。所以上表的 Ollama 数字是**旧引擎时代**的，升级后应接近 MLX。**装了就升到最新版。**
+
+**M5 Pro 48G 上的预期**（⚠️ 推算，非实测——按带宽比例缩放）：
+
+| 模型类型 | M5 Pro 估算 | 体感 |
+|---------|-----------|------|
+| MoE（35B-A3B 4bit） | ~50-60 tok/s | 流畅，能当日常助手 |
+| dense（27B 4bit） | ~15-18 tok/s | 能用，比人阅读快一点 |
+| 小模型（7B/8B 4bit） | ~60-90 tok/s | 飞快 |
+
+> 推算口径：MLX 数字 ÷ (614/307 = 2)，再考虑 MoE 的激活参数少、对带宽不敏感，放宽到 0.5~0.6×。**要真实数字就得自己跑一遍**（这正是玩法 5 的价值）。
+
+### 9.4 硬边界（别浪费时间的地方）
+
+| 别做的事情 | 为什么 |
+|-----------|--------|
+| 想跑 70B 密度模型 | 48GB 只能 Q2~Q3，质量崩了，速度也就 5 tok/s 级 |
+| 想训 8B 以上 | §8 已结论：租卡 |
+| 指望多模态像纯文本一样稳 | MPS 算子覆盖不均，容易静默回退 CPU |
+| 用 Q4 量化模型做精细推理 | 量化损失在长链推理上会放大 |
+| 不升级 runtime 就下结论 | 引擎迭代（如 Ollama 换 MLX）能差一倍 |
+
+### 9.5 从哪个开始？——两个推荐起点
+
+**起点 A：一次做完 1 + 4 + 5（一个下午）**
+```
+装 MLX（或升级 Ollama 到最新）
+→ 下一对对比模型：MoE 35B-A3B 4bit  vs  dense 27B 4bit
+→ 同一个 20 题的测试集跑两边，记录 tok/s 和正确率
+→ 你会亲身体会到「运行时 + 模型形态」这两个变量有多重要
+```
+
+**起点 B：把 kb/ 变成离线 RAG（一个周末）**
+```
+本地 embedding 模型把 kb/ 的 md 切块向量化
+→ 本地 chat 模型（MoE 4bit）做生成
+→ 断网测试：它能不能回答「我 MOSS-Music 那篇笔记说了什么」
+```
+这套下来你会同时摸到：切块策略、向量检索、rerank、上下文拼接、prompt 设计——**全部零 API 成本地练一遍**。
+
+> 通用原则：**先挑一个你真有数据的小场景**（自己的笔记、自己的代码、自己的录音），跑通闭环 >> 追新模型。
+
+---
+
 > 关联: [llm.md](./LLM（大语言模型）.md) — LLM 核心原理（架构、KV Cache、量化原理）
 > 关联: [微调与 LoRA](<./微调与 LoRA：让通用模型学你的领域.md>) — §3-§5 的决策梯子、LoRA 数学与四步流水线（本章是它的"硬件篇"）
+> 关联: [MCP 协议](<./MCP 协议：AI 界的 USB-C.md>) — 玩法 10「本地 MCP Server」的协议基础
