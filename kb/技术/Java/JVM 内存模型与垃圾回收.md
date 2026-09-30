@@ -677,8 +677,8 @@ graph LR
     Memory["内存占用<br/>堆大小<br/>合理即可"]
 
     Throughput -.->|"三者不可兼得<br/>GC 调优的本质"| Latency
-    Latency -.->|""| Memory
-    Memory -.->|""| Throughput
+    Latency -.-> Memory
+    Memory -.-> Throughput
 ```
 
 ### 6.2 常用 JVM 参数

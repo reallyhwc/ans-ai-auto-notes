@@ -94,7 +94,7 @@
 - [RocketMQ 高级消息机制（延迟·顺序·高可用）](kb/技术/Java/RocketMQ 高级消息机制（延迟·顺序·高可用）.md) — RocketMQ 延迟消息、顺序消息的实现原理，主从同步（HA）机制与高可用故障场景分析——从《RocketMQ 底层实现原理》拆出的深度机制专题
 - [Spring AI](kb/技术/Java/Spring AI.md) — Spring 生态 LLM 集成，流式/非流式调用
 - [Spring IOC、DI 与 AOP 核心原理](kb/技术/Java/Spring IOC、DI 与 AOP 核心原理.md) — Spring 核心机制详解：IoC（控制反转）设计思想、DI（依赖注入）三种方式、Bean 生命周期、AOP（面向切面编程）动态代理原理，含完整代码 Demo 和 Mermaid 图
-- [ThreadLocal 弱引用设计与内存泄漏](kb/技术/Java/ThreadLocal 弱引用设计与内存泄漏.md) — 从所有权倒置讲清 ThreadLocalMap 为何挂在 Thread 上、Entry 为何是 key 弱引用 + value 强引用的非对称设计、stale entry 的产生与 get/set/remove/rehash 四路机会式清理机制、0x61c88647 黄金分割哈希、长生命周期线程（主线程模拟，与线程池同理）泄漏的实测现场，以及 TransmittableThreadLocal / FastThreadLocal / ScopedValue 替代方案
+- [ThreadLocal 弱引用设计与内存泄漏](kb/技术/Java/ThreadLocal 弱引用设计与内存泄漏.md) — 先做概念澄清（ThreadLocal / ThreadLocalMap / Entry / K / V 五者关系、为什么 key 是 ThreadLocal、日常只用 ThreadLocal、两种泄漏形态），再从所有权倒置讲清 ThreadLocalMap 为何挂在 Thread 上、Entry 为何是 key 弱引用 + value 强引用的非对称设计、stale entry 的产生与 get/set/remove/rehash 四路机会式清理机制、0x61c88647 黄金分割哈希、长生命周期线程（主线程模拟，与线程池同理）泄漏的实测现场，以及 TransmittableThreadLocal / FastThreadLocal / ScopedValue 替代方案
 - [主流消息队列对比与选型](kb/技术/Java/主流消息队列对比与选型.md) — Kafka / RocketMQ / RabbitMQ 三大 MQ 的架构原理、存储机制、HA 策略深度对比与选型决策
 - [分布式事务全景](kb/技术/Java/分布式事务全景.md) — Java 后端程序员视角下的分布式事务方案对比与选型实践
 - [点赞Top排行榜设计方案](kb/技术/Java/点赞Top排行榜设计方案.md) — 点赞/热度排行榜的系统设计：Redis ZSet 直写 → 定时批量计算 → 分桶分片，海量数据下的分层架构与反作弊考量

@@ -1,6 +1,6 @@
 ---
 title: "ThreadLocal 弱引用设计与内存泄漏"
-description: "从所有权倒置讲清 ThreadLocalMap 为何挂在 Thread 上、Entry 为何是 key 弱引用 + value 强引用的非对称设计、stale entry 的产生与 get/set/remove/rehash 四路机会式清理机制、0x61c88647 黄金分割哈希、长生命周期线程（主线程模拟，与线程池同理）泄漏的实测现场，以及 TransmittableThreadLocal / FastThreadLocal / ScopedValue 替代方案"
+description: "先做概念澄清（ThreadLocal / ThreadLocalMap / Entry / K / V 五者关系、为什么 key 是 ThreadLocal、日常只用 ThreadLocal、两种泄漏形态），再从所有权倒置讲清 ThreadLocalMap 为何挂在 Thread 上、Entry 为何是 key 弱引用 + value 强引用的非对称设计、stale entry 的产生与 get/set/remove/rehash 四路机会式清理机制、0x61c88647 黄金分割哈希、长生命周期线程（主线程模拟，与线程池同理）泄漏的实测现场，以及 TransmittableThreadLocal / FastThreadLocal / ScopedValue 替代方案"
 ---
 
 # ThreadLocal 弱引用设计与内存泄漏
@@ -8,6 +8,183 @@ description: "从所有权倒置讲清 ThreadLocalMap 为何挂在 Thread 上、
 > 最后整理: 2026-09-30 | 来源: 对话讲解（JDK 17 源码 + 本机实测 demo）
 
 > 关联: [JVM 内存模型与垃圾回收](<./JVM 内存模型与垃圾回收.md>) — **建议先读该文 §2.4–§2.10**：可达性阶梯、Reference 状态机、`get()` 会临时变强等全部地基都在那里 | [沙箱（Sandbox）：从进程隔离到 Agent 运行时](<../计算机基础/沙箱（Sandbox）：从进程隔离到 Agent 运行时.md>) — 异步/线程池场景用 TransmittableThreadLocal 传递上下文（本文 §10.2 仅简介，实战细节见该文「链路染色」一节）
+
+---
+
+## §0 概念澄清：ThreadLocal、ThreadLocalMap、Entry、K、V 到底谁是谁
+
+这一节是**概念地图**。把这几个问题理顺，后面所有机制都会顺理成章——因为绝大多数"看不懂"，卡的不是源码，是**没分清谁是谁、谁负责什么**。
+
+### 0.1 一张图：一个 ThreadLocal，N 个线程，N 份值
+
+```mermaid
+graph TB
+    TL["ThreadLocal 对象<br/>通常全应用只有 1 个（static final）<br/>它既是「变量」本身，也是 map 的 key"]
+
+    subgraph SGA["线程 A"]
+        MA["ThreadLocalMap A（A 私有）"] --> EA["Entry：key→TL，value→A 线程的值"]
+    end
+    subgraph SGB["线程 B"]
+        MB["ThreadLocalMap B（B 私有）"] --> EB["Entry：key→TL，value→B 线程的值"]
+    end
+
+    EA -.->|"key 是弱引用"| TL
+    EB -.->|"key 是弱引用"| TL
+```
+
+这张图要看出三件事：
+
+1. **`ThreadLocal` 只有一个**，它是「变量」的**身份标识**，被所有线程共享（只读地用）。
+2. **`ThreadLocalMap` 每个线程一个**（就是 `Thread` 上的 `threadLocals` 字段），是这个线程的**私有储物柜**。
+3. **同一个 ThreadLocal 在每个线程的 map 里各有一个 Entry**——所以"线程隔离"是靠"每线程一张 map"实现的，**不是**靠每个线程有不同的 key。
+
+### 0.2 对照表：ThreadLocal vs ThreadLocalMap
+
+| 维度 | `ThreadLocal` | `ThreadLocalMap` |
+|------|--------------|-----------------|
+| 是什么 | **对外的 API 对象**，你代码里声明和使用的那个变量 | **内部的存储容器**，一张定制 hash 表 |
+| 角色 | 逻辑上的「变量」＋ map 的 **key** | 某个线程的「储物柜」 |
+| 数量 | 一个逻辑变量 = 一个实例（通常 `static final`） | **每个 Thread 一个** |
+| 生命周期 | 由你（程序员）控制 | 跟着 Thread 走，线程退出时被置 null |
+| 可见性 | `public`，随时可用 | **package-private**，是 `ThreadLocal` 的静态内部类，**用户代码拿不到** |
+| 你会直接调用吗 | 会：`tl.get()` / `tl.set()` / `tl.remove()` | **永远不会** |
+
+一句话：**`ThreadLocal` 是钥匙和变量，`ThreadLocalMap` 是每个线程自己的柜子。**
+
+### 0.3 为什么 key 必须是 ThreadLocal
+
+从「这个 map 到底要解决什么问题」倒推最清楚：
+
+```text
+map 的职责：给定「某个变量」，找出「它在本线程的值」
+            ↓
+所以 map 必须回答：这是「哪一个变量」？   ← 这就是 key 要承担的职责
+            ↓
+而「哪一个变量」的天然标识物，就是 ThreadLocal 实例本身
+```
+
+关键点：**`ThreadLocal` 没有重写 `equals` / `hashCode`**，所以它天生是**身份（identity）语义**——每个 `new ThreadLocal()` 出来的实例都独一无二，正好当「变量 ID」用。
+
+再加上 §8 那个 `0x61c88647` 黄金分割哈希增量，`ThreadLocal` 对象自带一个 `threadLocalHashCode`，于是定位槽位只要一次位运算：
+
+```java
+int i = key.threadLocalHashCode & (table.length - 1);
+```
+
+**身份唯一 + 自带哈希 + 零冲突散列**，这就是「key 用 ThreadLocal」的全部理由。
+
+### 0.4 为什么不用 String 名字做 key
+
+一个自然的问题：用 `"userContext"` 这样的字符串当 key 不是更直观？不行：
+
+| 维度 | 用 String 名字 | 用 ThreadLocal 实例 |
+|------|--------------|-------------------|
+| 唯一性 | 需要全局约定命名，可能撞名 | **天然唯一**（对象身份） |
+| 哈希 | 要算字符串哈希，可能冲突 | 自带单调递增的黄金分割哈希 |
+| 等价判断 | 字符串比较（`equals`） | **引用比较**（`refersTo`/`==`），近零成本 |
+| 类型安全 | 只能拿到 `Object`，要强转 | 泛型 `ThreadLocal<T>`，**编译期类型安全** |
+| 生命周期 | 字符串常量可能让 key 永不消失 | 可以被弱引用回收（§4 的整个动机） |
+
+### 0.5 日常你只用 `ThreadLocal`：一次 `get()` 的完整调用链
+
+```java
+// 你写的代码（唯一入口）
+private static final ThreadLocal<User> CURRENT_USER = new ThreadLocal<>();
+
+User u = CURRENT_USER.get();
+```
+
+内部发生的事：
+
+```text
+CURRENT_USER.get()
+  │
+  ├─ 1. Thread t = Thread.currentThread()        // 找到「当前线程」
+  ├─ 2. ThreadLocalMap map = t.threadLocals      // 拿到「这个线程的柜子」
+  │         （这就是 §2 说的「所有权倒置」：柜子挂在 Thread 上）
+  ├─ 3. map.getEntry(this)                       // 用 this（这个 ThreadLocal）当 key 去找
+  │         int i = this.threadLocalHashCode & (len - 1)
+  ├─ 4. 找到 Entry → 返回 entry.value             // 拿到「本线程的值」
+  └─ 5. 没找到 → setInitialValue()               // 调 initialValue()/supplier，再 set 回去
+```
+
+**所以"使用 ThreadLocal"就是"使用 `ThreadLocal` 这个类"**；`ThreadLocalMap` 全程只是它的内部实现细节，业务代码里**永远不需要、也没法**直接 new 或引用它。
+
+### 0.6 K 被清掉之后，V 到底怎么样
+
+这是最核心的一问。答案藏在一个很多人没注意的事实里：
+
+> **`Entry` 本身就是一个"弱引用对象"。**
+
+```java
+static class Entry extends WeakReference<ThreadLocal<?>> {   // ← Entry IS-A WeakReference
+    Object value;                                            // ← 同时它自己还有 value 字段
+    Entry(ThreadLocal<?> k, Object v) { super(k); value = v; }
+}
+```
+
+所以"一个 KV"在内存里其实是**同一个对象里的两个字段**：
+
+```text
+Entry 对象（它本身就是一个 WeakReference 实例）
+┌───────────────────────────────────────────────────────┐
+│ 【继承来的部分】WeakReference<ThreadLocal<?>>          │
+│    referent ────弱引用────> ThreadLocal 对象           │  ← 大家口中的 "K"
+├───────────────────────────────────────────────────────┤
+│ 【Entry 自己的字段】                                   │
+│    value    ────强引用────> 你的业务对象                │  ← 大家口中的 "V"
+└───────────────────────────────────────────────────────┘
+              ▲
+              │ 强引用（被 table 数组持有）
+              │
+        Entry[] table
+```
+
+GC 清弱引用时，**只做一件事**：`entry.referent = null`。
+
+```text
+K 被清掉之后：
+┌───────────────────────────────────────────────────────┐
+│    referent ────✂ null（ThreadLocal 已被回收）          │
+├───────────────────────────────────────────────────────┤
+│    value    ────强引用────> 业务对象   ★ 原封不动！     │
+└───────────────────────────────────────────────────────┘
+              ▲
+              │ 依然是强引用
+        Entry[] table
+```
+
+**V 不会跟着 K 一起消失**，因为：
+
+- `value` 是 Entry 的**另一个字段**，GC 清 key 时根本没碰它；
+- `Entry` 自己还被 `table` 数组**强引用**着 → Entry 可达 → `Entry.value` 可达 → **GC 没有任何理由回收 V**。
+
+**V 的终点只有一个：Entry 被从数组里删掉的那一刻**（`expungeStaleEntry` 里的 `tab[i].value = null; tab[i] = null;`）。而"删 Entry"是**数据结构的责任**，GC 不会替你做——这就是 §1 说的**职责错配**。
+
+### 0.7 ThreadLocal 什么时候真的被回收 + 两种完全不同的泄漏
+
+**「ThreadLocal 对象被回收」需要同时满足两个条件**：
+
+1. **没有任何强引用指向它** —— 注意：如果你写成 `static final`，这一条**永远不成立**；
+2. **发生了一次做了引用处理（reference processing）的 GC** → 此时 GC 把 referent 置 null（即 §2.6 状态机里的 Active → Pending）。
+
+于是泄漏分成**两种形态**，而且**弱引用只对第一种有用**：
+
+| | 场景 A：ThreadLocal 是局部变量 / 动态创建 | 场景 B：`static final`（**正常写法**） |
+|---|---|---|
+| key 会变 null 吗 | 会（强引用一断，下次 GC 就清） | **永远不会**（被类静态字段强引用，永远强可达） |
+| 会产生 stale entry 吗 | **会** → 僵尸条目 | **不会**，Entry 完全"健康" |
+| JDK 清理机制帮得上忙吗 | 帮**一半**：get/set/remove 会顺手清，但不保证及时、不保证完整（§7 实测残留 4 个） | **完全帮不上**：Entry 不是 stale 的，那四路清理**根本不会碰它** |
+| 泄漏的是什么 | value（被僵尸 Entry 拖着） | value（因为**你忘了 `remove()`**） |
+| 可靠解法 | 别动态创建 ThreadLocal，改用 `static final` | **`try/finally` 里 `remove()`** |
+
+**这里有个反直觉但极重要的结论**：
+
+> 日常推荐的 `static final ThreadLocal` 写法，恰恰让**弱引用失去保护作用**——因为 key 永远不会死，Entry 就永远不会变成 stale entry，JDK 那套"顺手清理"一次都不会为它触发。**这时候只有 `remove()` 能救你。**
+
+换句话说：
+
+> **"弱引用能防 ThreadLocal 内存泄漏"这句话，只在你违反"用 `static final`"这条建议时才成立。** 按推荐写法写，防泄漏的唯一手段就是 `remove()`。
 
 ---
 
@@ -170,6 +347,8 @@ private void exit() {
 ```
 
 **所以"线程退出 → map 置 null → 一切释放"这条路是通的；会出问题的是长生命周期线程**——线程池线程、容器工作线程、常驻后台线程，乃至本文 §7 用来演示的 main 线程，都满足"线程不死 → map 不死 → 僵尸 entry 常驻"。其中**线程池最常见**，所以 ThreadLocal 泄漏几乎总和线程池绑定。
+
+> ⚠️ 但别把结论扩大化：**stale entry 只解释了"场景 A"的泄漏**。如果你按推荐写法把 ThreadLocal 声明成 `static final`，它的 key **永远不会变 null**，也就**永远不会产生 stale entry**——此时泄漏纯粹是"忘了 `remove()`"造成的，和弱引用、僵尸条目都无关。两种场景的完整对照见 §0.7。
 
 ---
 
