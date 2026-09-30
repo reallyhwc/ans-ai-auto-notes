@@ -1,13 +1,13 @@
 ---
 title: "ThreadLocal 弱引用设计与内存泄漏"
-description: "从所有权倒置讲清 ThreadLocalMap 为何挂在 Thread 上、Entry 为何是 key 弱引用 + value 强引用的非对称设计、stale entry 的产生与 get/set/remove/rehash 四路机会式清理机制、0x61c88647 黄金分割哈希、线程池泄漏的实测现场，以及 TransmittableThreadLocal / FastThreadLocal / ScopedValue 替代方案"
+description: "从所有权倒置讲清 ThreadLocalMap 为何挂在 Thread 上、Entry 为何是 key 弱引用 + value 强引用的非对称设计、stale entry 的产生与 get/set/remove/rehash 四路机会式清理机制、0x61c88647 黄金分割哈希、长生命周期线程（主线程模拟，与线程池同理）泄漏的实测现场，以及 TransmittableThreadLocal / FastThreadLocal / ScopedValue 替代方案"
 ---
 
 # ThreadLocal 弱引用设计与内存泄漏
 
 > 最后整理: 2026-09-30 | 来源: 对话讲解（JDK 17 源码 + 本机实测 demo）
 
-> 关联: [JVM 内存模型与垃圾回收](<./JVM 内存模型与垃圾回收.md>) — 四种引用强度与可达性分析是本文的前提 | [沙箱（Sandbox）：从进程隔离到 Agent 运行时](<../计算机基础/沙箱（Sandbox）：从进程隔离到 Agent 运行时.md>) — 异步/线程池场景用 TransmittableThreadLocal 传递上下文（本文 §10 展开）
+> 关联: [JVM 内存模型与垃圾回收](<./JVM 内存模型与垃圾回收.md>) — 四种引用强度与可达性分析是本文的前提 | [沙箱（Sandbox）：从进程隔离到 Agent 运行时](<../计算机基础/沙箱（Sandbox）：从进程隔离到 Agent 运行时.md>) — 异步/线程池场景用 TransmittableThreadLocal 传递上下文（本文 §10.2 仅简介，实战细节见该文「链路染色」一节）
 
 ---
 
@@ -101,7 +101,7 @@ static class Entry extends WeakReference<ThreadLocal<?>> {
 
 注意 `Entry` 用的是继承而非组合：`Entry extends WeakReference<ThreadLocal<?>>`，直接**把 WeakReference 的 referent 字段当作 key 用**，省掉一层对象头和一个字段（这是 JDK 里常见的空间优化手法）。
 
-JDK 17 里判断 key 是否被回收用的是 `e.refersTo(key)` / `e.refersTo(null)`（`Reference.refersTo` 是 JDK 16 新增的方法），**老版本（JDK 8）是 `e.get() == key`**。面试时按老写法答也完全正确，语义一致。
+JDK 17 起，多数 key 判定改用 `e.refersTo(key)` / `e.refersTo(null)`（`Reference.refersTo` 是 JDK 16 新增的方法）——`getEntry`、`set`、`remove`、`cleanSomeSlots`、`expungeStaleEntries` 都已切换；但 `expungeStaleEntry` 与 `resize` 里**仍是 `e.get()`**（见 §6.1 的源码引用）。**老版本（JDK 8）则全部是 `e.get() == key`**。两种写法语义完全一致，面试按老写法答也正确。
 
 ---
 
@@ -113,12 +113,13 @@ JDK 17 里判断 key 是否被回收用的是 `e.refersTo(key)` / `e.refersTo(nu
 graph LR
     T1["Thread（线程池常驻）"] -->|强| M1["ThreadLocalMap"]
     M1 -->|强| E1["Entry"]
-    E1 -->|"强（假设）"| TL1["ThreadLocal 对象"]
-    CL["ClassLoader"] -->|加载| C["你的业务类<br/>持有该 ThreadLocal 的类"]
-    TL1 -->|"强（类的静态引用/实例字段）"| C2["业务类对象图"]
+    E1 -->|"强（假设 key）"| TL1["ThreadLocal 对象"]
+    TL1 -->|"强（对象 → 它的 Class）"| C["业务类 Class 对象"]
+    C -->|"强（Class → 定义它的 ClassLoader）"| CL["Web 应用 ClassLoader"]
+    CL -->|强| ALL["该应用加载的全部类 + 静态数据"]
 
     style TL1 fill:#ffcccc
-    style C fill:#ff9999
+    style CL fill:#ff9999
 ```
 
 后果是**ThreadLocal 对象永远不会被回收**，而且它通常不是孤立的：一个 `static final ThreadLocal` 被回收的前提是它所属的 **ClassLoader 能被卸载**。在 Tomcat / Spring Boot 热部署这类容器里，Web 应用的 ClassLoader 会被应用内的所有对象钉住 → **整个 Web 应用的类和静态数据都无法卸载**，这就是经典的 `The web application appears to have started a thread but has failed to stop it` / Metaspace OOM 的成因之一。
@@ -168,13 +169,13 @@ private void exit() {
 }
 ```
 
-**所以"线程退出 → map 置 null → 一切释放"这条路是通的；会出问题的只有线程池**（线程不死，map 不死，僵尸 entry 常驻）——这正是 ThreadLocal 泄漏几乎总和线程池绑定的原因。
+**所以"线程退出 → map 置 null → 一切释放"这条路是通的；会出问题的是长生命周期线程**——线程池线程、容器工作线程、常驻后台线程，乃至本文 §7 用来演示的 main 线程，都满足"线程不死 → map 不死 → 僵尸 entry 常驻"。其中**线程池最常见**，所以 ThreadLocal 泄漏几乎总和线程池绑定。
 
 ---
 
 ## §6 清理机制：四路入口 + 三级扫描
 
-JDK 没有后台清理线程。JDK 源码注释里写得非常明确（`ThreadLocal.java:309`）：
+JDK 没有后台清理线程。JDK 源码注释里写得非常明确（`ThreadLocal.java:315-317`）：
 
 > To help deal with very large and long-lived usages, the hash table entries use WeakReferences for keys. However, **since reference queues are not used, stale entries are guaranteed to be removed only when the table starts running out of space.**
 
@@ -182,7 +183,7 @@ JDK 没有后台清理线程。JDK 源码注释里写得非常明确（`ThreadLo
 
 | 入口 | 触发路径 | 清理强度 |
 |------|---------|---------|
-| `get()` | `getEntry` → `getEntryAfterMiss` → 探测链上遇到 null key → `expungeStaleEntry(i)` | 弱（只清探测链经过的位置） |
+| `get()` | `getEntry` → `getEntryAfterMiss` → 探测链上遇到 null key → `expungeStaleEntry(i)` | 较弱：撞到 stale 后调 `expungeStaleEntry` 会清到下一个 null 槽（含顺带 rehash），但**不做 backward 扫描、不跑 `cleanSomeSlots`** |
 | `set()` | 探测链上遇到 null key → `replaceStaleEntry` → 清理整个 run + `cleanSomeSlots` | 中（清一整个 run） |
 | `remove()` | `e.clear()` + `expungeStaleEntry(i)` | 强（精确清理自己，推荐手段） |
 | 扩容前 `rehash()` | `expungeStaleEntries()` 全表扫描 → 清掉**所有** stale entry | 最强（但只在 size 逼近阈值时发生） |
@@ -296,6 +297,7 @@ public static void main(String[] args) throws Exception {
 
     // 阶段 2：断开 ThreadLocal 强引用 + GC
     WeakReference<ThreadLocal<Payload>> leakRef = createAndLeak();
+    dump(main, "  [阶段2-创建后]");
     gc();
     System.out.println("  ThreadLocal 对象本身是否已被回收? " + (leakRef.get() == null));
     dump(main, "  [阶段2-GC后]");
@@ -338,7 +340,7 @@ public static void main(String[] args) throws Exception {
 
 1. **阶段 2 是泄漏现场的铁证**：`ThreadLocal 对象本身是否已被回收? true` —— 弱引用 key 的设计**确实生效**了，ThreadLocal 对象被回收；但同一时刻 `slot[5] key=null value=Payload@a09ee92`，**8MB 的 value 还活着**。这就是"key 漏不了、value 会漏"的直接观测。
 2. **`size` 把僵尸也计入**：阶段 2 显示 `size=2` 而"存活=1"，说明 stale entry 在 `size` 里直到被 expunge 才递减。这也解释了为什么僵尸堆积会**加速触发 rehash**（阈值判断用的是含僵尸的 size）。
-3. **阶段 3 证明"机会式清理不完整"**：塞了 14 个新 ThreadLocal 触发 rehash 后，仍有 **4 个僵尸残留**（`僵尸=4`）。循环里每次迭代的 `tl` 都变成垃圾，产生了新的僵尸；而 `expungeStaleEntries` 只清掉了当时那一刻能扫到的。**指望"下次 set 会帮我清干净"是不可靠的。**
+3. **阶段 3 证明"清理完全依赖后续操作触发"**：塞 14 个新 ThreadLocal 逼出 rehash，而 `expungeStaleEntries` 是**全表扫描**，当场把已有僵尸清了（"被忘记 remove 的值"和 10 个"填充-*"被回收）；但**循环结束后**最后几个 `tl` 才变成垃圾，此时已没有任何 map 操作，它们的 key 被 GC 置 null 后就成了 **4 个永久驻留的僵尸**（`僵尸=4`）。**结论：清理只在"下一次操作发生"时才可能触发——线程池里若此后不再碰这个 ThreadLocal，泄漏的 value 就再没人来收。**
 4. **表没扩容**（`table.length` 始终 16）：因为 rehash 先清理、size 掉下来了，`size >= threshold - threshold/4` 不成立 → 不 resize。这正是 §6.3 那个"迟滞"设计的实效。
 
 ---
@@ -358,7 +360,9 @@ private static int nextHashCode() {
 }
 ```
 
-`0x61c88647 = 1640531527 ≈ 2³² × (√5 − 1)/2`，即 **2³² × 黄金分割比 0.618...**。这属于 Fibonacci hashing / 乘法散列：当容量是 2 的幂时，用黄金分割作为乘数能让**连续递增的输入**在表里散得最开。
+`0x61c88647 = 1640531527 = 2³² × (1 − 1/φ) = 2³² × (3 − √5)/2 ≈ 2³² × 0.381966 = 2³² − 0x9E3779B9`（φ = (√5 + 1)/2 即黄金分割比）。
+
+⚠️ 这里容易记错：它是黄金分割常数的**补数**，而不是常被引用的 `0x9E3779B9 = 2³² × (√5 − 1)/2 = 2³² × 0.618...`。两者互为取反（`2³² − 0x9E3779B9 = 0x61c88647`），散列效果等价（都是奇常数乘法散列），但数值完全不同。这属于 Fibonacci hashing / 乘法散列：当容量是 2 的幂时，用黄金分割系常数作乘数能让**连续递增的输入**在表里散得最开。
 
 效果：连续创建的 ThreadLocal（hash 依次为 `i × 0x61c88647`）取模 16 后会落在 `0, 7, 14, 5, 12, 3, 10, 1, 8, 15, 6, 13, 4, 11, 2, 9` ——**遍历全部 16 个槽且零冲突**。这是选择这个魔数的全部理由。
 
@@ -370,7 +374,7 @@ private static int nextHashCode() {
 
 既然有弱引用，Java 的标准玩法是「弱引用 + `ReferenceQueue` + 后台线程 drain」。`WeakHashMap` 就是这么干的。ThreadLocalMap 却不用，源码注释明确承认了后果：
 
-> **since reference queues are not used, stale entries are guaranteed to be removed only when the table starts running out of space.**
+> （§6 已引同一句，此处再引一次以便本节独立阅读）**since reference queues are not used, stale entries are guaranteed to be removed only when the table starts running out of space.**
 
 为什么放弃这个更"干净"的方案？
 
@@ -419,7 +423,7 @@ public String format(Date d) {
 
 ### 10.3 性能替代：Netty FastThreadLocal
 
-Netty 的 `FastThreadLocal` 换了思路：不用 hash map、不用弱引用，而是给每个 ThreadLocal 分配一个**自增数组下标**，值存在 `FastThreadLocalThread` 的 `Object[] indexedVariables` 里（配合 `InternalThreadLocalMap`），读取是纯数组访问，比 ThreadLocal 快。代价是**必须配合 `FastThreadLocalThread`**，且**必须显式 `remove()`**（没有弱引用兜底）。适合框架内部高频路径。
+Netty 的 `FastThreadLocal` 换了思路：不用 hash map、不用弱引用，而是给每个 ThreadLocal 分配一个**自增数组下标**，值存在该线程的 `InternalThreadLocalMap.indexedVariables`（`Object[]`）数组里——`InternalThreadLocalMap` 才是持有该数组的类，`FastThreadLocalThread` 只是持有这个 map；读取是纯数组访问，比 ThreadLocal 快。代价是**必须配合 `FastThreadLocalThread`**，且**必须显式 `remove()`**（没有弱引用兜底）。适合框架内部高频路径。
 
 ### 10.4 未来方向：ScopedValue（虚拟线程时代）
 

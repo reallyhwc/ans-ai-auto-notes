@@ -7,7 +7,7 @@ description: "把「沙箱」这个词拆成三种语境讲清楚：应用代码
 
 > 最后整理: 2026-09-11 | 来源: 对话 + DSH 源码包 README（dsh-sandbox / dsh-sandbox-policy / dsh-sandbox-local / dsh-fs-sandbox / dsh-permission-presets / dsh-user-approval）+ Claude Code·Codex 文档 + 开放平台沙箱惯例整理
 
-> 关联: [DSH（DeepSeek Harness）插件架构与循环调度](<../AI/AI-Coding/DSH（DeepSeek Harness）插件架构与循环调度.md>) — 沙箱在 DSH 里的源码级实现（§7 沙箱与权限：两条强制通道） | [Harness 与流程范式：SDD 落在哪一层](<../AI/应用/Harness 与流程范式：SDD 落在哪一层.md>) — 沙箱/审批属于 Harness 的「约束层」 | [AI 编程工具：CLI Agent 与 GUI IDE 全景对比](<../AI/AI-Coding/AI 编程工具：CLI Agent 与 GUI IDE 全景对比.md>) — Codex 的 OS 级沙箱与云端沙箱对照
+> 关联: [DSH（DeepSeek Harness）插件架构与循环调度](<../AI/AI-Coding/DSH（DeepSeek Harness）插件架构与循环调度.md>) — 沙箱在 DSH 里的源码级实现（§7 沙箱与权限：两条强制通道） | [Harness 与流程范式：SDD 落在哪一层](<../AI/应用/Harness 与流程范式：SDD 落在哪一层.md>) — 沙箱/审批属于 Harness 的「约束层」 | [AI 编程工具：CLI Agent 与 GUI IDE 全景对比](<../AI/AI-Coding/AI 编程工具：CLI Agent 与 GUI IDE 全景对比.md>) — Codex 的 OS 级沙箱与云端沙箱对照 | [ThreadLocal 弱引用设计与内存泄漏](<../Java/ThreadLocal 弱引用设计与内存泄漏.md>) — 链路染色用 TTL 跨线程池传递的底层机制（key 弱引用 / value 强引用 / stale entry）
 
 ## 0. 先给结论：你说的「沙箱」是哪一个
 
