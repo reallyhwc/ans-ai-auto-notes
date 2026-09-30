@@ -11,7 +11,7 @@
 - [知识管理工具对比](kb/实战/知识管理工具对比.md) — Obsidian/Notion/本项目方案 对比分析
 - [设计前未做数据调研导致返工](kb/实战/设计前未做数据调研导致返工.md) — 方法论：识别/规则类需求必须先用线上真实数据调研再定技术方案（OMMUSIC-3593553 踩坑复盘）
 
-## 技术 (72 篇)
+## 技术 (73 篇)
 
 ### AI (51 篇)
 
@@ -81,7 +81,7 @@
 - [主流 Agent 产品技术栈解剖：自研循环 vs 框架之争](kb/技术/AI/应用/主流 Agent 产品技术栈解剖：自研循环 vs 框架之争.md) — Claude Code/OpenClaw/Hermes Agent 技术栈拆解，为什么顶级 Agent 产品都不用 LangChain/Spring AI，Agent 循环对比（TAOR/Hub-and-Spoke/run_conversation）
 - [跨语言 Agent + MCP 架构：Python Agent ↔ Java MCP 混合开发](kb/技术/AI/应用/跨语言 Agent + MCP 架构：Python Agent ↔ Java MCP 混合开发.md) — LangChain 双语言支持(Python/JS)、Python写Agent+Java写MCP的正反两种方案、MCP协议抹平语言差异的配置示例、推荐架构
 
-### Java (15 篇)
+### Java (16 篇)
 
 - [Dubbo 与 RPC 框架横评](kb/技术/Java/Dubbo 与 RPC 框架横评.md) — Dubbo 核心架构、调用链路、3.x 新特性，以及 gRPC/OpenFeign/Thrift/Kitex 等主流 RPC 框架对比选型
 - [InnoDB 如何实现 ACID](kb/技术/Java/InnoDB 如何实现 ACID.md) — undo log 保证原子性、redo log 保证持久性、MVCC+锁保证隔离性、一致性是综合结果，含 ReadView 版本链、WAL、Gap Lock 完整原理
@@ -94,6 +94,7 @@
 - [RocketMQ 高级消息机制（延迟·顺序·高可用）](kb/技术/Java/RocketMQ 高级消息机制（延迟·顺序·高可用）.md) — RocketMQ 延迟消息、顺序消息的实现原理，主从同步（HA）机制与高可用故障场景分析——从《RocketMQ 底层实现原理》拆出的深度机制专题
 - [Spring AI](kb/技术/Java/Spring AI.md) — Spring 生态 LLM 集成，流式/非流式调用
 - [Spring IOC、DI 与 AOP 核心原理](kb/技术/Java/Spring IOC、DI 与 AOP 核心原理.md) — Spring 核心机制详解：IoC（控制反转）设计思想、DI（依赖注入）三种方式、Bean 生命周期、AOP（面向切面编程）动态代理原理，含完整代码 Demo 和 Mermaid 图
+- [ThreadLocal 弱引用设计与内存泄漏](kb/技术/Java/ThreadLocal 弱引用设计与内存泄漏.md) — 从所有权倒置讲清 ThreadLocalMap 为何挂在 Thread 上、Entry 为何是 key 弱引用 + value 强引用的非对称设计、stale entry 的产生与 get/set/remove/rehash 四路机会式清理机制、0x61c88647 黄金分割哈希、线程池泄漏的实测现场，以及 TransmittableThreadLocal / FastThreadLocal / ScopedValue 替代方案
 - [主流消息队列对比与选型](kb/技术/Java/主流消息队列对比与选型.md) — Kafka / RocketMQ / RabbitMQ 三大 MQ 的架构原理、存储机制、HA 策略深度对比与选型决策
 - [分布式事务全景](kb/技术/Java/分布式事务全景.md) — Java 后端程序员视角下的分布式事务方案对比与选型实践
 - [点赞Top排行榜设计方案](kb/技术/Java/点赞Top排行榜设计方案.md) — 点赞/热度排行榜的系统设计：Redis ZSet 直写 → 定时批量计算 → 分桶分片，海量数据下的分层架构与反作弊考量

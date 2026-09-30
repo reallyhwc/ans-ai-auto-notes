@@ -7,7 +7,7 @@ description: "JVM 运行时数据区结构、可达性分析与 GC Roots、标�
 
 > 最后整理: 2026-07-08 | 来源: 对话讲解
 
-> 关联: [[./Spring IOC、DI 与 AOP 核心原理.md]] — Spring Bean 生命周期运行在 JVM 之上 | [[./热点账户高并发记账方案.md]] — 高并发场景下 JVM 调优实战
+> 关联: [[./Spring IOC、DI 与 AOP 核心原理.md]] — Spring Bean 生命周期运行在 JVM 之上 | [[./热点账户高并发记账方案.md]] — 高并发场景下 JVM 调优实战 | [ThreadLocal 弱引用设计与内存泄漏](<./ThreadLocal 弱引用设计与内存泄漏.md>) — 弱引用（本文 §2.3）在并发工具上的典型工程应用
 
 ---
 
@@ -187,6 +187,8 @@ System.gc();
 // 下次 GC 后 key 被回收，map 中对应 entry 自动移除
 // 对比普通 HashMap：key 被 map 强引用，永远不会被 GC → 内存泄漏
 ```
+
+> 弱引用最经典的工程应用是 `ThreadLocal`：它的 `Entry` **key 弱引用、value 强引用**，是一半弱一半强的非对称设计。展开见 [ThreadLocal 弱引用设计与内存泄漏](<./ThreadLocal 弱引用设计与内存泄漏.md>)。
 
 ---
 
