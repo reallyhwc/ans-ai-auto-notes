@@ -15,28 +15,64 @@ description: "先做概念澄清（ThreadLocal / ThreadLocalMap / Entry / K / V 
 
 这一节是**概念地图**。把这几个问题理顺，后面所有机制都会顺理成章——因为绝大多数"看不懂"，卡的不是源码，是**没分清谁是谁、谁负责什么**。
 
-### 0.1 一张图：一个 ThreadLocal，N 个线程，N 份值
+### 0.1 先破一个误解：共享的是「变量名」，不是「值」
+
+⚠️ **先破一个高频误解**：很多资料（也包括本笔记的早期版本）会写成"**ThreadLocal 只有一个**，它是变量的身份标识，被所有线程共享"——这句话是**错的**。一个应用里完全可以有几十个 ThreadLocal（几十个逻辑变量），"只有一个"没有道理。
+
+正确的说法是：**一个逻辑变量 ↔ 一个 `ThreadLocal` 实例**；而"被所有线程共享"共享的**只是那个"变量名"身份，不是值**。
+
+**用一张表格类比，立刻就清楚了**：
+
+```text
+                        ┌──────────────────────────────┬───────────────────────┐
+                        │ CURRENT_USER (ThreadLocal ①) │ TRACE_ID (ThreadLocal ②) │  ← 列名：共享
+      ┌─────────────────┼──────────────────────────────┼───────────────────────┤
+      │ 线程 A 的 map   │  "alice"                     │  "trace-001"          │  ← A 那一行
+      ├─────────────────┼──────────────────────────────┼───────────────────────┤
+      │ 线程 B 的 map   │  "bob"                       │  "trace-002"          │  ← B 那一行
+      └─────────────────┴──────────────────────────────┴───────────────────────┘
+              ↑                        ↑
+        每线程一行               每个格子 = 一个 Entry
+```
+
+| 表格里的东西 | ThreadLocal 世界里对应的东西 |
+|------------|---------------------------|
+| **列名**（`CURRENT_USER`） | **`ThreadLocal` 对象** —— 一整套列名，所有行共享 |
+| **一行** | **`ThreadLocalMap`** —— 每个线程一行 |
+| **行 × 列的格子** | **`Entry`** —— key 是列名，value 是"该行该列"的值 |
+
+**关键就一句：共享的是"列名"，不是"格子里的值"。** 你当然不需要给每个线程发明一个新列名（列名一套就够），但每个线程都在自己那一行里填自己的值。
+
+于是那两个看似矛盾的说法就各归其位了：
+
+- **"所有线程共享一个 ThreadLocal"** = 大家拿**同一个对象当 key**（读它的哈希值来定位自己那一格）；
+- **"值互相隔离"** = 值存在**各自的 map（各自那一行）**里，A 的 `"alice"` 和 B 的 `"bob"` 是两个不同的 Entry。
+
+配上同一个数据结构视角：
 
 ```mermaid
 graph TB
-    TL["ThreadLocal 对象<br/>通常全应用只有 1 个（static final）<br/>它既是「变量」本身，也是 map 的 key"]
+    TL["ThreadLocal 对象<br/>① 一个逻辑变量 = 一个实例（通常 static final）<br/>② 它是「变量名」，自己不存值<br/>③ 所有用到它的线程共用它当 key"]
 
-    subgraph SGA["线程 A"]
-        MA["ThreadLocalMap A（A 私有）"] --> EA["Entry：key→TL，value→A 线程的值"]
+    subgraph SGA["线程 A（它那一行）"]
+        MA["ThreadLocalMap A（A 私有）"] --> EA["Entry<br/>key → TL<br/>value → 「alice」（A 的值）"]
     end
-    subgraph SGB["线程 B"]
-        MB["ThreadLocalMap B（B 私有）"] --> EB["Entry：key→TL，value→B 线程的值"]
+    subgraph SGB["线程 B（它那一行）"]
+        MB["ThreadLocalMap B（B 私有）"] --> EB["Entry<br/>key → TL<br/>value → 「bob」（B 的值）"]
     end
 
-    EA -.->|"key 是弱引用"| TL
-    EB -.->|"key 是弱引用"| TL
+    EA -.->|"key 是弱引用，指向同一个 TL"| TL
+    EB -.->|"key 是弱引用，指向同一个 TL"| TL
 ```
 
 这张图要看出三件事：
 
-1. **`ThreadLocal` 只有一个**，它是「变量」的**身份标识**，被所有线程共享（只读地用）。
-2. **`ThreadLocalMap` 每个线程一个**（就是 `Thread` 上的 `threadLocals` 字段），是这个线程的**私有储物柜**。
-3. **同一个 ThreadLocal 在每个线程的 map 里各有一个 Entry**——所以"线程隔离"是靠"每线程一张 map"实现的，**不是**靠每个线程有不同的 key。
+1. **`ThreadLocal` 只是"变量名"**：一个逻辑变量对应一个实例，它**自己不存任何值**，只提供"我是谁"（key 身份）和"值是什么类型"（泛型 `T`）。你 `tl.set(v)` 时，`v` 是塞进**当前线程那一行**的 Entry 里，**不是**塞进 `ThreadLocal` 对象里。
+2. **`ThreadLocalMap` 每个线程一个**（就是 `Thread` 上的 `threadLocals` 字段），是这个线程的**私有储物柜**（也就是"表格的一行"）。
+3. **同一个 ThreadLocal 在每个线程的 map 里各有一个 Entry**——所以"线程隔离"是靠"**每线程一张 map**"实现的，**不是**靠每个线程有不同的 key。
+
+> 顺带把上一版含糊带过的 **"只读地用"** 说清楚：线程们拿 `ThreadLocal` 当 key，只**读取**它的 `threadLocalHashCode`（`private final int`，构造期就定死）来算槽位，**从不修改**这个对象。所以这个被多线程共享的对象**没有任何会被并发写的可变状态 → 自然不需要加锁**。
+> （唯一的"写"发生在 `new ThreadLocal()` 时：对静态的 `nextHashCode` 做一次原子递增——那属于构造期，跟在多个线程里 `get`/`set` 无关。这也是 `ThreadLocal` 能在无锁前提下被所有线程共享的根本原因。）
 
 ### 0.2 对照表：ThreadLocal vs ThreadLocalMap
 
