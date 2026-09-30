@@ -1,6 +1,6 @@
 ---
 title: "JVM 内存模型与垃圾回收"
-description: "JVM 运行时数据区结构、可达性分析与 GC Roots、标记-清除/复制/整理算法、分代收集机制、Serial/Parallel/CMS/G1/ZGC/Shenandoah 收集器原理、GC 调优参数与决策树"
+description: "JVM 运行时数据区结构、可达性分析与 GC Roots、可达性阶梯（强/软/弱/虚）与 Reference 状态机/ReferenceQueue/Cleaner 机制、标记-清除/复制/整理算法、分代收集机制、Serial/Parallel/CMS/G1/ZGC/Shenandoah 收集器原理、GC 调优参数与决策树"
 ---
 
 # JVM 内存模型与垃圾回收
@@ -188,7 +188,184 @@ System.gc();
 // 对比普通 HashMap：key 被 map 强引用，永远不会被 GC → 内存泄漏
 ```
 
-> 弱引用最经典的工程应用是 `ThreadLocal`：它的 `Entry` **key 弱引用、value 强引用**，是一半弱一半强的非对称设计。展开见 [ThreadLocal 弱引用设计与内存泄漏](<./ThreadLocal 弱引用设计与内存泄漏.md>)。
+### 2.4 可达性阶梯：不是"四档开关"，而是一条逐级递归定义的链
+
+JDK 官方文档（`java.lang.ref` 包文档）对"可达"的**操作性定义**是从强到弱**逐级递归**给出的——注意每一档都建立在"前一档不成立"的前提上：
+
+```mermaid
+graph TB
+    S["① 强可达 strongly reachable<br/>不经过任何 Reference 对象就能到达"] --> So["② 软可达 softly reachable<br/>不强可达，但经过 SoftReference 可达"]
+    So --> W["③ 弱可达 weakly reachable<br/>不强/不软可达，但经过 WeakReference 可达"]
+    W --> P["④ 虚可达 phantom reachable<br/>不强/软/弱可达，且已 finalize，有 PhantomReference 指向"]
+    P --> U["⑤ 不可达 unreachable<br/>以上都不是 → 可以回收"]
+```
+
+| 等级 | 官方定义 |
+|------|---------|
+| 强可达 | 某个线程**不经过任何 Reference 对象**就能到达（新 new 出来的对象，对创建它的线程就是强可达） |
+| 软可达 | **不是**强可达，但可以**经过一个软引用**到达 |
+| 弱可达 | **既不是**强可达**也不是**软可达，但可以经过一个弱引用到达 |
+| 虚可达 | 既不强、不软、不弱可达，**且已被 finalize**，但还有虚引用指向它 |
+| 不可达 | 以上全不满足 → 可回收 |
+
+**"逐级定义"这个结构本身就是最关键的要点**：一个对象属于哪一档，取决于**到它最强的那条路径**。所以"把强引用置 null，它就降到弱可达"这句话隐含了一个前提——**没有别的强引用路径**。这也是排查内存泄漏时"我以为它该被回收了"这类误判的总根源。
+
+### 2.5 关键澄清：被"清掉"的不是 Reference 对象，而是它的 referent
+
+这是理解弱引用时最容易搞混的一点。先看 `Reference` 的字段：
+
+```java
+public abstract class Reference<T> {
+    private T referent;                          /* Treated specially by GC */
+    volatile ReferenceQueue<? super T> queue;
+    volatile Reference next;
+    private transient Reference<?> discovered;
+```
+
+- **`Reference` 对象本身是个普普通通的 Java 对象**——它被谁强引用，就活多久。`new WeakReference<>(obj)` 出来的那个对象，**不会因为"弱引用"三个字而自己消失**。
+- **被 GC 清掉的是 `referent` 字段**（指向你的业务对象的那条边），清掉后 `referent == null`，而 `WeakReference` 对象照旧活着。
+- `referent` 看着是普通字段，但注释写着 `Treated specially by GC`——**它被 JVM 特殊对待**。这也解释了为什么 `clear()` 不是一次简单赋值，而是 native 方法：
+
+```java
+public void clear() { clear0(); }   // private native void clear0();
+```
+
+`clear()` 的文档把这件事说得很直白：
+
+> This method is invoked only by Java code; **when the garbage collector clears references it does so directly, without invoking this method.**
+> A simple assignment of the referent field won't do for some garbage collectors.
+
+**推论（ThreadLocal 泄漏的全部根源就在这里）**：清 referent 只切断"**这一条**"边。referent 指向的那个对象、以及它内部引用的所有东西会不会被回收，**完全取决于还有没有别的强引用链**。切断一条边 ≠ 回收对端。
+
+### 2.6 Reference 的四态状态机
+
+`Reference` 对象不是"活着 / 被清"两态，而是有完整状态机（`Reference.java` 源码里那段长注释是权威描述）：
+
+```mermaid
+stateDiagram-v2
+    [*] --> Active: new 出来
+    Active --> Pending: GC 判定 referent 只弱可达并清空它
+    Active --> Inactive: 代码主动 clear 或从未注册队列
+    Pending --> Enqueued: ReferenceHandler 线程移入 ReferenceQueue
+    Pending --> Inactive: 没注册队列直接终结
+    Enqueued --> Inactive: poll 或 remove 取走
+    Inactive --> [*]
+```
+
+| 状态 | referent | 含义 |
+|------|---------|------|
+| **Active** | 非 null | 交给 GC 特殊处理中；GC 一旦发现 referent 已弱可达，就把它"发现"并转入 Pending（或直接转 Inactive） |
+| **Pending** | **已为 null** | 已被 GC 清空，挂在 JVM 内部的 pending 链表上（靠 `discovered` 字段串联），等 `ReferenceHandler` 处理 |
+| **Enqueued** | null | 已进入你的 `ReferenceQueue`，等程序 poll/remove |
+| **Inactive** | null | 终态（已被取走，或本来就没注册队列） |
+
+三个必须知道的实现细节：
+
+1. **"GC 清 referent"和"把 Reference 放进你的队列"是两个动作、两个执行者**。GC 只负责"清 + 挂到 JVM 内部 pending 链表"；把它真正搬进 `ReferenceQueue` 的是 **`ReferenceHandler` 这个守护线程**（`Reference.java` 里的 `processPendingReferences()` 死循环）。
+2. **没注册队列的弱/软引用，就停在 Inactive，不会有任何通知**。想让程序知道"对象被回收了"，必须在构造时传入 `ReferenceQueue`。
+3. **`Cleaner` 是特例**：`ReferenceHandler` 遇到 `Cleaner` 实例会**直接调它的 `clean()`**，而不走"入队"流程——这是 JDK 给清理动作开的直通车。
+
+### 2.7 四种引用的精确语义
+
+| 类型 | 让对象"降到" | GC 何时切断这条边 | `get()` 行为 |
+|------|------------|-----------------|-------------|
+| 强引用 | 不减档 | 永不（只要还有强引用链） | — |
+| `SoftReference` | 软可达 | **由 GC 视内存需求自行裁量**；但抛出 OOM **之前保证**全部清掉 | 返回 referent 或 null |
+| `WeakReference` | 弱可达 | GC 判定弱可达的**那一刻，原子地**清掉指向它的所有弱引用 | 返回 referent 或 null |
+| `PhantomReference` | 虚可达 | 该对象已 finalize 之后 | **永远返回 null** |
+
+**软引用的"视内存需求"是有策略的，不是随机的**：
+
+```java
+public class SoftReference<T> extends Reference<T> {
+    private static long clock;    // GC 维护的"时钟"
+    private long timestamp;       // 每次 get() 会刷新它，构造时初始化为 clock
+```
+
+`SoftReference.get()` 会顺手把 `timestamp` 刷新为当前 `clock`。GC 倾向于**优先清"最久没被访问过"的软引用**，且内存越紧张越激进。对应调优参数（本机 JDK 17 实测默认值）：
+
+```text
+$ java -XX:+PrintFlagsFinal -version | grep SoftRefLRU
+     intx SoftRefLRUPolicyMSPerMB   = 1000   {product} {default}
+```
+
+直觉理解：**每 1 MB 空闲堆，允许软引用多存活约 1 秒**（值越大越"舍不得"清）。官方措辞是"**encouraged** to bias against clearing recently-created or recently-used"——是**鼓励**，不是强制，所以软引用做缓存**不能假设它一定在**。
+
+**弱引用的措辞则非常强**（`WeakReference` 类文档）：
+
+> At that time it will **atomically clear all weak references** to that object and all weak references to any other weakly-reachable objects from which that object is reachable through a chain of strong and soft references.
+
+这就是"弱引用活不过下一次 GC"的准确出处——注意前提是"该对象**只**弱可达"。弱引用的设计目的正是"**不阻止** referent 被 finalize、被回收"，所以它才适合做"规范化映射"（canonicalizing mappings，如 `WeakHashMap`）。
+
+**虚引用为什么 `get()` 恒为 null**：`PhantomReference` 直接覆写 `get()` 为 `return null`。这不是偷懒，而是**故意不让你拿到对象**——否则你就能在"对象已死"之后把它复活（resurrection），彻底破坏回收语义。所以虚引用的唯一用途是"**回收通知**"，且**必须**配 `ReferenceQueue` 才有意义。
+
+> 一个容易混的点：**"不可达"不等于"立刻被回收"**。可达性只是给 GC 一个"可以回收"的许可，真正的时机由 GC 策略决定；弱引用也类似——"下次 GC 会清"里的"下次"指的是**下一次做了引用处理（reference processing）的 GC 周期**，而不是"你一松手就清"。
+
+### 2.8 一个反直觉的坑：`get()` 会把对象"临时变强"
+
+`Reference.get()` 的文档里有一句话值得单独拎出来：
+
+> This method returns a **strong** reference to the referent. This may cause the garbage collector to treat it as **strongly reachable until some later collection cycle**. The `refersTo` method can be used to avoid such strengthening when testing whether some object is the referent of a reference object; that is, use `ref.refersTo(obj)` rather than `ref.get() == obj`.
+
+翻译成人话：**你只是为了"检查一下"而调用 `get()`，却顺手把一条弱引用升级成了强引用**——GC 在后续某个回收周期之前会把它当强可达对待，于是它这一轮就活下来了。
+
+这不是纸上谈兵，而是有直接工程后果的两件事：
+
+- `WeakHashMap` 和 `ThreadLocalMap` 都从 JDK 16 起把 `e.get() == key` 改成了 **`e.refersTo(key)`**（`Reference.refersTo` 是 JDK 16 新增），正是为了消除这种"检查动作本身改变了可达性"的副作用。
+- 这也解释了为什么在 `ThreadLocalMap` 源码里会看到 `refersTo` 和 `e.get()` **混用**：`getEntry`/`set`/`remove`/`cleanSomeSlots`/`expungeStaleEntries` 已切换成 `refersTo`，而 `expungeStaleEntry`、`resize` 里仍是 `e.get()`。
+
+自己写弱引用代码时同理：**判断"是不是同一个对象"用 `refersTo`，不要用 `get() == obj`。**
+
+### 2.9 通知机制：ReferenceQueue、Cleaner 与 finalize
+
+**`WeakHashMap` 是"边访问边清理"的教科书范例**（JDK 包文档原文）：
+
+> A tactic that often works well is to examine a reference queue in the course of performing some other fairly-frequent action. For example, a hashtable that uses weak references to implement weak keys **could poll its reference queue each time the table is accessed. This is how the `WeakHashMap` class works.**
+
+源码完全对应（`WeakHashMap.java`）：
+
+```java
+private final ReferenceQueue<Object> queue = new ReferenceQueue<>();
+
+private void expungeStaleEntries() {
+    for (Object x; (x = queue.poll()) != null; ) {   // 每次 get/put 都顺手清一遍
+        ...
+    }
+}
+```
+
+**对照 `ThreadLocalMap`：它刻意不注册 `ReferenceQueue`**，改为自己扫表。原因是它是**线程私有**的，扫表零同步；换成全局队列反而要在无锁的 map 里加入同步。两者解决同一个问题，选了不同的路——详见 [ThreadLocal 弱引用设计与内存泄漏](<./ThreadLocal 弱引用设计与内存泄漏.md>) §9。
+
+**`Cleaner` 是现代替代 `finalize()` 的方案**，底层就是 `PhantomReference` + `ReferenceQueue`：
+
+```java
+Cleaner cleaner = Cleaner.create();
+cleaner.register(resource, () -> releaseNativeHandle());   // 对象虚可达后执行清理
+```
+
+两条硬约束（`Cleaner` 文档明确写了）：
+
+1. **清理动作（`Runnable`）绝对不能引用被清理的那个对象**，否则它永远无法变成虚可达，清理动作**永远不会执行**。所以清理逻辑要用**静态内部类或静态方法**封装——**不能用匿名内部类 / 非静态内部类**，它们会隐式持有外部实例的引用，正好踩中这个坑。
+2. 清理动作**至多执行一次**，且抛出的异常会被吞掉（不影响 `Cleaner` 里的其他清理动作）。
+
+`finalize()` 被淘汰的原因也在这套机制里：它由 JVM 在**不确定的时刻**调用（对象已不可达但回收被推迟），还允许对象"复活"，延迟和顺序都不可控。本机 JDK 17 源码里它已是 `@Deprecated(since="9")`，更高版本进一步标记为 `forRemoval`。
+
+**最后一把"强制保活"的锁**：`Reference.reachabilityFence(obj)`（JDK 9+）。它的方法体是**空的**，但被 `@ForceInline` 标注，作用是告诉 JIT"执行到这里为止，`obj` 必须还是活的"，防止编译器把"看起来已经没用了"的对象提前判定为可回收。它主要用在依赖对象存活顺序的收尾代码里（如 JNI、池化资源）。
+
+### 2.10 把地基接回 ThreadLocal
+
+有了上面这套地基，ThreadLocal 的每一步都能对上号：
+
+| 地基概念 | 在 ThreadLocal 里的体现 |
+|---------|----------------------|
+| 可达性 = 引用链的传递闭包 | `Thread → ThreadLocalMap → table → Entry → value` 全程强引用，所以 value 可达、绝不会被回收 |
+| 被清的是 referent，不是 Reference 对象 | GC 清的是 `Entry` 的 referent（即 ThreadLocal 对象）；`Entry` 自己还被 `table` 数组强引用，活得好好的 |
+| 清一条边 ≠ 回收对端 | 切断 key 这条边后，value 依然通过 Entry 可达 → **stale entry（僵尸条目）** |
+| 弱引用不注册队列就没有通知 | `ThreadLocalMap` 不注册 `ReferenceQueue`，所以只能靠 get/set/remove **顺手扫表**清理 |
+| 阶梯按"最强路径"定档 | ThreadLocal 对象只要还被 `static final` 强引用，就永远强可达、永远不会被清 |
+| `get()` 会临时变强 | 这正是 `ThreadLocalMap` 改用 `refersTo` 的动机（见 §2.8） |
+
+> 弱引用最经典的工程应用就是这个 `ThreadLocal`：它的 `Entry` **key 弱引用、value 强引用**，是一半弱一半强的非对称设计。完整展开（stale entry、四路清理、实测 demo、TTL/FastThreadLocal/ScopedValue）见 [ThreadLocal 弱引用设计与内存泄漏](<./ThreadLocal 弱引用设计与内存泄漏.md>)。
 
 ---
 

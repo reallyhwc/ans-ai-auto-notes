@@ -7,7 +7,7 @@ description: "从所有权倒置讲清 ThreadLocalMap 为何挂在 Thread 上、
 
 > 最后整理: 2026-09-30 | 来源: 对话讲解（JDK 17 源码 + 本机实测 demo）
 
-> 关联: [JVM 内存模型与垃圾回收](<./JVM 内存模型与垃圾回收.md>) — 四种引用强度与可达性分析是本文的前提 | [沙箱（Sandbox）：从进程隔离到 Agent 运行时](<../计算机基础/沙箱（Sandbox）：从进程隔离到 Agent 运行时.md>) — 异步/线程池场景用 TransmittableThreadLocal 传递上下文（本文 §10.2 仅简介，实战细节见该文「链路染色」一节）
+> 关联: [JVM 内存模型与垃圾回收](<./JVM 内存模型与垃圾回收.md>) — **建议先读该文 §2.4–§2.10**：可达性阶梯、Reference 状态机、`get()` 会临时变强等全部地基都在那里 | [沙箱（Sandbox）：从进程隔离到 Agent 运行时](<../计算机基础/沙箱（Sandbox）：从进程隔离到 Agent 运行时.md>) — 异步/线程池场景用 TransmittableThreadLocal 传递上下文（本文 §10.2 仅简介，实战细节见该文「链路染色」一节）
 
 ---
 
@@ -101,7 +101,7 @@ static class Entry extends WeakReference<ThreadLocal<?>> {
 
 注意 `Entry` 用的是继承而非组合：`Entry extends WeakReference<ThreadLocal<?>>`，直接**把 WeakReference 的 referent 字段当作 key 用**，省掉一层对象头和一个字段（这是 JDK 里常见的空间优化手法）。
 
-JDK 17 起，多数 key 判定改用 `e.refersTo(key)` / `e.refersTo(null)`（`Reference.refersTo` 是 JDK 16 新增的方法）——`getEntry`、`set`、`remove`、`cleanSomeSlots`、`expungeStaleEntries` 都已切换；但 `expungeStaleEntry` 与 `resize` 里**仍是 `e.get()`**（见 §6.1 的源码引用）。**老版本（JDK 8）则全部是 `e.get() == key`**。两种写法语义完全一致，面试按老写法答也正确。
+JDK 17 起，多数 key 判定改用 `e.refersTo(key)` / `e.refersTo(null)`（`Reference.refersTo` 是 JDK 16 新增的方法）——`getEntry`、`set`、`remove`、`cleanSomeSlots`、`expungeStaleEntries` 都已切换；但 `expungeStaleEntry` 与 `resize` 里**仍是 `e.get()`**（见 §6.1 的源码引用）。**老版本（JDK 8）则全部是 `e.get() == key`**。两种写法语义完全一致，面试按老写法答也正确。改用 `refersTo` 的真正动机是：**`get()` 会把 referent 临时"变强"**（可能被 GC 当作强可达直到后续某个回收周期），用 `refersTo` 才能"只检查、不改变可达性"——机制细节见 [JVM 内存模型与垃圾回收](<./JVM 内存模型与垃圾回收.md>) §2.8。
 
 ---
 
